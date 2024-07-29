@@ -29157,7 +29157,7 @@ async function run() {
     payloadContext['owner'] = full_name[0]
     payloadContext['repo'] = full_name[1]
 
-    // core.info(`The context : ${JSON.stringify(github.context, null, 2)}`)
+    core.info(`The context : ${JSON.stringify(github.context, null, 2)}`)
   } catch (error) {
     // Fail the workflow step if an error occurs
     core.setFailed(error.message)
