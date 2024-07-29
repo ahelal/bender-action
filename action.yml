@@ -1,0 +1,28 @@
+name: Bender-action
+description: Azure OpenAI GH Action copilot
+author:
+
+# Define your inputs here.
+inputs:
+  az-openai-endpoint:
+    description: Azure OpenAI Endpoint URL
+    required: true
+  az-openai-key:
+    description: Azure OpenAI API Key
+    required: true
+  gh-token:
+    description: GH personal access token (if using private repos)
+    required: false
+    default: ''
+  user-context:
+    description: User extra  context OpenAI
+    default: ''
+
+# Define your outputs here.
+outputs:
+  success:
+    description:
+
+runs:
+  using: node20
+  main: dist/index.js
