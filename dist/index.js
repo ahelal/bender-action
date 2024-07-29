@@ -29147,10 +29147,14 @@ async function run() {
     const ghToken = core.getInput('gh-token', { required: false })
     const userContext = core.getInput('user-context', { required: false })
 
-    const runId = github.context.runId
+    const payloadContext = {}
+    payloadContext['runId'] = github.context.runId
+    payloadContext['ref'] = github.context.repository.ref
+    payloadContext['repo'] = github.context.repository.full_name
+    payloadContext['job'] = github.context.job
 
     // Output the payload for debugging
-    core.info(`The run ID ${runId}}`)
+    core.info(`payloadContext: ${JSON.stringify(payloadContext, null, 2)}`)
 
     core.info(`The context : ${JSON.stringify(github.context, null, 2)}`)
   } catch (error) {
