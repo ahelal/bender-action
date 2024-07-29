@@ -29148,9 +29148,9 @@ async function run() {
     const userContext = core.getInput('user-context', { required: false })
 
     const payloadContext = {}
-    payloadContext['runId'] = github.context.runId
-    payloadContext['ref'] = github.context.repository.ref
     payloadContext['repo'] = github.context.repository.full_name
+    payloadContext['runId'] = github.context.runId
+    payloadContext['ref'] = github.context.ref
     payloadContext['job'] = github.context.job
 
     // Output the payload for debugging
