@@ -29151,9 +29151,9 @@ async function run() {
     payloadContext['runId'] = github.context.runId
     payloadContext['ref'] = github.context.ref
     payloadContext['job'] = github.context.job
-    payloadContext['full_name'] = github.context.repository.full_name
+    payloadContext['full_name'] = github.context.payload.repository.full_name
 
-    const full_name = github.context.repository.full_name.split('/')
+    const full_name = github.context.payload.repository.full_name.split('/')
     payloadContext['owner'] = full_name[0]
     payloadContext['repo'] = full_name[1]
 
