@@ -29148,16 +29148,16 @@ async function run() {
     const userContext = core.getInput('user-context', { required: false })
 
     const payloadContext = {}
-
     payloadContext['runId'] = github.context.runId
     payloadContext['ref'] = github.context.ref
     payloadContext['job'] = github.context.job
-    payloadContext['repo'] = github.context.payload.repository.full_name
+    payloadContext['full_name'] = payloadContext['full_name']
 
-    // Output the payload for debugging
-    core.info(`payloadContext: ${JSON.stringify(payloadContext, null, 2)}`)
+    const full_name = payloadContext['full_name'].split('/')
+    payloadContext['owner'] = full_name[0]
+    payloadContext['repo'] = full_name[1]
 
-    core.info(`The context : ${JSON.stringify(github.context, null, 2)}`)
+    // core.info(`The context : ${JSON.stringify(github.context, null, 2)}`)
   } catch (error) {
     // Fail the workflow step if an error occurs
     core.setFailed(error.message)
