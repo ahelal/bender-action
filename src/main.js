@@ -16,7 +16,7 @@ async function run() {
     // Output the payload for debugging
     core.info(`The run ID ${runId}}`)
 
-    // core.info(`The context : ${JSON.stringify(github.context, null, 2)}`)
+    core.info(`The context : ${JSON.stringify(github.context, null, 2)}`)
   } catch (error) {
     // Fail the workflow step if an error occurs
     core.setFailed(error.message)
