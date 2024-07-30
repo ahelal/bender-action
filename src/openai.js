@@ -27,7 +27,6 @@ async function openAiRequest(payload, context) {
   // }
   core.info('Sending request to OpenAI')
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
-  core.info(`endpoint ${endpoint}`)
   const message = systemMessage.concat({ role: 'user', content: payload })
   const results = await client.chat.completions.create({
     messages: message,
