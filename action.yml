@@ -2,26 +2,49 @@ name: Bender-action
 description: Azure OpenAI GH Action copilot
 author:
 
-# Define your inputs here.
 inputs:
-  az-openai-endpoint:
-    description: Azure OpenAI Endpoint URL
-    required: true
-  az-openai-key:
-    description: Azure OpenAI API Key
-    required: true
   gh-token:
     description: GH personal access token (if using private repos)
     required: false
-    default: ''
+
+  gh-job:
+    description:
+      Specify the failed job name. If not defined will loop through all job and
+      pick first failed one.
+    required: false
+
+  az-openai-endpoint:
+    description: Azure OpenAI Endpoint URL
+    required: true
+
+  az-openai-deployment:
+    description: Azure OpenAI deployment name
+    required: true
+
+  az-openai-key:
+    description: Azure OpenAI API Key
+    required: true
+
+  az-openai-apiVersion:
+    description: Azure OpenAI version
+    default: '2024-05-01-preview'
+
+  job-context:
+    description: By default send the github action  job yml as extra context
+    default: false
+
   user-context:
-    description: User extra  context OpenAI
+    description: Extra OpenAI user context
     default: ''
 
-# Define your outputs here.
-outputs:
-  success:
-    description:
+  delay:
+    description: Delay in seconds before fetching logs from GH action
+    default: 5
+    required: true
+
+# outputs:
+#   success:
+#     description:
 
 runs:
   using: node20
