@@ -34982,6 +34982,10 @@ function getInputs() {
     required: false
   })
 
+  payloadContext['delay'] = core.getInput('delay', {
+    required: true
+  })
+
   return payloadContext
 }
 
@@ -34999,6 +35003,9 @@ async function run() {
   try {
     const payloadContext = getInputs()
     getContext(payloadContext)
+    const delay = Number(payloadContext['delay'])
+    core.info(`Waiting for ${payloadContext['delay']} seconds`)
+    await new Promise(resolve => setTimeout(resolve, delay * 1000))
 
     core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
 
