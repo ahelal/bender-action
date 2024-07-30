@@ -1,31 +1,71 @@
+const { getCurrentJob, getJobLogs } = require('./api')
+
+const { openAiRequest } = require('./openai')
+
 const core = require('@actions/core')
 const github = require('@actions/github')
 
+function getInputs() {
+  const payloadContext = {}
+
+  payloadContext['ghToken'] = core.getInput('gh-token', { required: false })
+
+  payloadContext['azOpenaiEndpoint'] = core.getInput('az-openai-endpoint', {
+    required: true
+  })
+
+  payloadContext['azOpenaiDeployment'] = core.getInput('az-openai-deployment', {
+    required: true
+  })
+
+  payloadContext['azOpenaiKey'] = core.getInput('az-openai-key', {
+    required: true
+  })
+
+  payloadContext['azOpenaiVersion'] = core.getInput('az-openai-apiVersion', {
+    required: true
+  })
+
+  payloadContext['jobContext'] = core.getInput('job-context', {
+    required: false
+  })
+
+  payloadContext['userContext'] = core.getInput('user-context', {
+    required: false
+  })
+
+  return payloadContext
+}
+
+function getContext(context) {
+  const full_name = github.context.payload.repository.full_name.split('/')
+  context['owner'] = full_name[0]
+  context['repo'] = full_name[1]
+  context['runId'] = github.context.runId
+  context['ref'] = github.context.ref
+  context['job'] = github.context.job
+  context['full_name'] = github.context.payload.repository.full_name
+}
+
 async function run() {
   try {
-    // Get inputs
-    const openaiEndpoint = core.getInput('az-openai-endpoint', {
-      required: true
-    })
-    const openaiKey = core.getInput('az-openai-key', { required: true })
-    const ghToken = core.getInput('gh-token', { required: false })
-    const userContext = core.getInput('user-context', { required: false })
+    const payloadContext = getInputs()
+    getContext(payloadContext)
 
-    const payloadContext = {}
-    payloadContext['runId'] = github.context.runId
-    payloadContext['ref'] = github.context.ref
-    payloadContext['job'] = github.context.job
-    payloadContext['full_name'] = github.context.payload.repository.full_name
+    core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
 
-    const full_name = github.context.payload.repository.full_name.split('/')
-    payloadContext['owner'] = full_name[0]
-    payloadContext['repo'] = full_name[1]
+    const currentJob = await getCurrentJob(payloadContext)
+    payloadContext['jobId'] = currentJob.id
 
-    core.info(`The payloadContext : ${JSON.stringify(payloadContext, null, 2)}`)
-    // core.info(`The context : ${JSON.stringify(github.context, null, 2)}`)
+    const jobLog = await getJobLogs(payloadContext)
+
+    const aiResponse = await openAiRequest(jobLog, payloadContext)
+    for (const result of aiResponse.choices) {
+      core.info(result.message.content)
+    }
   } catch (error) {
     // Fail the workflow step if an error occurs
-    core.setFailed(error.message)
+    core.setFailed(`${error}`)
   }
 }
 
