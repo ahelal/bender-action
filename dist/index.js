@@ -34970,7 +34970,7 @@ function getInputs() {
   payloadContext['ghToken'] = core.getInput('gh-token', { required: false })
 
   payloadContext['ghJob'] = core.getInput('gh-job', {
-    required: true
+    required: false
   })
 
   payloadContext['azOpenaiEndpoint'] = core.getInput('az-openai-endpoint', {

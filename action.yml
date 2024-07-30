@@ -7,6 +7,12 @@ inputs:
     description: GH personal access token (if using private repos)
     required: false
 
+  gh-job:
+    description:
+      Specify the failed job name. If not defined will loop through all job and
+      pick first failed one.
+    required: false
+
   az-openai-endpoint:
     description: Azure OpenAI Endpoint URL
     required: true
