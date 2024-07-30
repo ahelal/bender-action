@@ -39,7 +39,7 @@ inputs:
 
   delay:
     description: Delay in seconds before fetching logs from GH action
-    default: 20
+    default: 5
     required: true
 
 # outputs:
