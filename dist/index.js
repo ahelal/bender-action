@@ -34879,18 +34879,29 @@ function interpolate(target, context) {
   return interpolateObj(target, context)
 }
 
-async function getCurrentJob(context) {
+async function getJob(context) {
   const response = await doRequest(
     'GET',
     '/repos/${owner}/${repo}/actions/runs/${runId}/jobs',
     {},
     context
   )
+  if (context['ghJob']) {
+    for (const job of response.data.jobs) {
+      if (job.name === context['ghJob']) {
+        return job
+      }
+    }
+    return null
+  }
   for (const job of response.data.jobs) {
-    if (job.name === context.job) {
+    if (job.status === 'completed' && job.conclusion === 'failure') {
       return job
     }
   }
+  // "status": "completed",
+  // "conclusion": "failure",
+
   return null
 }
 
@@ -34938,7 +34949,7 @@ async function doRequest(method, path, body, context) {
   }
 }
 
-module.exports = { getCurrentJob, getJobLogs }
+module.exports = { getJob, getJobLogs }
 
 
 /***/ }),
@@ -34946,7 +34957,7 @@ module.exports = { getCurrentJob, getJobLogs }
 /***/ 1713:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { getCurrentJob, getJobLogs } = __nccwpck_require__(612)
+const { getJob, getJobLogs } = __nccwpck_require__(612)
 
 const { openAiRequest } = __nccwpck_require__(2151)
 
@@ -34957,6 +34968,10 @@ function getInputs() {
   const payloadContext = {}
 
   payloadContext['ghToken'] = core.getInput('gh-token', { required: false })
+
+  payloadContext['ghJob'] = core.getInput('gh-job', {
+    required: true
+  })
 
   payloadContext['azOpenaiEndpoint'] = core.getInput('az-openai-endpoint', {
     required: true
@@ -34995,7 +35010,7 @@ function getContext(context) {
   context['repo'] = full_name[1]
   context['runId'] = github.context.runId
   context['ref'] = github.context.ref
-  context['job'] = github.context.job
+  // context['job'] = github.context.job
   context['full_name'] = github.context.payload.repository.full_name
 }
 
@@ -35010,8 +35025,9 @@ async function run() {
     core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
 
     core.info('Getting some GH action context job logs')
-    const currentJob = await getCurrentJob(payloadContext)
+    const currentJob = await getJob(payloadContext)
     payloadContext['jobId'] = currentJob.id
+    core.info(`Job Name/ID: ${currentJob.name}/${payloadContext['jobId']}`)
 
     const jobLog = await getJobLogs(payloadContext)
 

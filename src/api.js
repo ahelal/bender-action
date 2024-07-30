@@ -29,18 +29,29 @@ function interpolate(target, context) {
   return interpolateObj(target, context)
 }
 
-async function getCurrentJob(context) {
+async function getJob(context) {
   const response = await doRequest(
     'GET',
     '/repos/${owner}/${repo}/actions/runs/${runId}/jobs',
     {},
     context
   )
+  if (context['ghJob']) {
+    for (const job of response.data.jobs) {
+      if (job.name === context['ghJob']) {
+        return job
+      }
+    }
+    return null
+  }
   for (const job of response.data.jobs) {
-    if (job.name === context.job) {
+    if (job.status === 'completed' && job.conclusion === 'failure') {
       return job
     }
   }
+  // "status": "completed",
+  // "conclusion": "failure",
+
   return null
 }
 
@@ -88,4 +99,4 @@ async function doRequest(method, path, body, context) {
   }
 }
 
-module.exports = { getCurrentJob, getJobLogs }
+module.exports = { getJob, getJobLogs }

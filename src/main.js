@@ -1,4 +1,4 @@
-const { getCurrentJob, getJobLogs } = require('./api')
+const { getJob, getJobLogs } = require('./api')
 
 const { openAiRequest } = require('./openai')
 
@@ -9,6 +9,10 @@ function getInputs() {
   const payloadContext = {}
 
   payloadContext['ghToken'] = core.getInput('gh-token', { required: false })
+
+  payloadContext['ghJob'] = core.getInput('gh-job', {
+    required: true
+  })
 
   payloadContext['azOpenaiEndpoint'] = core.getInput('az-openai-endpoint', {
     required: true
@@ -47,7 +51,7 @@ function getContext(context) {
   context['repo'] = full_name[1]
   context['runId'] = github.context.runId
   context['ref'] = github.context.ref
-  context['job'] = github.context.job
+  // context['job'] = github.context.job
   context['full_name'] = github.context.payload.repository.full_name
 }
 
@@ -62,8 +66,9 @@ async function run() {
     core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
 
     core.info('Getting some GH action context job logs')
-    const currentJob = await getCurrentJob(payloadContext)
+    const currentJob = await getJob(payloadContext)
     payloadContext['jobId'] = currentJob.id
+    core.info(`Job Name/ID: ${currentJob.name}/${payloadContext['jobId']}`)
 
     const jobLog = await getJobLogs(payloadContext)
 
