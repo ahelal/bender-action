@@ -35002,6 +35002,7 @@ async function run() {
 
     core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
 
+    core.info('Getting some GH action context job logs')
     const currentJob = await getCurrentJob(payloadContext)
     payloadContext['jobId'] = currentJob.id
 
@@ -35027,11 +35028,6 @@ module.exports = {
 /***/ 2151:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-// "@azure/identity": "^4.4.0",
-// "@azure/openai": "next",
-// "axios": "^1.7.2",
-// "dotenv": "latest",
-// "openai": "^4.53.2"
 const core = __nccwpck_require__(2186)
 const { AzureOpenAI } = __nccwpck_require__(47)
 
@@ -35061,6 +35057,7 @@ async function openAiRequest(payload, context) {
   // }
   core.info('Sending request to OpenAI')
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
+  core.info(`endpoint ${endpoint}`)
   const message = systemMessage.concat({ role: 'user', content: payload })
   const results = await client.chat.completions.create({
     messages: message,

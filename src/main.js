@@ -54,6 +54,7 @@ async function run() {
 
     core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
 
+    core.info('Getting some GH action context job logs')
     const currentJob = await getCurrentJob(payloadContext)
     payloadContext['jobId'] = currentJob.id
 
