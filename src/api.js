@@ -6,7 +6,6 @@ const GithubAPIversion = '2022-11-28'
 function interpolateStr(str, context) {
   let newStr = str
   for (const [key, value] of Object.entries(context)) {
-    // newStr = newStr.replace('${' + key + '}', value)
     newStr = newStr.replace(`\${${key}}`, value)
   }
   return newStr
@@ -29,6 +28,16 @@ function interpolate(target, context) {
   return interpolateObj(target, context)
 }
 
+async function getActionRuns(context) {
+  const response = await doRequest(
+    'GET',
+    '/repos/${owner}/${repo}/actions/runs/${runId}',
+    {},
+    context
+  )
+  return response.data
+}
+
 async function getJob(context) {
   const response = await doRequest(
     'GET',
@@ -49,10 +58,17 @@ async function getJob(context) {
       return job
     }
   }
-  // "status": "completed",
-  // "conclusion": "failure",
-
   return null
+}
+
+async function getContent(filepath, ref, context) {
+  const response = await doRequest(
+    'GET',
+    '/repos/${owner}/${repo}/contents/' + `${filepath}?ref=${ref}`,
+    {},
+    context
+  )
+  return response.data
 }
 
 function stripLogs(str) {
@@ -99,4 +115,4 @@ async function doRequest(method, path, body, context) {
   }
 }
 
-module.exports = { getJob, getJobLogs }
+module.exports = { getJob, getJobLogs, getActionRuns, getContent }

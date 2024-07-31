@@ -30,7 +30,7 @@ async function openAiRequest(payload, context) {
   if (context.dirContext)
     message.push({
       role: 'system',
-      content: `Directory structure of project\n--------\n${context.dirContext}`
+      content: `Directory structure of project\n--------\n${atob(context.dirContext)}`
     })
 
   if (context.userContext)

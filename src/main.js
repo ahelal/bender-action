@@ -1,4 +1,4 @@
-const { getJob, getJobLogs } = require('./api')
+const { getJob, getActionRuns, getJobLogs, getContent } = require('./api')
 
 const { openAiRequest } = require('./openai')
 
@@ -59,20 +59,38 @@ function getContext(context) {
   context['full_name'] = github.context.payload.repository.full_name
 }
 
+async function getJobYaml(context) {
+  const jobAction = await getActionRuns(context)
+  // console.log(`jobAction: ${JSON.stringify(jobAction, null, 2)}`)
+  const jobPath = jobAction.path
+  const jobRef = jobAction.head_branch
+  // console.log(`jobPath: ${jobPath}`)
+  // console.log(`jobRef: ${jobRef}`)
+  const jobYaml = await getContent(jobPath, jobRef, context)
+  // return btoa(jobYaml.content)
+  return atob(jobYaml.content)
+}
+
 async function run() {
   try {
     const payloadContext = getInputs()
     getContext(payloadContext)
+    core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
+
     const delay = Number(payloadContext['delay'])
     core.info(`Waiting for ${payloadContext['delay']} seconds`)
     await new Promise(resolve => setTimeout(resolve, delay * 1000))
 
-    core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
-
-    core.info('Getting some GH action context job logs')
+    core.info('Getting GH action job info')
     const currentJob = await getJob(payloadContext)
     payloadContext['jobId'] = currentJob.id
+
     core.info(`Job Name/ID: ${currentJob.name}/${payloadContext['jobId']}`)
+    core.debug(`Job info: ${JSON.stringify(currentJob, null, 2)}`)
+
+    if (payloadContext['jobContext']) {
+      payloadContext['jobContext'] = await getJobYaml(payloadContext)
+    }
 
     const jobLog = await getJobLogs(payloadContext)
 

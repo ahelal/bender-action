@@ -30,12 +30,12 @@ inputs:
     default: '2024-05-01-preview'
 
   dir-context:
-    description: Provide the directory structure as extra context
+    description: Provide the directory structure as base64 extra context
     default: ''
 
   job-context:
-    description: Provide the GH action job content as extra context
-    default: ''
+    description: Should the github action yaml be provided as context
+    default: false
 
   user-context:
     description: Extra OpenAI user context
@@ -43,7 +43,7 @@ inputs:
 
   delay:
     description: Delay in seconds before fetching logs from GH action
-    default: 5
+    default: 1
     required: true
 
 # outputs:

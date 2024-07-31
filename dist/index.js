@@ -34856,7 +34856,6 @@ const GithubAPIversion = '2022-11-28'
 function interpolateStr(str, context) {
   let newStr = str
   for (const [key, value] of Object.entries(context)) {
-    // newStr = newStr.replace('${' + key + '}', value)
     newStr = newStr.replace(`\${${key}}`, value)
   }
   return newStr
@@ -34879,6 +34878,16 @@ function interpolate(target, context) {
   return interpolateObj(target, context)
 }
 
+async function getActionRuns(context) {
+  const response = await doRequest(
+    'GET',
+    '/repos/${owner}/${repo}/actions/runs/${runId}',
+    {},
+    context
+  )
+  return response.data
+}
+
 async function getJob(context) {
   const response = await doRequest(
     'GET',
@@ -34899,10 +34908,17 @@ async function getJob(context) {
       return job
     }
   }
-  // "status": "completed",
-  // "conclusion": "failure",
-
   return null
+}
+
+async function getContent(filepath, ref, context) {
+  const response = await doRequest(
+    'GET',
+    '/repos/${owner}/${repo}/contents/' + `${filepath}?ref=${ref}`,
+    {},
+    context
+  )
+  return response.data
 }
 
 function stripLogs(str) {
@@ -34949,7 +34965,7 @@ async function doRequest(method, path, body, context) {
   }
 }
 
-module.exports = { getJob, getJobLogs }
+module.exports = { getJob, getJobLogs, getActionRuns, getContent }
 
 
 /***/ }),
@@ -34957,7 +34973,7 @@ module.exports = { getJob, getJobLogs }
 /***/ 1713:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { getJob, getJobLogs } = __nccwpck_require__(612)
+const { getJob, getActionRuns, getJobLogs, getContent } = __nccwpck_require__(612)
 
 const { openAiRequest } = __nccwpck_require__(2151)
 
@@ -35018,20 +35034,38 @@ function getContext(context) {
   context['full_name'] = github.context.payload.repository.full_name
 }
 
+async function getJobYaml(context) {
+  const jobAction = await getActionRuns(context)
+  // console.log(`jobAction: ${JSON.stringify(jobAction, null, 2)}`)
+  const jobPath = jobAction.path
+  const jobRef = jobAction.head_branch
+  // console.log(`jobPath: ${jobPath}`)
+  // console.log(`jobRef: ${jobRef}`)
+  const jobYaml = await getContent(jobPath, jobRef, context)
+  // return btoa(jobYaml.content)
+  return atob(jobYaml.content)
+}
+
 async function run() {
   try {
     const payloadContext = getInputs()
     getContext(payloadContext)
+    core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
+
     const delay = Number(payloadContext['delay'])
     core.info(`Waiting for ${payloadContext['delay']} seconds`)
     await new Promise(resolve => setTimeout(resolve, delay * 1000))
 
-    core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
-
-    core.info('Getting some GH action context job logs')
+    core.info('Getting GH action job info')
     const currentJob = await getJob(payloadContext)
     payloadContext['jobId'] = currentJob.id
+
     core.info(`Job Name/ID: ${currentJob.name}/${payloadContext['jobId']}`)
+    core.debug(`Job info: ${JSON.stringify(currentJob, null, 2)}`)
+
+    if (payloadContext['jobContext']) {
+      payloadContext['jobContext'] = await getJobYaml(payloadContext)
+    }
 
     const jobLog = await getJobLogs(payloadContext)
 
@@ -35091,7 +35125,7 @@ async function openAiRequest(payload, context) {
   if (context.dirContext)
     message.push({
       role: 'system',
-      content: `Directory structure of project\n--------\n${context.dirContext}`
+      content: `Directory structure of project\n--------\n${atob(context.dirContext)}`
     })
 
   if (context.userContext)
