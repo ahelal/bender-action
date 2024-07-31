@@ -30,6 +30,10 @@ function getInputs() {
     required: true
   })
 
+  payloadContext['dirContext'] = core.getInput('dir-context', {
+    required: false
+  })
+
   payloadContext['jobContext'] = core.getInput('job-context', {
     required: false
   })

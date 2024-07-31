@@ -29,9 +29,13 @@ inputs:
     description: Azure OpenAI version
     default: '2024-05-01-preview'
 
+  dir-context:
+    description: Provide the directory structure as extra context
+    default: ''
+
   job-context:
-    description: By default send the github action  job yml as extra context
-    default: false
+    description: Provide the GH action job content as extra context
+    default: ''
 
   user-context:
     description: Extra OpenAI user context
