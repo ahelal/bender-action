@@ -35105,7 +35105,7 @@ async function openAiRequest(payload, context) {
   const results = await client.chat.completions.create({
     messages: message,
     model: '',
-    max_tokens: 128,
+    max_tokens: 256,
     stream: false
   })
   return results
