@@ -35039,7 +35039,10 @@ async function run() {
     for (const result of aiResponse.choices) {
       core.info(result.message.content)
     }
-    core.debug(`AI Response: ${JSON.stringify(aiResponse, null, 2)}`)
+
+    core.info(`UsageAI ${JSON.stringify(aiResponse.usage, null, 2)}`)
+
+    core.debug(`Response: ${JSON.stringify(aiResponse, null, 2)}`)
   } catch (error) {
     // Fail the workflow step if an error occurs
     core.setFailed(`${error}`)
@@ -35059,7 +35062,7 @@ module.exports = {
 const core = __nccwpck_require__(2186)
 const { AzureOpenAI } = __nccwpck_require__(47)
 
-let systemMessage = [
+let message = [
   {
     role: 'system',
     content: `Your a coding engineer assistant. Your purpose is to find errors and suggest solutions to fix them.
@@ -35077,7 +35080,8 @@ async function openAiRequest(payload, context) {
   const apiVersion = context['azOpenaiVersion']
   const apiKey = context['azOpenaiKey']
   const endpoint = context['azOpenaiEndpoint']
-
+  // Message setup
+  message = message.concat({ role: 'user', content: payload })
   if (context.jobContext)
     message.push({
       role: 'system',
@@ -35101,7 +35105,6 @@ async function openAiRequest(payload, context) {
   )
   core.info('Sending request to OpenAI')
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
-  const message = systemMessage.concat({ role: 'user', content: payload })
   const results = await client.chat.completions.create({
     messages: message,
     model: '',

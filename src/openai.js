@@ -1,7 +1,7 @@
 const core = require('@actions/core')
 const { AzureOpenAI } = require('openai')
 
-let systemMessage = [
+let message = [
   {
     role: 'system',
     content: `Your a coding engineer assistant. Your purpose is to find errors and suggest solutions to fix them.
@@ -19,7 +19,8 @@ async function openAiRequest(payload, context) {
   const apiVersion = context['azOpenaiVersion']
   const apiKey = context['azOpenaiKey']
   const endpoint = context['azOpenaiEndpoint']
-
+  // Message setup
+  message = message.concat({ role: 'user', content: payload })
   if (context.jobContext)
     message.push({
       role: 'system',
@@ -43,7 +44,6 @@ async function openAiRequest(payload, context) {
   )
   core.info('Sending request to OpenAI')
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
-  const message = systemMessage.concat({ role: 'user', content: payload })
   const results = await client.chat.completions.create({
     messages: message,
     model: '',

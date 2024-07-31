@@ -80,7 +80,10 @@ async function run() {
     for (const result of aiResponse.choices) {
       core.info(result.message.content)
     }
-    core.debug(`AI Response: ${JSON.stringify(aiResponse, null, 2)}`)
+
+    core.info(`UsageAI ${JSON.stringify(aiResponse.usage, null, 2)}`)
+
+    core.debug(`Response: ${JSON.stringify(aiResponse, null, 2)}`)
   } catch (error) {
     // Fail the workflow step if an error occurs
     core.setFailed(`${error}`)
