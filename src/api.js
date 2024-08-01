@@ -62,13 +62,14 @@ async function getJob(context) {
 }
 
 async function getContent(filepath, ref, context) {
+  const path = '/repos/${owner}/${repo}/contents'
   const response = await doRequest(
     'GET',
-    '/repos/${owner}/${repo}/contents/' + `${filepath}?ref=${ref}`,
+    `${path}/${filepath}?ref=${ref}`,
     {},
     context
   )
-  return response.data
+  return atob(response.data.content)
 }
 
 function stripLogs(str) {
@@ -98,11 +99,12 @@ async function doRequest(method, path, body, context) {
   const iBody = interpolate(body, context)
 
   //TODO remove secrets
-  core.debug(`doRequest Path ${iPath}`)
-  core.debug(`doRequest Body: ${JSON.stringify(iBody, null, 2)}`)
+  core.debug(`doRequest path ${iPath}`)
+  core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
 
   try {
     const response = await octokit.request(iPath, iBody)
+    core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
     if (response.status !== 200) {
       core.setFailed(
         `Github API request failed with status code ${response.status}. ${response.data.message}`

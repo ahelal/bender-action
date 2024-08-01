@@ -34912,13 +34912,14 @@ async function getJob(context) {
 }
 
 async function getContent(filepath, ref, context) {
+  const path = '/repos/${owner}/${repo}/contents'
   const response = await doRequest(
     'GET',
-    '/repos/${owner}/${repo}/contents/' + `${filepath}?ref=${ref}`,
+    `${path}/${filepath}?ref=${ref}`,
     {},
     context
   )
-  return response.data
+  return atob(response.data.content)
 }
 
 function stripLogs(str) {
@@ -34948,11 +34949,12 @@ async function doRequest(method, path, body, context) {
   const iBody = interpolate(body, context)
 
   //TODO remove secrets
-  core.debug(`doRequest Path ${iPath}`)
-  core.debug(`doRequest Body: ${JSON.stringify(iBody, null, 2)}`)
+  core.debug(`doRequest path ${iPath}`)
+  core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
 
   try {
     const response = await octokit.request(iPath, iBody)
+    core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
     if (response.status !== 200) {
       core.setFailed(
         `Github API request failed with status code ${response.status}. ${response.data.message}`
@@ -34975,53 +34977,54 @@ module.exports = { getJob, getJobLogs, getActionRuns, getContent }
 
 const { getJob, getActionRuns, getJobLogs, getContent } = __nccwpck_require__(612)
 
-const { openAiRequest } = __nccwpck_require__(2151)
+const { openAiRequest, setupInitialMessage } = __nccwpck_require__(2151)
 
 const core = __nccwpck_require__(2186)
 const github = __nccwpck_require__(5438)
+const maxRecursion = 2
 
 function getInputs() {
-  const payloadContext = {}
+  const context = {}
 
-  payloadContext['ghToken'] = core.getInput('gh-token', { required: false })
+  context['ghToken'] = core.getInput('gh-token', { required: false })
 
-  payloadContext['ghJob'] = core.getInput('gh-job', {
+  context['ghJob'] = core.getInput('gh-job', {
     required: false
   })
 
-  payloadContext['azOpenaiEndpoint'] = core.getInput('az-openai-endpoint', {
+  context['azOpenaiEndpoint'] = core.getInput('az-openai-endpoint', {
     required: true
   })
 
-  payloadContext['azOpenaiDeployment'] = core.getInput('az-openai-deployment', {
+  context['azOpenaiDeployment'] = core.getInput('az-openai-deployment', {
     required: true
   })
 
-  payloadContext['azOpenaiKey'] = core.getInput('az-openai-key', {
+  context['azOpenaiKey'] = core.getInput('az-openai-key', {
     required: true
   })
 
-  payloadContext['azOpenaiVersion'] = core.getInput('az-openai-apiVersion', {
+  context['azOpenaiVersion'] = core.getInput('az-openai-apiVersion', {
     required: true
   })
 
-  payloadContext['dirContext'] = core.getInput('dir-context', {
+  context['dirContext'] = core.getInput('dir-context', {
     required: false
   })
 
-  payloadContext['jobContext'] = core.getInput('job-context', {
+  context['jobContext'] = core.getInput('job-context', {
     required: false
   })
 
-  payloadContext['userContext'] = core.getInput('user-context', {
+  context['userContext'] = core.getInput('user-context', {
     required: false
   })
 
-  payloadContext['delay'] = core.getInput('delay', {
+  context['delay'] = core.getInput('delay', {
     required: true
   })
 
-  return payloadContext
+  return context
 }
 
 function getContext(context) {
@@ -35036,47 +35039,81 @@ function getContext(context) {
 
 async function getJobYaml(context) {
   const jobAction = await getActionRuns(context)
-  // console.log(`jobAction: ${JSON.stringify(jobAction, null, 2)}`)
-  const jobPath = jobAction.path
-  const jobRef = jobAction.head_branch
-  // console.log(`jobPath: ${jobPath}`)
-  // console.log(`jobRef: ${jobRef}`)
-  const jobYaml = await getContent(jobPath, jobRef, context)
-  // return btoa(jobYaml.content)
-  return atob(jobYaml.content)
+  const jobYaml = await getContent(
+    jobAction.path,
+    jobAction.head_branch,
+    context
+  )
+  return jobYaml
+}
+
+async function getFileContent4Context(response, context) {
+  const regex = /CONTENT_OF_FILE_NEEDED "(.*?)"/gm
+  const matches = [...response.matchAll(regex)]
+  if (matches.length < 1) {
+    core.warning(
+      `No file content matched, this can be incorrect response format from OpenAI. try to run again`
+    )
+    return false
+  }
+  const found = matches.map(match => match[1])
+  core.info(`Fetching file content for ${found[0]} from ${context['ref']}`)
+  const fileContent = await getContent(found[0], context['ref'], context)
+  console.log(`File content:  ${JSON.stringify(fileContent, null, 2)}`)
+  return { filename: found[0], content: fileContent }
 }
 
 async function run() {
   try {
-    const payloadContext = getInputs()
-    getContext(payloadContext)
-    core.debug(`Context: ${JSON.stringify(payloadContext, null, 2)}`)
+    const context = getInputs()
+    getContext(context)
+    core.debug(`Context: ${JSON.stringify(context, null, 2)}`)
 
-    const delay = Number(payloadContext['delay'])
-    core.info(`Waiting for ${payloadContext['delay']} seconds`)
+    const delay = Number(context['delay'])
+    core.info(`Waiting for ${context['delay']} seconds`)
     await new Promise(resolve => setTimeout(resolve, delay * 1000))
 
     core.info('Getting GH action job info')
-    const currentJob = await getJob(payloadContext)
-    payloadContext['jobId'] = currentJob.id
+    const currentJob = await getJob(context)
+    context['jobId'] = currentJob.id
 
-    core.info(`Job Name/ID: ${currentJob.name}/${payloadContext['jobId']}`)
-    core.debug(`Job info: ${JSON.stringify(currentJob, null, 2)}`)
+    core.info(`Job Name/ID: ${currentJob.name}/${context['jobId']}`)
+    // core.debug(`Job info: ${JSON.stringify(currentJob, null, 2)}`)
 
-    if (payloadContext['jobContext']) {
-      payloadContext['jobContext'] = await getJobYaml(payloadContext)
+    if (context['jobContext']) context['jobContext'] = await getJobYaml(context)
+
+    const jobLog = await getJobLogs(context)
+    const message = setupInitialMessage(context, jobLog)
+    for (let i = 1; i <= maxRecursion; i++) {
+      const aiResponse = await openAiRequest(message, context)
+      for (const result of aiResponse.choices) {
+        core.info(result.message.content)
+        message.push({ role: 'assistant', content: result.message.content })
+      }
+      core.info(
+        `UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`
+      )
+      if (
+        !aiResponse.choices[0].message.content.includes(
+          'CONTENT_OF_FILE_NEEDED'
+        )
+      ) {
+        core.debug(`No more context needed`)
+        break
+      }
+      const fileContent = await getFileContent4Context(
+        aiResponse.choices[0].message.content,
+        context
+      )
+      if (!fileContent) {
+        core.info(`Unable to get file content`)
+        break
+      }
+      message.push({
+        role: 'user',
+        content: `Content of file ${fileContent.filename}\n--------\n${fileContent.content}\n`
+      })
     }
-
-    const jobLog = await getJobLogs(payloadContext)
-
-    const aiResponse = await openAiRequest(jobLog, payloadContext)
-    for (const result of aiResponse.choices) {
-      core.info(result.message.content)
-    }
-
-    core.info(`UsageAI ${JSON.stringify(aiResponse.usage, null, 2)}`)
-
-    core.debug(`Response: ${JSON.stringify(aiResponse, null, 2)}`)
   } catch (error) {
     // Fail the workflow step if an error occurs
     core.setFailed(`${error}`)
@@ -35096,48 +35133,56 @@ module.exports = {
 const core = __nccwpck_require__(2186)
 const { AzureOpenAI } = __nccwpck_require__(47)
 
-let message = [
-  {
-    role: 'system',
-    content: `Your a coding engineer assistant. Your purpose is to find errors and suggest solutions to fix them.
-Your output should be formatted as text.
-You will be presented by Github actions job log that failed. You should provide the following 
-1- Cause why the job failed.  
-2- Provide a solution to fix the error.
-Only if the information provided is not enough to find the cause and a solution. Take the following actions:
-If you have a stack trace you can ask for the file that caused the error by replying with "GET FILEPATH/FILENAME" without an other text.`
-  }
-]
+// `Your a coding engineer assistant. Your purpose is to find errors and suggest solutions to fix them.
+// Your output should be formatted as text. You will be presented with Github action job log that failed.
+// If information provided is enough. You should reply with the following:
+// 1- Cause why the job failed.
+// 2- Provide a solution to fix the error.
+// If the information provided is not enough to deduct the cause of failure or your unable to suggest solution. You should reply as follows:
+// 1- If you have a stack trace or error indicates a specific file, you can ask for the content of a the file with a single line reply 'CONTENT_OF_FILE_NEEDED "<full path of file>"' e.g. 'CONTENT_OF_FILE_NEEDED "src/index.js"' and you will be provided with the content of the file for further investigation.
+// 2- if no possible way forward reply with 'Not enough information to provide a solution'`
 
-async function openAiRequest(payload, context) {
+function setupInitialMessage(context, jobLog) {
+  const systemMessage = [
+    {
+      role: 'system',
+      content: `As a support software engineer assistant, your purpose is to identify errors and suggest solutions to fix them. 
+You'll receive GitHub Action job log that indicate failures. Your response should be formatted as text and follow these guidelines:
+1. If the information provided is sufficient:
+    - State the cause of the job failure.
+    - Provide a solution to fix the error.
+2. If the information is insufficient or you're unable to suggest a solution:
+    - If there's a stack trace or an error pointing to a specific file, request the content of that file with a single-line reply: 'CONTENT_OF_FILE_NEEDED "<valid unix path>"' (e.g., 'CONTENT_OF_FILE_NEEDED "src/index.js"'). if directory structure is provided you can cross reference the file path with the directory structure.
+    - If there's no way forward, reply with 'Not enough information to provide a solution.'`
+    }
+  ]
+  // Message setup
+
+  let userMessage = `Github Action log that failed\n--------\n${jobLog}\n`
+
+  if (context.jobContext)
+    userMessage = `${userMessage}GitHub Action job definition yaml\n--------\n${context.jobContext}\n`
+
+  if (context.dirContext)
+    userMessage = `${userMessage}Directory structure of project\n--------\n${atob(context.dirContext)}\n`
+
+  if (context.userContext)
+    userMessage = `${userMessage}Extra user context: ${context.userContext}\n`
+
+  core.info(
+    `Job definition context: '${context.jobContext.length > 0}' Dir context: '${context.dirContext.length > 0}' User context: '${context.userContext.length > 0}'`
+  )
+  return systemMessage.concat({ role: 'user', content: userMessage })
+}
+
+async function openAiRequest(message, context) {
   const deployment = context['azOpenaiDeployment']
   const apiVersion = context['azOpenaiVersion']
   const apiKey = context['azOpenaiKey']
   const endpoint = context['azOpenaiEndpoint']
-  // Message setup
-  message = message.concat({ role: 'user', content: payload })
-  if (context.jobContext)
-    message.push({
-      role: 'system',
-      content: `Github action Job\n--------\n${context.jobContext}`
-    })
 
-  if (context.dirContext)
-    message.push({
-      role: 'system',
-      content: `Directory structure of project\n--------\n${atob(context.dirContext)}`
-    })
-
-  if (context.userContext)
-    message.push({
-      role: 'system',
-      content: `extra user context: ${context.userContext}`
-    })
-
-  core.info(
-    `Job context: '${context.jobContext.length > 0}' Dir context: '${context.dirContext.length > 0}' User context: '${context.userContext.length > 0}'`
-  )
   core.info('Sending request to OpenAI')
+  core.debug(`Message: ${JSON.stringify(message, null, 2)}`)
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
   const results = await client.chat.completions.create({
     messages: message,
@@ -35148,7 +35193,7 @@ async function openAiRequest(payload, context) {
   return results
 }
 
-module.exports = { openAiRequest }
+module.exports = { openAiRequest, setupInitialMessage }
 
 
 /***/ }),
