@@ -83,9 +83,9 @@ jobs:
       - name: Run Bender (if failure)
         uses: ahelal/bender-action@main
         with:
-          gh-token: ${{ secrets.GHTOKEN }}
-          az-openai-endpoint: ${{vars.AZOPENAIENDPOINT}}
-          az-openai-deployment: ${{secrets.AZOPENAIDEPLOYMENT}}
-          az-openai-key: ${{secrets.AZOPENAIKEY}}
+          gh-token: ${{ secrets.GH_TOKEB }} # if needed
+          az-openai-endpoint: ${{vars.OA_ENDPOINT}}
+          az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
+          az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
 ```
