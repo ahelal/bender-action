@@ -33,7 +33,7 @@ You'll receive GitHub Action job log that indicate failures. Your response shoul
     userMessage = `${userMessage}GitHub Action job definition yaml\n--------\n${context.jobContext}\n`
 
   if (context.dirContext)
-    userMessage = `${userMessage}Directory structure of project\n--------\n${atob(context.dirContext)}\n`
+    userMessage = `${userMessage}Directory structure of project\n--------\n${context.dirContext})\n`
 
   if (context.userContext)
     userMessage = `${userMessage}Extra user context: ${context.userContext}\n`
