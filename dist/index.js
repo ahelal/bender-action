@@ -35007,11 +35007,12 @@ function getInputs() {
     required: true
   })
 
-  context['dirContext'] = atob(
-    core.getInput('dir-context', {
-      required: false
-    })
-  )
+  context['dirContext'] = core.getInput('dir-context', {
+    required: false
+  })
+
+  if (context['dirContext'].length > 0)
+    context['dirContext'] = atob(context['dirContext'])
 
   context['jobContext'] = core.getInput('job-context', {
     required: false
