@@ -8,7 +8,6 @@ const maxRecursion = 2
 
 function getInputs() {
   const context = {}
-
   context['ghToken'] = core.getInput('gh-token', { required: false })
 
   context['ghJob'] = core.getInput('gh-job', {
@@ -133,12 +132,23 @@ async function run() {
         role: 'user',
         content: `Content of file ${fileContent.filename}\n--------\n${fileContent.content}\n`
       })
+
       core.debug(
         `UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`
       )
     }
   } catch (error) {
     // Fail the workflow step if an error occurs
+
+    if (typeof error === 'object') {
+      if (error.message) {
+        console.error(`\nMessage: ${error.message}`)
+      }
+      if (error.stack) {
+        console.error('\nStacktrace:\n====================')
+        console.error(error.stack)
+      }
+    }
     core.setFailed(`${error}`)
   }
 }
