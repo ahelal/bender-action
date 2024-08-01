@@ -1,5 +1,6 @@
 const core = require('@actions/core')
 const { AzureOpenAI } = require('openai')
+const maxTokens = 384
 
 // `Your a coding engineer assistant. Your purpose is to find errors and suggest solutions to fix them.
 // Your output should be formatted as text. You will be presented with Github action job log that failed.
@@ -55,7 +56,7 @@ async function openAiRequest(message, context) {
   const results = await client.chat.completions.create({
     messages: message,
     model: '',
-    max_tokens: 256,
+    max_tokens: maxTokens,
     stream: false
   })
   return results
