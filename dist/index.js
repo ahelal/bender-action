@@ -35057,7 +35057,7 @@ async function getFileContent4Context(response, context) {
     return false
   }
   const found = matches.map(match => match[1])
-  core.info(`Fetching file content for ${found[0]} from ${context['ref']}`)
+  core.info(`Fetching content ${found[0]}:${context['ref']}`)
   const fileContent = await getContent(found[0], context['ref'], context)
   return { filename: found[0], content: fileContent }
 }
@@ -35077,7 +35077,6 @@ async function run() {
     context['jobId'] = currentJob.id
 
     core.info(`Job Name/ID: ${currentJob.name}/${context['jobId']}`)
-    // core.debug(`Job info: ${JSON.stringify(currentJob, null, 2)}`)
 
     if (context['jobContext']) context['jobContext'] = await getJobYaml(context)
 
@@ -35086,7 +35085,9 @@ async function run() {
     for (let i = 1; i <= maxRecursion; i++) {
       const aiResponse = await openAiRequest(message, context)
       for (const result of aiResponse.choices) {
-        core.info(`\n${result.message.content}\n`)
+        core.info(
+          `###### [ Bender Response ] ######\n${result.message.content}\n############\n`
+        )
         message.push({ role: 'assistant', content: result.message.content })
       }
       if (
