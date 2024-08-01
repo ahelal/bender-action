@@ -58,7 +58,6 @@ function getContext(context) {
   context['repo'] = full_name[1]
   context['runId'] = github.context.runId
   context['ref'] = github.context.ref
-  // context['job'] = github.context.job
   context['full_name'] = github.context.payload.repository.full_name
 }
 
@@ -77,7 +76,7 @@ async function getFileContent4Context(response, context) {
   const matches = [...response.matchAll(regex)]
   if (matches.length < 1) {
     core.warning(
-      `No file content matched, this can be incorrect response format from OpenAI. try to run again`
+      "No file content matched, this can be incorrect response format from OpenAI. try to run again"
     )
     return false
   }
