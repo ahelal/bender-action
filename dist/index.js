@@ -35059,7 +35059,6 @@ async function getFileContent4Context(response, context) {
   const found = matches.map(match => match[1])
   core.info(`Fetching file content for ${found[0]} from ${context['ref']}`)
   const fileContent = await getContent(found[0], context['ref'], context)
-  console.log(`File content:  ${JSON.stringify(fileContent, null, 2)}`)
   return { filename: found[0], content: fileContent }
 }
 
