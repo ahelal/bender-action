@@ -35086,12 +35086,9 @@ async function run() {
     for (let i = 1; i <= maxRecursion; i++) {
       const aiResponse = await openAiRequest(message, context)
       for (const result of aiResponse.choices) {
-        core.info(result.message.content)
+        core.info(`\n${result.message.content}\n`)
         message.push({ role: 'assistant', content: result.message.content })
       }
-      core.info(
-        `UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`
-      )
       if (
         !aiResponse.choices[0].message.content.includes(
           'CONTENT_OF_FILE_NEEDED'
@@ -35112,6 +35109,9 @@ async function run() {
         role: 'user',
         content: `Content of file ${fileContent.filename}\n--------\n${fileContent.content}\n`
       })
+      core.debug(
+        `UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`
+      )
     }
   } catch (error) {
     // Fail the workflow step if an error occurs
