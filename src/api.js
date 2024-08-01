@@ -6,7 +6,6 @@ const GithubAPIversion = '2022-11-28'
 function interpolateStr(str, context) {
   let newStr = str
   for (const [key, value] of Object.entries(context)) {
-    // newStr = newStr.replace('${' + key + '}', value)
     newStr = newStr.replace(`\${${key}}`, value)
   }
   return newStr
@@ -29,6 +28,16 @@ function interpolate(target, context) {
   return interpolateObj(target, context)
 }
 
+async function getActionRuns(context) {
+  const response = await doRequest(
+    'GET',
+    '/repos/${owner}/${repo}/actions/runs/${runId}',
+    {},
+    context
+  )
+  return response.data
+}
+
 async function getJob(context) {
   const response = await doRequest(
     'GET',
@@ -49,10 +58,18 @@ async function getJob(context) {
       return job
     }
   }
-  // "status": "completed",
-  // "conclusion": "failure",
-
   return null
+}
+
+async function getContent(filepath, ref, context) {
+  const path = '/repos/${owner}/${repo}/contents'
+  const response = await doRequest(
+    'GET',
+    `${path}/${filepath}?ref=${ref}`,
+    {},
+    context
+  )
+  return atob(response.data.content)
 }
 
 function stripLogs(str) {
@@ -82,11 +99,12 @@ async function doRequest(method, path, body, context) {
   const iBody = interpolate(body, context)
 
   //TODO remove secrets
-  core.debug(`doRequest Path ${iPath}`)
-  core.debug(`doRequest Body: ${JSON.stringify(iBody, null, 2)}`)
+  core.debug(`doRequest path ${iPath}`)
+  core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
 
   try {
     const response = await octokit.request(iPath, iBody)
+    core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
     if (response.status !== 200) {
       core.setFailed(
         `Github API request failed with status code ${response.status}. ${response.data.message}`
@@ -99,4 +117,4 @@ async function doRequest(method, path, body, context) {
   }
 }
 
-module.exports = { getJob, getJobLogs }
+module.exports = { getJob, getJobLogs, getActionRuns, getContent }

@@ -29,8 +29,12 @@ inputs:
     description: Azure OpenAI version
     default: '2024-05-01-preview'
 
+  dir-context:
+    description: Provide the directory structure as base64 extra context
+    default: ''
+
   job-context:
-    description: By default send the github action  job yml as extra context
+    description: Should the github action yaml be provided as context
     default: false
 
   user-context:
@@ -39,7 +43,7 @@ inputs:
 
   delay:
     description: Delay in seconds before fetching logs from GH action
-    default: 5
+    default: 1
     required: true
 
 # outputs:
