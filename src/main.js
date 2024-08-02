@@ -76,7 +76,7 @@ async function getFileContent4Context(response, context) {
   const matches = [...response.matchAll(regex)]
   if (matches.length < 1) {
     core.warning(
-      "No file content matched, this can be incorrect response format from OpenAI. try to run again"
+      'No file content matched, this can be incorrect response format from OpenAI. try to run again'
     )
     return false
   }
