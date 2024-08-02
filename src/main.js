@@ -4,7 +4,7 @@ const { openAiRequest, setupInitialMessage } = require('./openai')
 
 const core = require('@actions/core')
 const github = require('@actions/github')
-const maxRecursion = 2
+const maxRecursion = 3
 
 function getInputs() {
   const context = {}
