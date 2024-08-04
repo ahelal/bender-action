@@ -3,6 +3,7 @@ description: Azure OpenAI GH Action copilot
 author:
 
 inputs:
+
   gh-token:
     description: GH personal access token (if using private repos)
     required: false

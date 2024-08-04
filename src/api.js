@@ -1,5 +1,5 @@
-const { Octokit } = require('@octokit/core')
 const core = require('@actions/core')
+const { Octokit } = require('@octokit/core')
 
 const GithubAPIversion = '2022-11-28'
 
@@ -11,9 +11,9 @@ function interpolateStr(str, context) {
   return newStr
 }
 
-function interpolateObj(dic, context) {
-  const newDic = dic
-  for (const [key] of Object.entries(dic)) {
+function interpolateObj(target, context) {
+  const newDic = structuredClone(target)
+  for (const [key] of Object.entries(target)) {
     if (key in context) {
       newDic[key] = context[key]
     }
@@ -45,6 +45,7 @@ async function getJob(context) {
     {},
     context
   )
+
   if (context['ghJob']) {
     for (const job of response.data.jobs) {
       if (job.name === context['ghJob']) {
@@ -91,14 +92,13 @@ async function doRequest(method, path, body, context) {
   const octokit = new Octokit()
   const iPath = interpolate(`${method} ${path}`, context)
 
-  // create headers if not present
-  if (!body.headers) body.headers = {}
+  if (!body.headers) body.headers = {} // create headers if not present
   body.headers['X-GitHub-Api-Version'] = GithubAPIversion
   if (context.ghToken)
     body.headers['authorization'] = `Bearer ${context.ghToken}`
   const iBody = interpolate(body, context)
 
-  //TODO remove secrets
+  //TODO remove secrets from body
   core.debug(`doRequest path ${iPath}`)
   core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
 

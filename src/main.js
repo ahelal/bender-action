@@ -81,7 +81,7 @@ async function getFileContent4Context(response, context) {
     return false
   }
   const found = matches.map(match => match[1])
-  core.info(`Fetching content ${found[0]}:${context['ref']}`)
+  core.info(`Fetching more context from repo: ${found[0]}:${context['ref']}`)
   const fileContent = await getContent(found[0], context['ref'], context)
   return { filename: found[0], content: fileContent }
 }
@@ -96,11 +96,13 @@ async function run() {
     core.info(`Waiting for ${context['delay']} seconds`)
     await new Promise(resolve => setTimeout(resolve, delay * 1000))
 
-    core.info('Getting GH action job info')
+    // Getting GH action job information
     const currentJob = await getJob(context)
     context['jobId'] = currentJob.id
 
-    core.info(`Job Name/ID: ${currentJob.name}/${context['jobId']}`)
+    core.info(
+      `Job Name/ID: ${currentJob.name}/${context['jobId']} job yaml context: ${context['jobContext']}`
+    )
 
     if (context['jobContext']) context['jobContext'] = await getJobYaml(context)
 
@@ -108,6 +110,7 @@ async function run() {
     const message = setupInitialMessage(context, jobLog)
     for (let i = 1; i <= maxRecursion; i++) {
       const aiResponse = await openAiRequest(message, context)
+
       for (const result of aiResponse.choices) {
         core.info(
           `###### [ Bender Response ] ######\n${result.message.content}\n############\n`
@@ -119,7 +122,7 @@ async function run() {
           'CONTENT_OF_FILE_NEEDED'
         )
       ) {
-        core.debug(`No more context needed`)
+        core.debug("No more context needed")
         break
       }
       const fileContent = await getFileContent4Context(
@@ -127,12 +130,12 @@ async function run() {
         context
       )
       if (!fileContent) {
-        core.info(`Unable to get file content`)
+        core.info("Unable to get file content")
         break
       }
       message.push({
         role: 'user',
-        content: `Content of file ${fileContent.filename}\n--------\n${fileContent.content}\n`
+        content: `Content of file ${fileContent.filename}:\n---\n${fileContent.content}\n`
       })
 
       core.debug(

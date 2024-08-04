@@ -61,6 +61,12 @@
     "collectCoverage": true,
     "collectCoverageFrom": [
       "./src/**"
+    ],
+    "transform": {
+      "^.+\\.jsx?$": "babel-jest"
+    },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!@octokit/core|universal-user-agent|before-after-hook|@octokit/request|@octokit/endpoint|@octokit/graphql|@octokit/auth-token)"
     ]
   },
   "dependencies": {
@@ -69,12 +75,14 @@
     "@azure/core-auth": "^1.7.2",
     "@azure/openai": "^2.0.0-beta.1",
     "@octokit/core": "^6.1.2",
-    "openai": "^4.53.2"
+    "babel-jest": "^29.7.0",
+    "openai": "^4.53.2",
+    "ts-jest": "^29.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.24.9",
     "@babel/eslint-parser": "^7.25.1",
-    "@babel/preset-env": "^7.25.0",
+    "@babel/preset-env": "^7.25.3",
     "@vercel/ncc": "^0.38.1",
     "babel-preset-jest": "^29.6.3",
     "eslint": "^8.57.0",

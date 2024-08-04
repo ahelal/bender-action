@@ -18,18 +18,18 @@ You'll receive GitHub Action job log that indicate failures. Your response shoul
   ]
 
   // Message setup
-  let userMessage = `Github Action log that failed\n--------\n${jobLog}\n`
+  let userMessage = `Github Action log that failed:\n---\n${jobLog}\n`
 
   if (context.jobContext)
-    userMessage = `${userMessage}GitHub Action job definition yaml\n--------\n${context.jobContext}\n`
+    userMessage = `${userMessage}GitHub Action job definition yaml:\n---\n${context.jobContext}\n`
 
   if (context.dirContext)
-    userMessage = `${userMessage}Directory structure of project\n--------\n${context.dirContext})\n`
+    userMessage = `${userMessage}Directory structure of project:\n---\n${context.dirContext})\n`
 
   if (context.userContext)
-    userMessage = `${userMessage}Extra user context: ${context.userContext}\n`
+    userMessage = `${userMessage}Extra user context:\n---\n${context.userContext}\n`
 
-  core.info(
+  core.debug(
     `Job definition context: '${context.jobContext.length > 0}' Dir context: '${context.dirContext.length > 0}' User context: '${context.userContext.length > 0}'`
   )
 
@@ -42,16 +42,17 @@ async function openAiRequest(message, context) {
   const apiKey = context['azOpenaiKey']
   const endpoint = context['azOpenaiEndpoint']
 
-  core.info('Sending request to OpenAI')
+  core.info('Asking OpenAI')
   core.debug(`Message: ${JSON.stringify(message, null, 2)}`)
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
-  const results = await client.chat.completions.create({
+  const response = await client.chat.completions.create({
     messages: message,
     model: '',
     max_tokens: maxTokens,
     stream: false
   })
-  return results
+  core.debug(`OpenAI response: ${JSON.stringify(response, null, 2)}`)
+  return response
 }
 
 module.exports = { openAiRequest, setupInitialMessage }
