@@ -46,9 +46,9 @@ inputs:
     default: '1'
     required: true
 
-# outputs:
-#   success:
-#     description:
+outputs:
+  usage:
+    description: 'OpenAI usage details'
 
 runs:
   using: node20

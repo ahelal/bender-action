@@ -1843,7 +1843,7 @@ class HttpClient {
         if (this._keepAlive && useProxy) {
             agent = this._proxyAgent;
         }
-        if (this._keepAlive && !useProxy) {
+        if (!useProxy) {
             agent = this._agent;
         }
         // if agent is already assigned use that agent.
@@ -1875,15 +1875,11 @@ class HttpClient {
             agent = tunnelAgent(agentOptions);
             this._proxyAgent = agent;
         }
-        // if reusing agent across request and tunneling agent isn't assigned create a new agent
-        if (this._keepAlive && !agent) {
+        // if tunneling agent isn't assigned create a new agent
+        if (!agent) {
             const options = { keepAlive: this._keepAlive, maxSockets };
             agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
             this._agent = agent;
-        }
-        // if not using private agent and tunnel agent isn't setup then use global agent
-        if (!agent) {
-            agent = usingSsl ? https.globalAgent : http.globalAgent;
         }
         if (usingSsl && this._ignoreSslError) {
             // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
@@ -34906,7 +34902,23 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 3825:
+/***/ 6373:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+// static application configuration
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.maxTokens = exports.GithubAPIversion = void 0;
+// Default Github API version
+exports.GithubAPIversion = '2022-11-28';
+// Default max tokens for OpenAI
+exports.maxTokens = 384;
+
+
+/***/ }),
+
+/***/ 1030:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -34943,7 +34955,7 @@ exports.getJobYaml = getJobYaml;
 exports.getFileContent4Context = getFileContent4Context;
 const core = __importStar(__nccwpck_require__(2186));
 const core_1 = __nccwpck_require__(6762);
-const GithubAPIversion = '2022-11-28';
+const config_1 = __nccwpck_require__(6373);
 /**
  * Replaces placeholders in a string with corresponding values from a context object.
  *
@@ -34963,38 +34975,33 @@ function interpolateString(str, context) {
  * @param context - The context object containing the values to interpolate.
  * @returns A new object with interpolated values.
  */
-function interpolateObject(target, context) {
-    const newDic = {};
-    for (const [key, value] of Object.entries(target)) {
-        if (key in context) {
-            newDic[key] = context[key];
-        }
-        else {
-            newDic[key] = value;
-        }
-    }
-    return newDic;
-}
+// function interpolateObject(
+//   target: Record<string, string>,
+//   context: Context
+// ): Record<string, string> {
+//   const newDic: Record<string, string> = {}
+//   for (const [key, value] of Object.entries(target)) {
+//     if (key in context) {
+//       newDic[key] = context[key]
+//     } else {
+//       newDic[key] = value
+//     }
+//   }
+//   return newDic
+// }
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 async function getActionRuns(context) {
     const response = await doRequest('GET', '/repos/${owner}/${repo}/actions/runs/${runId}', {}, context);
     return response.data;
 }
 async function getJob(context) {
-    const response = await doRequest('GET', '/repos/${owner}/${repo}/actions/runs/${runId}/jobs', {}, context);
-    if (context['ghJob']) {
-        for (const job of response.data.jobs) {
-            if (job.name === context['ghJob']) {
-                return job;
-            }
-        }
-        return null;
+    const response = await doRequest('GET', `/repos/${context.owner}/${context.repo}/actions/runs/${context.runId}/jobs`, {}, context);
+    if (context.ghJob) {
+        const namedJob = response.data.jobs.find((job) => job.name === context.ghJob);
+        return namedJob || null;
     }
-    for (const job of response.data.jobs) {
-        if (job.status === 'completed' && job.conclusion === 'failure') {
-            return job;
-        }
-    }
-    return null;
+    const failedJob = response.data.jobs.find((job) => job.status === 'completed' && job.conclusion === 'failure');
+    return failedJob || null;
 }
 async function getContent(filepath, ref, context) {
     const path = '/repos/${owner}/${repo}/contents';
@@ -35027,29 +35034,22 @@ async function getFileContent4Context(response, context) {
     return { filename: found[0], content: fileContent };
 }
 async function doRequest(method, path, body, context) {
-    const octokit = new core_1.Octokit();
-    const iPath = interpolateString(`${method} ${path}`, context);
-    if (!body.headers)
-        body.headers = {}; // create headers if not present
-    body.headers['X-GitHub-Api-Version'] = GithubAPIversion;
+    let auth = {};
     if (context.ghToken)
-        body.headers['authorization'] = `Bearer ${context.ghToken}`;
-    const iBody = interpolateObject(body, context);
+        auth = { auth: context.ghToken };
+    const octokit = new core_1.Octokit(auth);
+    const iPath = interpolateString(`${method} ${path}`, context);
+    // let iBody = interpolateObject(body, context)
+    const headers = { 'X-GitHub-Api-Version': config_1.GithubAPIversion };
     //TODO remove secrets from body
-    core.debug(`doRequest path ${iPath}`);
-    core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`);
-    try {
-        const response = await octokit.request(iPath, iBody);
-        core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
-        if (response.status !== 200) {
-            core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
-        }
-        return response;
+    core.debug(`doRequest path; ${iPath}`);
+    // core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
+    const response = await octokit.request(iPath, headers);
+    core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
+    if (response.status !== 200) {
+        core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
     }
-    catch (error) {
-        core.error(`Github API request failed. Path '${iPath}' : ${error}`);
-        throw error;
-    }
+    return response;
 }
 
 
@@ -35178,8 +35178,8 @@ exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const wait_1 = __nccwpck_require__(5259);
 const inputs_1 = __nccwpck_require__(7063);
-const githubAPI_1 = __nccwpck_require__(3825);
-const openaiAPI_1 = __nccwpck_require__(3711);
+const github_api_1 = __nccwpck_require__(1030);
+const openai_api_1 = __nccwpck_require__(3333);
 const maxRecursion = 3;
 /**
  * The main function for the action.
@@ -35193,15 +35193,23 @@ async function run() {
         core.debug(`Context: ${JSON.stringify(context, null, 2)}`);
         await (0, wait_1.wait)(parseInt(context.delay, 10));
         // Getting GH action job information
-        const currentJob = await (0, githubAPI_1.getJob)(context);
-        context['jobId'] = currentJob.id;
+        const currentJob = await (0, github_api_1.getJob)(context);
+        if (!currentJob) {
+            core.warning('Unable to get job ID, either no failed job or wrong job name provided');
+            return;
+        }
+        context.jobId = currentJob.id;
         core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`);
         if (context.jobContext)
-            context.jobContext = await (0, githubAPI_1.getJobYaml)(context);
-        const jobLog = await (0, githubAPI_1.getJobLogs)(context);
-        const message = (0, openaiAPI_1.setupInitialMessage)(context, jobLog);
+            context.jobContext = await (0, github_api_1.getJobYaml)(context);
+        const jobLog = await (0, github_api_1.getJobLogs)(context);
+        const message = (0, openai_api_1.setupInitialMessage)(context, jobLog);
+        let usage = {};
         for (let i = 1; i <= maxRecursion; i++) {
-            const aiResponse = await (0, openaiAPI_1.openAiRequest)(message, context);
+            const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
+            // assign the response to the usage object
+            if (aiResponse.usage !== undefined)
+                usage = aiResponse.usage;
             for (const result of aiResponse.choices) {
                 const content = result.message.content;
                 core.info(`###### [ Bender Response ] ######\n${content}\n############\n`);
@@ -35212,7 +35220,7 @@ async function run() {
                 core.debug('No more context needed');
                 break;
             }
-            const fileContent = await (0, githubAPI_1.getFileContent4Context)(firstChoice.message.content, context);
+            const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
             if (!fileContent) {
                 core.warning('Unable to get file content');
                 break;
@@ -35224,20 +35232,25 @@ async function run() {
             });
             core.debug(`UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`);
         }
-        // Set outputs for other workflow steps to use
-        core.setOutput('time', new Date().toTimeString());
+        core.setOutput('usage', JSON.stringify(usage));
     }
     catch (error) {
-        // Fail the workflow run if an error occurs
-        if (error instanceof Error)
-            core.setFailed(error.message);
+        // Fail the workflow step if an error occurs
+        if (error instanceof Error && error !== null) {
+            core.error(`\nMessage: ${error.message}`);
+            if (error.stack) {
+                core.error('\nStacktrace:\n====================');
+                core.error(error.stack);
+            }
+        }
+        core.setFailed(error);
     }
 }
 
 
 /***/ }),
 
-/***/ 3711:
+/***/ 3333:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -35270,47 +35283,63 @@ exports.openAiRequest = openAiRequest;
 exports.setupInitialMessage = setupInitialMessage;
 const core = __importStar(__nccwpck_require__(2186));
 const openai_1 = __nccwpck_require__(47);
-const maxTokens = 384;
+const openai_prompts_1 = __nccwpck_require__(8903);
+const config_1 = __nccwpck_require__(6373);
 function setupInitialMessage(context, jobLog) {
-    const systemMessage = [
-        {
-            role: 'system',
-            content: `As a support software engineer assistant, your purpose is to identify errors and suggest solutions to fix them. 
+    const systemMessage = {
+        role: 'system',
+        content: openai_prompts_1.githubActionFailurePrompt
+    };
+    let userMessageStr = `Github Action log that failed:\n---\n${jobLog}\n`;
+    if (context.jobContext) {
+        userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContext}\n`;
+    }
+    if (context.dirContext) {
+        userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`;
+    }
+    if (context.userContext) {
+        userMessageStr = `${userMessageStr}Extra user context:\n---\n${context.userContext}\n`;
+    }
+    core.debug(`Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`);
+    const userMessage = {
+        role: 'user',
+        content: userMessageStr
+    };
+    return [systemMessage, userMessage];
+}
+async function openAiRequest(message, context) {
+    const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
+    core.info('* Request response from Azure OpenAI');
+    core.debug(`Message: ${JSON.stringify(message, null, 2)}`);
+    const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
+    const response = await client.chat.completions.create({
+        messages: message,
+        model: '',
+        max_tokens: config_1.maxTokens,
+        stream: false
+    });
+    core.debug(`OpenAI response: ${JSON.stringify(response, null, 2)}`);
+    return response;
+}
+
+
+/***/ }),
+
+/***/ 8903:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.githubActionFailurePrompt = void 0;
+exports.githubActionFailurePrompt = `As a support software engineer assistant, your purpose is to identify errors and suggest solutions to fix them. 
 You'll receive GitHub Action job log that indicate failures. Your response should be formatted as text and follow these guidelines:
 1. Sufficient Information Provided:
     - State the cause of the job failure.
     - Provide a solution to fix the error.
 2. Insufficient Information or Unable to Suggest a Solution:
     - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: 'CONTENT_OF_FILE_NEEDED "<valid unix path>"' (e.g., 'CONTENT_OF_FILE_NEEDED "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
-    - If there's no way forward, reply with 'Not enough information to provide a solution.'`
-        }
-    ];
-    let userMessage = `Github Action log that failed:\n---\n${jobLog}\n`;
-    if (context.jobContext) {
-        userMessage = `${userMessage}GitHub Action job definition yaml:\n---\n${context.jobContext}\n`;
-    }
-    if (context.dirContext) {
-        userMessage = `${userMessage}Directory structure of project:\n---\n${context.dirContext})\n`;
-    }
-    if (context.userContext) {
-        userMessage = `${userMessage}Extra user context:\n---\n${context.userContext}\n`;
-    }
-    core.debug(`Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`);
-    return systemMessage.concat({ role: 'user', content: userMessage });
-}
-async function openAiRequest(message, context) {
-    const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
-    core.debug(`Message: ${JSON.stringify(message, null, 2)}`);
-    const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
-    const response = await client.chat.completions.create({
-        messages: message,
-        model: '',
-        max_tokens: maxTokens,
-        stream: false
-    });
-    core.debug(`OpenAI response: ${JSON.stringify(response, null, 2)}`);
-    return response;
-}
+    - If there's no way forward, reply with 'Not enough information to provide a solution.'`;
 
 
 /***/ }),

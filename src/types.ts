@@ -1,8 +1,16 @@
-import { OctokitResponse } from '@octokit/types'
 import {
   ChatCompletionMessageParam,
   ChatCompletion
 } from 'openai/resources/chat/completions'
+
+/*eslint import/no-unresolved: [2, { ignore: ['OctokitResponse'] }]*/
+import { OctokitResponse } from '@octokit/types/dist-types/OctokitResponse'
+
+export interface CompletionUsage {
+  completion_tokens: number
+  prompt_tokens: number
+  total_tokens: number
+}
 
 export interface Context {
   [key: string]: string

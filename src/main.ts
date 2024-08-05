@@ -8,6 +8,7 @@ import {
   getFileContent4Context
 } from './github_api'
 import { setupInitialMessage, openAiRequest } from './openai_api'
+import { CompletionUsage } from './types'
 
 const maxRecursion = 3
 
@@ -26,7 +27,13 @@ export async function run(): Promise<void> {
 
     // Getting GH action job information
     const currentJob = await getJob(context)
-    context['jobId'] = currentJob.id
+    if (!currentJob) {
+      core.warning(
+        'Unable to get job ID, either no failed job or wrong job name provided'
+      )
+      return
+    }
+    context.jobId = currentJob.id
 
     core.info(
       `* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`
@@ -37,8 +44,11 @@ export async function run(): Promise<void> {
     const jobLog = await getJobLogs(context)
     const message = setupInitialMessage(context, jobLog)
 
+    let usage: CompletionUsage = {} as CompletionUsage
     for (let i = 1; i <= maxRecursion; i++) {
       const aiResponse = await openAiRequest(message, context)
+      // assign the response to the usage object
+      if (aiResponse.usage !== undefined) usage = aiResponse.usage
 
       for (const result of aiResponse.choices) {
         const content = result.message.content
@@ -73,9 +83,9 @@ export async function run(): Promise<void> {
         `UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`
       )
     }
+    core.setOutput('usage', JSON.stringify(usage))
   } catch (error) {
     // Fail the workflow step if an error occurs
-
     if (error instanceof Error && error !== null) {
       core.error(`\nMessage: ${error.message}`)
       if (error.stack) {
@@ -83,7 +93,6 @@ export async function run(): Promise<void> {
         core.error(error.stack)
       }
     }
-
     core.setFailed(error as Error)
   }
 }
