@@ -57,7 +57,10 @@ jobs:
         id: test-action
         uses: ./
         with:
-          milliseconds: 2000
+          az-openai-endpoint: ${{vars.OA_ENDPOINT}}
+          az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
+          az-openai-key: ${{secrets.OA_KEY}}
+          delay: 1
 
       - name: Print Output
         id: output

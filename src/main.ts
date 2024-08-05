@@ -8,6 +8,7 @@ import {
   getFileContent4Context
 } from './github_api'
 import { setupInitialMessage, openAiRequest } from './openai_api'
+import { CompletionUsage } from './types'
 
 const maxRecursion = 3
 
@@ -37,8 +38,11 @@ export async function run(): Promise<void> {
     const jobLog = await getJobLogs(context)
     const message = setupInitialMessage(context, jobLog)
 
+    let usage: CompletionUsage = {} as CompletionUsage
     for (let i = 1; i <= maxRecursion; i++) {
       const aiResponse = await openAiRequest(message, context)
+      // assign the response to the usage object
+      if (aiResponse.usage !== undefined) usage = aiResponse.usage
 
       for (const result of aiResponse.choices) {
         const content = result.message.content
@@ -73,6 +77,7 @@ export async function run(): Promise<void> {
         `UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`
       )
     }
+    core.setOutput('usage', JSON.stringify(message))
   } catch (error) {
     // Fail the workflow step if an error occurs
     if (error instanceof Error && error !== null) {
