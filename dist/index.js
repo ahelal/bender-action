@@ -1843,7 +1843,7 @@ class HttpClient {
         if (this._keepAlive && useProxy) {
             agent = this._proxyAgent;
         }
-        if (this._keepAlive && !useProxy) {
+        if (!useProxy) {
             agent = this._agent;
         }
         // if agent is already assigned use that agent.
@@ -1875,15 +1875,11 @@ class HttpClient {
             agent = tunnelAgent(agentOptions);
             this._proxyAgent = agent;
         }
-        // if reusing agent across request and tunneling agent isn't assigned create a new agent
-        if (this._keepAlive && !agent) {
+        // if tunneling agent isn't assigned create a new agent
+        if (!agent) {
             const options = { keepAlive: this._keepAlive, maxSockets };
             agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
             this._agent = agent;
-        }
-        // if not using private agent and tunnel agent isn't setup then use global agent
-        if (!agent) {
-            agent = usingSsl ? https.globalAgent : http.globalAgent;
         }
         if (usingSsl && this._ignoreSslError) {
             // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
@@ -35204,8 +35200,12 @@ async function run() {
             context.jobContext = await (0, github_api_1.getJobYaml)(context);
         const jobLog = await (0, github_api_1.getJobLogs)(context);
         const message = (0, openai_api_1.setupInitialMessage)(context, jobLog);
+        let usage = {};
         for (let i = 1; i <= maxRecursion; i++) {
             const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
+            // assign the response to the usage object
+            if (aiResponse.usage !== undefined)
+                usage = aiResponse.usage;
             for (const result of aiResponse.choices) {
                 const content = result.message.content;
                 core.info(`###### [ Bender Response ] ######\n${content}\n############\n`);
@@ -35228,6 +35228,7 @@ async function run() {
             });
             core.debug(`UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`);
         }
+        core.setOutput('usage', JSON.stringify(usage));
     }
     catch (error) {
         // Fail the workflow step if an error occurs
