@@ -16,6 +16,14 @@ export interface Context {
   [key: string]: string
 }
 
+export interface requestParams {
+  method: string
+  path: string
+  headers?: Record<string, string>
+  payload?: string
+  baseUrl?: string
+}
+
 // interface Context {
 //   jobContext?: string
 //   dirContext?: string
