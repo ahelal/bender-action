@@ -1,6 +1,6 @@
 name: Bender-action
 description: Azure OpenAI GH Action copilot
-author:
+author: ahelal
 
 inputs:
   gh-token:
@@ -35,7 +35,7 @@ inputs:
 
   job-context:
     description: Should the github action yaml be provided as context
-    default: false
+    default: 'false'
 
   user-context:
     description: Extra OpenAI user context
@@ -43,7 +43,7 @@ inputs:
 
   delay:
     description: Delay in seconds before fetching logs from GH action
-    default: 1
+    default: '1'
     required: true
 
 # outputs:
