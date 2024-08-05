@@ -35194,7 +35194,7 @@ async function run() {
         await (0, wait_1.wait)(parseInt(context.delay, 10));
         // Getting GH action job information
         const currentJob = await (0, github_api_1.getJob)(context);
-        context['jobId'] = currentJob.id;
+        context.jobId = currentJob.id;
         core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`);
         if (context.jobContext)
             context.jobContext = await (0, github_api_1.getJobYaml)(context);

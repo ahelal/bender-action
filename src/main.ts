@@ -27,7 +27,7 @@ export async function run(): Promise<void> {
 
     // Getting GH action job information
     const currentJob = await getJob(context)
-    context['jobId'] = currentJob.id
+    context.jobId = currentJob.id
 
     core.info(
       `* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`
