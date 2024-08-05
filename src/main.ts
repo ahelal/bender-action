@@ -75,7 +75,6 @@ export async function run(): Promise<void> {
     }
   } catch (error) {
     // Fail the workflow step if an error occurs
-
     if (error instanceof Error && error !== null) {
       core.error(`\nMessage: ${error.message}`)
       if (error.stack) {
@@ -83,7 +82,6 @@ export async function run(): Promise<void> {
         core.error(error.stack)
       }
     }
-
     core.setFailed(error as Error)
   }
 }

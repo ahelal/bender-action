@@ -52,25 +52,23 @@ async function getActionRuns(context: Context): Promise<any> {
 async function getJob(context: Context): Promise<any> {
   const response = await doRequest(
     'GET',
-    '/repos/${owner}/${repo}/actions/runs/${runId}/jobs',
+    `/repos/${context.owner}/${context.repo}/actions/runs/${context.runId}/jobs`,
     {},
     context
   )
 
-  if (context['ghJob']) {
-    for (const job of response.data.jobs) {
-      if (job.name === context['ghJob']) {
-        return job
-      }
-    }
-    return null
+  if (context.ghJob) {
+    const namedJob = response.data.jobs.find(
+      (job: any) => job.name === context.ghJob
+    )
+    return namedJob || null
   }
-  for (const job of response.data.jobs) {
-    if (job.status === 'completed' && job.conclusion === 'failure') {
-      return job
-    }
-  }
-  return null
+
+  const failedJob = response.data.jobs.find(
+    (job: any) => job.status === 'completed' && job.conclusion === 'failure'
+  )
+
+  return failedJob || null
 }
 
 async function getContent(
@@ -146,7 +144,7 @@ async function doRequest(
   const headers = { 'X-GitHub-Api-Version': GithubAPIversion }
 
   //TODO remove secrets from body
-  core.debug(`doRequest path ${iPath}`)
+  core.debug(`doRequest path; ${iPath}`)
   // core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
 
   const response = await octokit.request(iPath, headers)

@@ -6,6 +6,9 @@
     "rootDir": "./src",
     "moduleResolution": "NodeNext",
     "baseUrl": "./",
+    "paths": {
+      "*": ["node_modules/*"]
+    },
     "sourceMap": true,
     "outDir": "./dist",
     "noImplicitAny": true,
