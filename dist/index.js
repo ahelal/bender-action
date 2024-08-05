@@ -35195,7 +35195,7 @@ async function run() {
         // Getting GH action job information
         const currentJob = await (0, githubAPI_1.getJob)(context);
         context['jobId'] = currentJob.id;
-        core.info(`Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`);
+        core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`);
         if (context.jobContext)
             context.jobContext = await (0, githubAPI_1.getJobYaml)(context);
         const jobLog = await (0, githubAPI_1.getJobLogs)(context);
@@ -35300,7 +35300,6 @@ You'll receive GitHub Action job log that indicate failures. Your response shoul
 }
 async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
-    core.info('Asking OpenAI');
     core.debug(`Message: ${JSON.stringify(message, null, 2)}`);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({

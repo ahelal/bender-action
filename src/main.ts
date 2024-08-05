@@ -6,8 +6,8 @@ import {
   getJobYaml,
   getJobLogs,
   getFileContent4Context
-} from './githubAPI'
-import { setupInitialMessage, openAiRequest } from './openaiAPI'
+} from './github_api'
+import { setupInitialMessage, openAiRequest } from './openai_api'
 
 const maxRecursion = 3
 
@@ -29,7 +29,7 @@ export async function run(): Promise<void> {
     context['jobId'] = currentJob.id
 
     core.info(
-      `Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`
+      `* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`
     )
 
     if (context.jobContext) context.jobContext = await getJobYaml(context)
@@ -73,11 +73,17 @@ export async function run(): Promise<void> {
         `UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`
       )
     }
-
-    // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
   } catch (error) {
-    // Fail the workflow run if an error occurs
-    if (error instanceof Error) core.setFailed(error.message)
+    // Fail the workflow step if an error occurs
+
+    if (error instanceof Error && error !== null) {
+      core.error(`\nMessage: ${error.message}`)
+      if (error.stack) {
+        core.error('\nStacktrace:\n====================')
+        core.error(error.stack)
+      }
+    }
+
+    core.setFailed(error as Error)
   }
 }

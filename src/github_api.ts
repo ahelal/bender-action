@@ -1,8 +1,7 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
 import { OctokitResponse, Context } from './types'
-
-const GithubAPIversion = '2022-11-28'
+import { GithubAPIversion } from './config'
 
 /**
  * Replaces placeholders in a string with corresponding values from a context object.
@@ -24,21 +23,22 @@ function interpolateString(str: string, context: Context): string {
  * @param context - The context object containing the values to interpolate.
  * @returns A new object with interpolated values.
  */
-function interpolateObject(
-  target: Record<string, string>,
-  context: Context
-): Record<string, string> {
-  const newDic: Record<string, string> = {}
-  for (const [key, value] of Object.entries(target)) {
-    if (key in context) {
-      newDic[key] = context[key]
-    } else {
-      newDic[key] = value
-    }
-  }
-  return newDic
-}
+// function interpolateObject(
+//   target: Record<string, string>,
+//   context: Context
+// ): Record<string, string> {
+//   const newDic: Record<string, string> = {}
+//   for (const [key, value] of Object.entries(target)) {
+//     if (key in context) {
+//       newDic[key] = context[key]
+//     } else {
+//       newDic[key] = value
+//     }
+//   }
+//   return newDic
+// }
 
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 async function getActionRuns(context: Context): Promise<any> {
   const response = await doRequest(
     'GET',
@@ -134,35 +134,29 @@ async function getFileContent4Context(
 async function doRequest(
   method: string,
   path: string,
-  body: Record<string, any>,
+  body: Record<string, string>,
   context: Context
 ): Promise<OctokitResponse<any, number>> {
-  const octokit = new Octokit()
+  let auth = {}
+  if (context.ghToken) auth = { auth: context.ghToken }
+  const octokit = new Octokit(auth)
   const iPath: string = interpolateString(`${method} ${path}`, context)
 
-  if (!body.headers) body.headers = {} // create headers if not present
-  body.headers['X-GitHub-Api-Version'] = GithubAPIversion
-  if (context.ghToken)
-    body.headers['authorization'] = `Bearer ${context.ghToken}`
-  const iBody = interpolateObject(body, context)
+  // let iBody = interpolateObject(body, context)
+  const headers = { 'X-GitHub-Api-Version': GithubAPIversion }
 
   //TODO remove secrets from body
   core.debug(`doRequest path ${iPath}`)
-  core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
+  // core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
 
-  try {
-    const response = await octokit.request(iPath, iBody)
-    core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
-    if (response.status !== 200) {
-      core.setFailed(
-        `Github API request failed with status code ${response.status}. ${response.data.message}`
-      )
-    }
-    return response
-  } catch (error) {
-    core.error(`Github API request failed. Path '${iPath}' : ${error}`)
-    throw error
+  const response = await octokit.request(iPath, headers)
+  core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
+  if (response.status !== 200) {
+    core.setFailed(
+      `Github API request failed with status code ${response.status}. ${response.data.message}`
+    )
   }
+  return response
 }
 
 export {
