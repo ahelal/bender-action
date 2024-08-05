@@ -69,7 +69,7 @@
     "@azure/core-auth": "^1.7.2",
     "@azure/openai": "^2.0.0-beta.1",
     "@octokit/core": "^6.1.2",
-    "openai": "^4.53.2"
+    "openai": "^4.54.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.9",
