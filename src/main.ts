@@ -77,7 +77,7 @@ export async function run(): Promise<void> {
         `UsageAI ${JSON.stringify(aiResponse.usage, null, 2)} recursions: ${i}/${maxRecursion}`
       )
     }
-    core.setOutput('usage', JSON.stringify(message))
+    core.setOutput('usage', JSON.stringify(usage))
   } catch (error) {
     // Fail the workflow step if an error occurs
     if (error instanceof Error && error !== null) {
