@@ -28,6 +28,12 @@ export async function run(): Promise<void> {
     // Getting GH action job information
     const currentJob = await getJob(context)
     context.jobId = currentJob.id
+    if (!context.jobId) {
+      core.warning(
+        'Unable to get job ID, either no failied job or wrong job name provided'
+      )
+      return
+    }
 
     core.info(
       `* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`
