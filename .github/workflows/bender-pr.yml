@@ -31,10 +31,10 @@ jobs:
         uses: ahelal/bender-action@feature/different_face
         with:
           mode: 'pr'
-          gh-token: ${{ secrets.GHTOKEN }}
-          az-openai-endpoint: ${{vars.AZOPENAIENDPOINT}}
-          az-openai-deployment: ${{secrets.AZOPENAIDEPLOYMENT}}
-          az-openai-key: ${{secrets.AZOPENAIKEY}}
+          # gh-token: ${{ secrets.GHTOKEN }}
+          az-openai-endpoint: ${{vars.OA_ENDPOINT}}
+          az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
+          az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
 
       - name: Print Output
