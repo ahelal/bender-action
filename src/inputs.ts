@@ -63,7 +63,7 @@ export function getInputs(): Record<string, string> {
  */
 
 export function getContextFromPayload(): Record<string, string> {
-  core.debug(`Payload: ${JSON.stringify(context.payload, null, 2)}`)
+  core.debug(`GIT Payload: ${JSON.stringify(context.payload, null, 2)}`)
 
   const requiredContext: Record<string, string> = {}
   const full_name = context.payload.repository?.full_name?.split('/') || []
