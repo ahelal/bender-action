@@ -1,0 +1,42 @@
+name: bender PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  bender-action:
+    name: Bender-action security insights
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Get dir context
+        id: getdir
+        run:
+          echo "dir_context=$(find . -path ./.git -prune -o -print | base64 | tr
+          '\n' ' ')" >> $GITHUB_ENV
+
+      - name: Echo dir context
+        run: echo "\'${{env.dir_context}}\'"
+
+      - name: Run Bender (if failure)
+        uses: ahelal/bender-action@feature/different_face
+        with:
+          mode: 'pr'
+          gh-token: ${{ secrets.GHTOKEN }}
+          az-openai-endpoint: ${{vars.AZOPENAIENDPOINT}}
+          az-openai-deployment: ${{secrets.AZOPENAIDEPLOYMENT}}
+          az-openai-key: ${{secrets.AZOPENAIKEY}}
+          dir-context: ${{ env.dir_context }}
+
+      - name: Print Output
+        id: output
+        run: echo "${{ steps.test-action.outputs.usage }}"
