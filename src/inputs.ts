@@ -2,12 +2,18 @@ import * as core from '@actions/core'
 // import * as github from '@actions/github'
 import { context } from '@actions/github'
 
+const allowedModes = ['pr', 'job']
 /**
  * Get predfined action inputs for actions.
  * @returns {Record<string, string>} Resolves when the action is complete.
  */
 export function getInputs(): Record<string, string> {
   const inputs: Record<string, string> = {}
+  inputs['mode'] = core.getInput('mode', { required: true })
+  if (!allowedModes.includes(inputs['mode'])) {
+    throw new Error(`Invalid mode: ${inputs['mode']}`)
+  }
+
   inputs['ghToken'] = core.getInput('gh-token', { required: false })
 
   inputs['ghJob'] = core.getInput('gh-job', {
@@ -57,6 +63,8 @@ export function getInputs(): Record<string, string> {
  */
 
 export function getContextFromPayload(): Record<string, string> {
+  core.debug(`Payload: ${JSON.stringify(context.payload, null, 2)}`)
+
   const requiredContext: Record<string, string> = {}
   const full_name = context.payload.repository?.full_name?.split('/') || []
   requiredContext['full_name'] = full_name.join('/')

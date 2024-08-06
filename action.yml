@@ -3,6 +3,11 @@ description: Azure OpenAI GH Action copilot
 author: ahelal
 
 inputs:
+  mode:
+    description: 'Mode of operation'
+    required: true
+    default: 'job'
+
   gh-token:
     description: GH personal access token (if using private repos)
     required: false

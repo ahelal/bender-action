@@ -1,7 +1,23 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
-import { OctokitResponse, Context, requestParams } from './types'
+import { OctokitResponse, Context, requestParams, parseDiff } from './types'
 import { GithubAPIversion } from './config'
+import parse from 'parse-diff'
+
+function filterDiff(
+  files: parseDiff.File[],
+  regExFilters: Array<string>
+): parseDiff.File[] {
+  if (regExFilters.length < 1 || files.length < 1) return files
+  let filteredFiles: parseDiff.File[] = []
+
+  for (const regEx of regExFilters) {
+    filteredFiles = filteredFiles.concat(
+      files.filter(f => f.to && new RegExp(regEx, 'g').test(f.to))
+    )
+  }
+  return [...new Set(filteredFiles)]
+}
 
 /**
  * Replaces placeholders in a string with corresponding values from a context object.
@@ -132,6 +148,42 @@ async function getFileContent4Context(
   return { filename: found[0], content: fileContent }
 }
 
+async function getPullRequestDiff(
+  pullRequestNumber: number,
+  context: Context,
+  regExs: Array<string>
+): Promise<string> {
+  const response = await doRequest(
+    {
+      baseUrl: 'https://github.com',
+      method: 'GET',
+      path: `/${context.owner}/${context.repo}/pull/${pullRequestNumber}.diff`
+    },
+    { Accept: 'application/vnd.github.v3.diff' }
+  )
+  const filesDiff = parse(response.data)
+  const filteredDiff = filterDiff(filesDiff, regExs)
+
+  core.debug(
+    `filteredDiff files: ${JSON.stringify(
+      filteredDiff.map(f => f.to),
+      null,
+      2
+    )}`
+  )
+
+  return filteredDiff
+    .map(f =>
+      f.chunks
+        .map(
+          c =>
+            `\nfile: ${f.to}\n---\n` + c.changes.map(t => t.content).join('\n')
+        )
+        .join('\n')
+    )
+    .join('\n')
+}
+
 async function doRequest(
   params: requestParams,
   context: Context
@@ -166,11 +218,11 @@ async function doRequest(
 }
 
 export {
-  doRequest,
   getJob,
   getJobLogs,
   getActionRuns,
   getContent,
   getJobYaml,
-  getFileContent4Context
+  getFileContent4Context,
+  getPullRequestDiff
 }

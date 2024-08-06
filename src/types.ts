@@ -39,4 +39,11 @@ export interface requestParams {
 //   content: string
 // }
 
-export { OctokitResponse, ChatCompletionMessageParam, ChatCompletion }
+import parseDiff from 'parse-diff'
+
+export {
+  OctokitResponse,
+  ChatCompletionMessageParam,
+  ChatCompletion,
+  parseDiff
+}
