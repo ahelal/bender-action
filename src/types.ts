@@ -6,6 +6,8 @@ import {
 /*eslint import/no-unresolved: [2, { ignore: ['OctokitResponse'] }]*/
 import { OctokitResponse } from '@octokit/types/dist-types/OctokitResponse'
 
+import parseDiff from 'parse-diff'
+
 export interface CompletionUsage {
   completion_tokens: number
   prompt_tokens: number
@@ -23,23 +25,6 @@ export interface requestParams {
   payload?: string
   baseUrl?: string
 }
-
-// interface Context {
-//   jobContext?: string
-//   dirContext?: string
-//   userContext?: string
-//   azOpenaiDeployment: string
-//   azOpenaiVersion: string
-//   azOpenaiKey: string
-//   azOpenaiEndpoint: string
-// }
-
-// export interface Message {
-//   role: string
-//   content: string
-// }
-
-import parseDiff from 'parse-diff'
 
 export {
   OctokitResponse,

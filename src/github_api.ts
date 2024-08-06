@@ -6,7 +6,7 @@ import parse from 'parse-diff'
 
 function filterDiff(
   files: parseDiff.File[],
-  regExFilters: Array<string>
+  regExFilters: string[]
 ): parseDiff.File[] {
   if (regExFilters.length < 1 || files.length < 1) return files
   let filteredFiles: parseDiff.File[] = []
@@ -151,7 +151,7 @@ async function getFileContent4Context(
 async function getPullRequestDiff(
   pullRequestNumber: number,
   context: Context,
-  regExs: Array<string>
+  regExs: string[]
 ): Promise<string> {
   const response = await doRequest(
     {
@@ -177,7 +177,7 @@ async function getPullRequestDiff(
       f.chunks
         .map(
           c =>
-            `\nfile: ${f.to}\n---\n` + c.changes.map(t => t.content).join('\n')
+            `\nfile: ${f.to}\n---\n ${c.changes.map(t => t.content).join('\n')}`
         )
         .join('\n')
     )

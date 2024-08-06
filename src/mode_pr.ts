@@ -1,4 +1,3 @@
-import { Context } from './types'
 import * as core from '@actions/core'
 import {
   getJob,
@@ -7,7 +6,7 @@ import {
   getFileContent4Context
 } from './github_api'
 import { setupInitialMessage, openAiRequest } from './openai_api'
-import { CompletionUsage } from './types'
+import { Context, CompletionUsage } from './types'
 import { maxRecursion } from './config'
 
 export async function runJobMode(context: Context): Promise<string> {
