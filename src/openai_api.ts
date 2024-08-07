@@ -83,7 +83,6 @@ async function openAiRequest(
   } = context
 
   core.info('* Request response from Azure OpenAI')
-  console.log('XXXXXXXX__________', apiKey, endpoint, deployment, apiVersion)
   core.debug(`Message: ${JSON.stringify(message, null, 2)}`)
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
   const response = await client.chat.completions.create({

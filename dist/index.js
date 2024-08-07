@@ -35515,7 +35515,6 @@ function setupInitialMessagePr(context, diffText) {
 async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
     core.info('* Request response from Azure OpenAI');
-    console.log('XXXXXXXX__________', apiKey, endpoint, deployment, apiVersion);
     core.debug(`Message: ${JSON.stringify(message, null, 2)}`);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({
