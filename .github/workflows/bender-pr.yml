@@ -22,13 +22,14 @@ jobs:
         id: getdir
         run: |
           dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
-          echo "dir_context=${dirs}" >> $GITHUB_ENV
+          echo "dir_context=${dirs}" >> "$GITHUB_ENV"
 
       - name: Echo dir context
         run: echo ${{env.dir_context}}
 
       - name: Run Bender (if failure)
         uses: ahelal/bender-action@feature/different_face
+        id: bender
         with:
           mode: 'pr'
           # gh-token: ${{ secrets.GHTOKEN }}
@@ -40,4 +41,4 @@ jobs:
 
       - name: Print Output
         id: output
-        run: echo "${{ steps.test-action.outputs.usage }}"
+        run: echo "${{ steps.bender.outputs.usage }}"
