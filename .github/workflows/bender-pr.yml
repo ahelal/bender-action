@@ -21,7 +21,7 @@ jobs:
       - name: Get dir context
         id: getdir
         run: |
-          dirs=$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')
+          dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
           echo "dir_context=${dirs}" >> $GITHUB_ENV
 
       - name: Echo dir context
@@ -39,4 +39,4 @@ jobs:
 
       - name: Print Output
         id: output
-        run: echo ${{ steps.test-action.outputs.usage }}
+        run: echo" ${{ steps.test-action.outputs.usage }}"
