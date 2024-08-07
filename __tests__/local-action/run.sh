@@ -19,6 +19,5 @@ elif [ "${1}" == "pr" ]; then
 	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env-pr.sh"
 else
 	echo "Invalid argument, supported arrguments: install, job, pr"
-	exit 1
+	exit 0
 fi
-
