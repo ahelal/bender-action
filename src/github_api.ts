@@ -1,7 +1,23 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
-import { OctokitResponse, Context } from './types'
+import { OctokitResponse, Context, requestParams, parseDiff } from './types'
 import { GithubAPIversion } from './config'
+import parse from 'parse-diff'
+
+function filterDiff(
+  files: parseDiff.File[],
+  regExFilters: string[]
+): parseDiff.File[] {
+  if (regExFilters.length < 1 || files.length < 1) return files
+  let filteredFiles: parseDiff.File[] = []
+
+  for (const regEx of regExFilters) {
+    filteredFiles = filteredFiles.concat(
+      files.filter(f => f.to && new RegExp(regEx, 'g').test(f.to))
+    )
+  }
+  return [...new Set(filteredFiles)]
+}
 
 /**
  * Replaces placeholders in a string with corresponding values from a context object.
@@ -41,9 +57,10 @@ function interpolateString(str: string, context: Context): string {
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function getActionRuns(context: Context): Promise<any> {
   const response = await doRequest(
-    'GET',
-    '/repos/${owner}/${repo}/actions/runs/${runId}',
-    {},
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/actions/runs/${context.runId}`
+    },
     context
   )
   return response.data
@@ -51,9 +68,10 @@ async function getActionRuns(context: Context): Promise<any> {
 
 async function getJob(context: Context): Promise<any> {
   const response = await doRequest(
-    'GET',
-    `/repos/${context.owner}/${context.repo}/actions/runs/${context.runId}/jobs`,
-    {},
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/actions/runs/${context.runId}/jobs`
+    },
     context
   )
 
@@ -76,11 +94,11 @@ async function getContent(
   ref: string,
   context: Context
 ): Promise<string> {
-  const path = '/repos/${owner}/${repo}/contents'
   const response = await doRequest(
-    'GET',
-    `${path}/${filepath}?ref=${ref}`,
-    {},
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/contents/${filepath}?ref=${ref}`
+    },
     context
   )
   return atob(response.data.content)
@@ -93,9 +111,10 @@ function stripLogs(str: string): string {
 
 async function getJobLogs(context: Context): Promise<string> {
   const response = await doRequest(
-    'GET',
-    '/repos/${owner}/${repo}/actions/jobs/${jobId}/logs',
-    {},
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/actions/jobs/${context.jobId}/logs`
+    },
     context
   )
   return stripLogs(response.data)
@@ -129,31 +148,72 @@ async function getFileContent4Context(
   return { filename: found[0], content: fileContent }
 }
 
+async function getPullRequestDiff(
+  pullRequestNumber: string,
+  context: Context,
+  regExs: string[]
+): Promise<string> {
+  const response = await doRequest(
+    {
+      baseUrl: 'https://github.com',
+      method: 'GET',
+      path: `/${context.owner}/${context.repo}/pull/${pullRequestNumber}.diff`
+    },
+    { Accept: 'application/vnd.github.v3.diff' }
+  )
+  const filesDiff = parse(response.data)
+  const filteredDiff = filterDiff(filesDiff, regExs)
+
+  core.debug(
+    `filteredDiff files: ${JSON.stringify(
+      filteredDiff.map(f => f.to),
+      null,
+      2
+    )}`
+  )
+
+  return filteredDiff
+    .map(f =>
+      f.chunks
+        .map(
+          c =>
+            `\nfile: ${f.to}\n---\n ${c.changes.map(t => t.content).join('\n')}`
+        )
+        .join('\n')
+    )
+    .join('\n')
+}
+
 async function doRequest(
-  method: string,
-  path: string,
-  body: Record<string, string>,
+  params: requestParams,
   context: Context
 ): Promise<OctokitResponse<any, number>> {
-  let auth = {}
-  if (context.ghToken) auth = { auth: context.ghToken }
-  const octokit = new Octokit(auth)
-  const iPath: string = interpolateString(`${method} ${path}`, context)
+  const { baseUrl, method, path, payload, headers } = params
+  let iBaseUrl = baseUrl
+  if (!iBaseUrl) iBaseUrl = 'https://api.github.com'
 
-  // let iBody = interpolateObject(body, context)
-  const headers = { 'X-GitHub-Api-Version': GithubAPIversion }
+  const config: Record<string, string> = { baseUrl: iBaseUrl }
+  if (context.ghToken) config['auth'] = context.ghToken
+  const octokit = new Octokit(config)
 
-  //TODO remove secrets from body
-  core.debug(`doRequest path; ${iPath}`)
-  // core.debug(`doRequest body: ${JSON.stringify(iBody, null, 2)}`)
+  const iMethodPath = interpolateString(`${method} ${path}`, context)
+  core.debug(`doRequest methodPath: ${iMethodPath}`)
 
-  const response = await octokit.request(iPath, headers)
+  // payload = interpolateObject(payload, context)
+  core.debug(`doRequest payload: ${JSON.stringify(payload, null, 2)}}`)
+  let iHeaders = headers
+  if (!iHeaders) iHeaders = {}
+  iHeaders['X-GitHub-Api-Version'] = GithubAPIversion
+
+  const response = await octokit.request(iMethodPath, iHeaders)
   core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
+
   if (response.status !== 200) {
     core.setFailed(
       `Github API request failed with status code ${response.status}. ${response.data.message}`
     )
   }
+
   return response
 }
 
@@ -163,5 +223,6 @@ export {
   getActionRuns,
   getContent,
   getJobYaml,
-  getFileContent4Context
+  getFileContent4Context,
+  getPullRequestDiff
 }

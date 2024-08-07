@@ -1,7 +1,10 @@
 import * as core from '@actions/core'
 import { ChatCompletionMessageParam, ChatCompletion } from './types'
 import { AzureOpenAI } from 'openai'
-import { githubActionFailurePrompt } from './openai_prompts'
+import {
+  githubActionFailurePrompt,
+  githubActionSecurityPrompt
+} from './openai_prompts'
 import { maxTokens } from './config'
 
 function setupInitialMessage(
@@ -18,6 +21,36 @@ function setupInitialMessage(
   if (context.jobContext) {
     userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContext}\n`
   }
+
+  if (context.dirContext) {
+    userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`
+  }
+
+  if (context.userContext) {
+    userMessageStr = `${userMessageStr}Extra user context:\n---\n${context.userContext}\n`
+  }
+
+  core.debug(
+    `Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`
+  )
+  const userMessage: ChatCompletionMessageParam = {
+    role: 'user',
+    content: userMessageStr
+  }
+
+  return [systemMessage, userMessage]
+}
+
+function setupInitialMessagePr(
+  context: Record<string, string>,
+  diffText: string
+): ChatCompletionMessageParam[] {
+  const systemMessage: ChatCompletionMessageParam = {
+    role: 'system',
+    content: githubActionSecurityPrompt
+  }
+
+  let userMessageStr = `Diff:\n---\n${diffText}\n`
 
   if (context.dirContext) {
     userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`
@@ -63,4 +96,4 @@ async function openAiRequest(
   return response
 }
 
-export { openAiRequest, setupInitialMessage }
+export { openAiRequest, setupInitialMessage, setupInitialMessagePr }

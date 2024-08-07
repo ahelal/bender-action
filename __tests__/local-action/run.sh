@@ -11,4 +11,13 @@ if ! command -v local-action &>/dev/null; then
 	npm i -g @github/local-action
 fi
 
-local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env"
+if [ "${1}" == "install" ]; then
+	npm i -g @github/local-action
+elif [ "${1}" == "job" ]; then
+	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env"
+elif [ "${1}" == "pr" ]; then
+	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env-pr.sh"
+else
+	echo "Invalid argument, supported arrguments: install, job, pr"
+	exit 0
+fi

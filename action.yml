@@ -3,6 +3,11 @@ description: Azure OpenAI GH Action copilot
 author: ahelal
 
 inputs:
+  mode:
+    description: 'Mode of operation'
+    required: true
+    default: 'job'
+
   gh-token:
     description: GH personal access token (if using private repos)
     required: false
@@ -40,6 +45,12 @@ inputs:
   user-context:
     description: Extra OpenAI user context
     default: ''
+
+  files-selection:
+    description:
+      In PR mode, Filter files to be used for context, comma seperated regex
+    default: ''
+    required: true
 
   delay:
     description: Delay in seconds before fetching logs from GH action
