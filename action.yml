@@ -49,7 +49,7 @@ inputs:
   files-selection:
     description:
       In PR mode, Filter files to be used for context, comma seperated regex
-    default: '*'
+    default: ''
     required: true
 
   delay:
