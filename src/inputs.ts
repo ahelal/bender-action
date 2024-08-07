@@ -51,6 +51,10 @@ export function getInputs(): Record<string, string> {
     required: false
   })
 
+  inputs['filesSelection'] = core.getInput('files-selection', {
+    required: false
+  })
+
   inputs['delay'] = core.getInput('delay', {
     required: true
   })
@@ -72,6 +76,8 @@ export function getContextFromPayload(): Record<string, string> {
   requiredContext['repo'] = full_name[1]
   requiredContext['runId'] = context.runId.toString()
   requiredContext['ref'] = context.ref
+  if (context.payload.number)
+    requiredContext['pr'] = context.payload.number.toString()
 
   return requiredContext
 }

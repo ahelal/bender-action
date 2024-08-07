@@ -22,10 +22,10 @@ jobs:
         id: getdir
         run:
           echo "dir_context=$(find . -path ./.git -prune -o -print | base64 | tr
-          '\n' ' ')" >> $GITHUB_ENV
+          \ '\n' ' ')" >> $GITHUB_ENV
 
       - name: Echo dir context
-        run: echo "\'${{env.dir_context}}\'"
+        run: echo ${{env.dir_context}}
 
       - name: Run Bender (if failure)
         uses: ahelal/bender-action@feature/different_face

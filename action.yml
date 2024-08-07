@@ -46,6 +46,12 @@ inputs:
     description: Extra OpenAI user context
     default: ''
 
+  files-selection:
+    description:
+      In PR mode, Filter files to be used for context, comma seperated regex
+    default: '*'
+    required: true
+
   delay:
     description: Delay in seconds before fetching logs from GH action
     default: '1'

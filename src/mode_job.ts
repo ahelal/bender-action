@@ -32,7 +32,6 @@ export async function runJobMode(context: Context): Promise<string> {
   let usage: CompletionUsage = {} as CompletionUsage
   for (let i = 1; i <= maxRecursion; i++) {
     const aiResponse = await openAiRequest(message, context)
-    // assign the response to the usage object
     if (aiResponse.usage !== undefined) usage = aiResponse.usage
 
     for (const result of aiResponse.choices) {

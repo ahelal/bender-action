@@ -16,8 +16,7 @@ if [ "${1}" == "install" ]; then
 elif [ "${1}" == "job" ]; then
 	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env"
 elif [ "${1}" == "pr" ]; then
-	# local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env" "${LOCAL_ACTION_DIR}/workflow.yml"
-	echo "not implemented"
+	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env-pr.sh"
 else
 	echo "Invalid argument, supported arrguments: install, job, pr"
 	exit 1

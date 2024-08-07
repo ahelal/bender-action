@@ -1,34 +1,19 @@
 import * as core from '@actions/core'
-import {
-  getJob,
-  getJobYaml,
-  getJobLogs,
-  getFileContent4Context
-} from './github_api'
-import { setupInitialMessage, openAiRequest } from './openai_api'
+import { getPullRequestDiff, getFileContent4Context } from './github_api'
+import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context, CompletionUsage } from './types'
 import { maxRecursion } from './config'
 
-export async function runJobMode(context: Context): Promise<string> {
-  // Getting GH action job information
-  const currentJob = await getJob(context)
-  if (!currentJob) {
-    core.warning(
-      'Unable to get job ID, either no failed job or wrong job name provided'
-    )
-    return ''
-  }
-  context.jobId = currentJob.id
+export async function runPrMode(context: Context): Promise<string> {
+  // const regx = ['/*.yml$', '/*.ts$']
 
-  core.info(
-    `* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`
+  const response = await getPullRequestDiff(
+    context['pr'],
+    { owner: context['owner'], repo: context['repo'] },
+    context['filesSelection'].split(';')
   )
 
-  if (context.jobContext) context.jobContext = await getJobYaml(context)
-
-  const jobLog = await getJobLogs(context)
-  const message = setupInitialMessage(context, jobLog)
-
+  const message = setupInitialMessagePr(context, response)
   let usage: CompletionUsage = {} as CompletionUsage
   for (let i = 1; i <= maxRecursion; i++) {
     const aiResponse = await openAiRequest(message, context)

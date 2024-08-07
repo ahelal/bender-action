@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import { wait } from './wait'
 import { getInputs, getContextFromPayload } from './inputs'
 import { runJobMode } from './mode_job'
+import { runPrMode } from './mode_pr'
 
 /**
  * The main function for the action.
@@ -14,15 +15,15 @@ export async function run(): Promise<void> {
     context = Object.assign({}, context, payloadContext)
     core.debug(`Context: ${JSON.stringify(context, null, 2)}`)
 
-    if (context.mode === 'pr') {
-      core.warning('PR mode is not supported yet')
-      return
-    } else if (context.mode === 'job') {
-      await wait(parseInt(context.delay, 10))
-      const usage = runJobMode(context)
-      core.setOutput('usage', usage)
-    }
+    await wait(parseInt(context.delay, 10))
+
+    let usage: Promise<string>
+    if (context.mode === 'pr') usage = runPrMode(context)
+    else if (context.mode === 'job') usage = runJobMode(context)
+    else throw new Error(`Invalid mode: ${context.mode}`)
+    core.setOutput('usage', usage)
   } catch (error) {
+    core.error('An error occurred during the action')
     // Fail the workflow step if an error occurs
     if (error instanceof Error && error !== null) {
       core.error(`\nMessage: ${error.message}`)

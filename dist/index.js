@@ -35184,6 +35184,9 @@ function getInputs() {
     inputs['userContext'] = core.getInput('user-context', {
         required: false
     });
+    inputs['filesSelection'] = core.getInput('files-selection', {
+        required: false
+    });
     inputs['delay'] = core.getInput('delay', {
         required: true
     });
@@ -35202,6 +35205,8 @@ function getContextFromPayload() {
     requiredContext['repo'] = full_name[1];
     requiredContext['runId'] = github_1.context.runId.toString();
     requiredContext['ref'] = github_1.context.ref;
+    if (github_1.context.payload.number)
+        requiredContext['pr'] = github_1.context.payload.number.toString();
     return requiredContext;
 }
 
@@ -35242,6 +35247,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const wait_1 = __nccwpck_require__(5259);
 const inputs_1 = __nccwpck_require__(7063);
 const mode_job_1 = __nccwpck_require__(8341);
+const mode_pr_1 = __nccwpck_require__(5750);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -35252,17 +35258,18 @@ async function run() {
         const payloadContext = (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
         core.debug(`Context: ${JSON.stringify(context, null, 2)}`);
-        if (context.mode === 'pr') {
-            core.warning('PR mode is not supported yet');
-            return;
-        }
-        else if (context.mode === 'job') {
-            await (0, wait_1.wait)(parseInt(context.delay, 10));
-            const usage = (0, mode_job_1.runJobMode)(context);
-            core.setOutput('usage', usage);
-        }
+        await (0, wait_1.wait)(parseInt(context.delay, 10));
+        let usage;
+        if (context.mode === 'pr')
+            usage = (0, mode_pr_1.runPrMode)(context);
+        else if (context.mode === 'job')
+            usage = (0, mode_job_1.runJobMode)(context);
+        else
+            throw new Error(`Invalid mode: ${context.mode}`);
+        core.setOutput('usage', usage);
     }
     catch (error) {
+        core.error('An error occurred during the action');
         // Fail the workflow step if an error occurs
         if (error instanceof Error && error !== null) {
             core.error(`\nMessage: ${error.message}`);
@@ -35328,6 +35335,76 @@ async function runJobMode(context) {
     let usage = {};
     for (let i = 1; i <= config_1.maxRecursion; i++) {
         const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
+        if (aiResponse.usage !== undefined)
+            usage = aiResponse.usage;
+        for (const result of aiResponse.choices) {
+            const content = result.message.content;
+            core.info(`###### [ Bender Response ] ######\n${content}\n############\n`);
+            message.push({ role: 'assistant', content });
+        }
+        const firstChoice = aiResponse.choices[0];
+        if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
+            core.debug('No more context needed');
+            break;
+        }
+        const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
+        if (!fileContent) {
+            core.warning('Unable to get file content');
+            break;
+        }
+        const { filename, content } = fileContent;
+        message.push({
+            role: 'user',
+            content: `Content of file ${filename}:\n---\n${content}\n`
+        });
+    }
+    return JSON.stringify(usage);
+}
+
+
+/***/ }),
+
+/***/ 5750:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.runPrMode = runPrMode;
+const core = __importStar(__nccwpck_require__(2186));
+const github_api_1 = __nccwpck_require__(1030);
+const openai_api_1 = __nccwpck_require__(3333);
+const config_1 = __nccwpck_require__(6373);
+async function runPrMode(context) {
+    // const regx = ['/*.yml$', '/*.ts$']
+    const response = await (0, github_api_1.getPullRequestDiff)(context['pr'], { owner: context['owner'], repo: context['repo'] }, context['filesSelection'].split(';'));
+    const message = (0, openai_api_1.setupInitialMessagePr)(context, response);
+    let usage = {};
+    for (let i = 1; i <= config_1.maxRecursion; i++) {
+        const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
         // assign the response to the usage object
         if (aiResponse.usage !== undefined)
             usage = aiResponse.usage;
@@ -35389,6 +35466,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.openAiRequest = openAiRequest;
 exports.setupInitialMessage = setupInitialMessage;
+exports.setupInitialMessagePr = setupInitialMessagePr;
 const core = __importStar(__nccwpck_require__(2186));
 const openai_1 = __nccwpck_require__(47);
 const openai_prompts_1 = __nccwpck_require__(8903);
@@ -35415,9 +35493,29 @@ function setupInitialMessage(context, jobLog) {
     };
     return [systemMessage, userMessage];
 }
+function setupInitialMessagePr(context, diffText) {
+    const systemMessage = {
+        role: 'system',
+        content: openai_prompts_1.githubActionSecurityPrompt
+    };
+    let userMessageStr = `Diff:\n---\n${diffText}\n`;
+    if (context.dirContext) {
+        userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`;
+    }
+    if (context.userContext) {
+        userMessageStr = `${userMessageStr}Extra user context:\n---\n${context.userContext}\n`;
+    }
+    core.debug(`Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`);
+    const userMessage = {
+        role: 'user',
+        content: userMessageStr
+    };
+    return [systemMessage, userMessage];
+}
 async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
     core.info('* Request response from Azure OpenAI');
+    console.log('XXXXXXXX__________', apiKey, endpoint, deployment, apiVersion);
     core.debug(`Message: ${JSON.stringify(message, null, 2)}`);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({

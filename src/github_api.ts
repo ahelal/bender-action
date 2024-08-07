@@ -149,7 +149,7 @@ async function getFileContent4Context(
 }
 
 async function getPullRequestDiff(
-  pullRequestNumber: number,
+  pullRequestNumber: string,
   context: Context,
   regExs: string[]
 ): Promise<string> {

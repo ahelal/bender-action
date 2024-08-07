@@ -1,7 +1,10 @@
 import * as core from '@actions/core'
 import { ChatCompletionMessageParam, ChatCompletion } from './types'
 import { AzureOpenAI } from 'openai'
-import { githubActionFailurePrompt } from './openai_prompts'
+import {
+  githubActionFailurePrompt,
+  githubActionSecurityPrompt
+} from './openai_prompts'
 import { maxTokens } from './config'
 
 function setupInitialMessage(
@@ -38,6 +41,36 @@ function setupInitialMessage(
   return [systemMessage, userMessage]
 }
 
+function setupInitialMessagePr(
+  context: Record<string, string>,
+  diffText: string
+): ChatCompletionMessageParam[] {
+  const systemMessage: ChatCompletionMessageParam = {
+    role: 'system',
+    content: githubActionSecurityPrompt
+  }
+
+  let userMessageStr = `Diff:\n---\n${diffText}\n`
+
+  if (context.dirContext) {
+    userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`
+  }
+
+  if (context.userContext) {
+    userMessageStr = `${userMessageStr}Extra user context:\n---\n${context.userContext}\n`
+  }
+
+  core.debug(
+    `Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`
+  )
+  const userMessage: ChatCompletionMessageParam = {
+    role: 'user',
+    content: userMessageStr
+  }
+
+  return [systemMessage, userMessage]
+}
+
 async function openAiRequest(
   message: ChatCompletionMessageParam[],
   context: Record<string, string>
@@ -50,6 +83,7 @@ async function openAiRequest(
   } = context
 
   core.info('* Request response from Azure OpenAI')
+  console.log('XXXXXXXX__________', apiKey, endpoint, deployment, apiVersion)
   core.debug(`Message: ${JSON.stringify(message, null, 2)}`)
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
   const response = await client.chat.completions.create({
@@ -63,4 +97,4 @@ async function openAiRequest(
   return response
 }
 
-export { openAiRequest, setupInitialMessage }
+export { openAiRequest, setupInitialMessage, setupInitialMessagePr }
