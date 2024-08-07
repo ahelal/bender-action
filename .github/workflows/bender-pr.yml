@@ -28,7 +28,7 @@ jobs:
         run: echo ${{env.dir_context}}
 
       - name: Run Bender (if failure)
-        uses: ahelal/bender-action@feature/different_face
+        uses: ahelal/bender-action@main
         id: bender
         with:
           mode: 'pr'
