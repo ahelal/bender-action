@@ -32,7 +32,7 @@ jobs:
         id: bender
         with:
           mode: 'pr'
-          # gh-token: ${{ secrets.GHTOKEN }}
+          gh-token: ${{ secrets.GHTOKEN }}
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}

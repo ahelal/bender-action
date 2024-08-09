@@ -39,7 +39,7 @@ export function filterCommitFiles(
     return []
   }
   // filter files based on status
-  const filteredFilesStatus = files.filter((f: any) =>
+  const filteredFilesStatus = files.filter((f: Record<string, string>) =>
     allowedStatus.includes(f.status)
   )
   if (filteredFilesStatus.length < 1) {
@@ -51,11 +51,9 @@ export function filterCommitFiles(
   let filteredFiles: Record<string, string>[] = []
   for (const regEx of regExFilters) {
     filteredFiles = filteredFiles.concat(
-      filteredFilesStatus.filter(f => {
-        const r = f.filename && new RegExp(regEx, 'g').test(f.filename)
-        console.log(`===== ${f.filename} - ${regEx} - ${r}`)
-        return r
-      })
+      filteredFilesStatus.filter(
+        f => f.filename && new RegExp(regEx, 'g').test(f.filename)
+      )
     )
   }
   const unqiueFiles = [...new Set(filteredFiles)]
