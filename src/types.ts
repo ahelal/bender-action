@@ -22,7 +22,6 @@ export interface requestParams {
   method: string
   path: string
   headers?: Record<string, string>
-  payload?: string
   baseUrl?: string
 }
 
