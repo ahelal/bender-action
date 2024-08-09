@@ -168,10 +168,11 @@ async function doRequest(
   const octokit = new Octokit(config)
 
   const iMethodPath = interpolateString(`${method} ${path}`, context)
-  core.debug(`::group::doRequest ${iMethodPath}`)
+  core.debug(`::group::doRequest`)
   core.debug(
     `doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${santizeString(context.ghToken)} }`
   )
+  core.debug(`doRequest method path: ${iMethodPath}`)
 
   iPayload = interpolateObject(body, context)
   core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`)
