@@ -7,7 +7,7 @@ import { Context } from './types'
  * @param str - The string to sanitize.
  * @returns The sanitized string.
  */
-export function santizeString(str: string): string {
+export function sanitizeString(str: string): string {
   if (!str) return ''
   return str.length <= 2
     ? str

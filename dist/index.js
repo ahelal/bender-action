@@ -35007,6 +35007,7 @@ async function getJobYaml(context) {
     return jobYaml;
 }
 async function getFileContent4Context(response, context) {
+    (0, util_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`);
     const regex = /CONTENT_OF_FILE_NEEDED "(.*?)"/gm;
     const matches = [...response.matchAll(regex)];
     if (matches.length < 1) {
@@ -35059,7 +35060,7 @@ async function doRequest(params, context, body) {
     const octokit = new core_1.Octokit(config);
     const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
     core.startGroup(`doRequest ${iMethodPath}`);
-    core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.santizeString)(context.ghToken)} }`);
+    core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
     iPayload = (0, util_1.interpolateObject)(body, context);
     core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
     let iHeaders = headers;
@@ -35373,16 +35374,13 @@ async function runPrMode(context) {
     if (filesInPR.length < 1)
         core.warning(`No files found in the PR, that matchs the regEx filter '${context.filesSelection}' `);
     const user = await (0, github_api_1.getUserInfo)(context);
-    // console.log(`**User**: ${JSON.stringify(user, null, 2)}`)
     const prComments = await (0, github_api_1.getComments)(context);
-    // console.log(`**Comments**: ${JSON.stringify(prComments, null, 2)}`)
-    // && comment.path
     const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
         comment.subject_type === 'file' &&
         comment.commit_id === context.commitId &&
         files.includes(comment.path));
     for (const file of files) {
-        core.info(`Processing file: ${file}`);
+        core.info(`* Processing file: ${file}`);
         let reply = '';
         const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
         if (!prFileContent) {
@@ -35580,7 +35578,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.santizeString = santizeString;
+exports.sanitizeString = sanitizeString;
 exports.stripTimestampFromLogs = stripTimestampFromLogs;
 exports.filterCommitFiles = filterCommitFiles;
 exports.interpolateString = interpolateString;
@@ -35594,7 +35592,7 @@ const core = __importStar(__nccwpck_require__(2186));
  * @param str - The string to sanitize.
  * @returns The sanitized string.
  */
-function santizeString(str) {
+function sanitizeString(str) {
     if (!str)
         return '';
     return str.length <= 2

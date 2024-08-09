@@ -4,11 +4,12 @@ import { OctokitResponse, Context, requestParams } from './types'
 import { GithubAPIversion } from './config'
 
 import {
-  santizeString,
+  sanitizeString,
   stripTimestampFromLogs,
   filterCommitFiles,
   interpolateString,
-  interpolateObject
+  interpolateObject,
+  debugGroupedMsg
 } from './util'
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */
@@ -86,6 +87,10 @@ async function getFileContent4Context(
   response: string,
   context: Context
 ): Promise<{ filename: string; content: string } | false> {
+  debugGroupedMsg(
+    'getFileContent4Context',
+    `Response: ${JSON.stringify(response, null, 2)}`
+  )
   const regex = /CONTENT_OF_FILE_NEEDED "(.*?)"/gm
   const matches = [...response.matchAll(regex)]
   if (matches.length < 1) {
@@ -171,7 +176,7 @@ async function doRequest(
 
   core.startGroup(`doRequest ${iMethodPath}`)
   core.debug(
-    `doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${santizeString(context.ghToken)} }`
+    `doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${sanitizeString(context.ghToken)} }`
   )
 
   iPayload = interpolateObject(body, context)

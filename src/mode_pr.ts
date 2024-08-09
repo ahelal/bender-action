@@ -20,10 +20,8 @@ export async function runPrMode(context: Context): Promise<string> {
       `No files found in the PR, that matchs the regEx filter '${context.filesSelection}' `
     )
   const user = await getUserInfo(context)
-  // console.log(`**User**: ${JSON.stringify(user, null, 2)}`)
   const prComments = await getComments(context)
-  // console.log(`**Comments**: ${JSON.stringify(prComments, null, 2)}`)
-  // && comment.path
+
   const relevantComments = prComments.filter(
     comment =>
       comment.user.login === user.login &&
@@ -33,7 +31,7 @@ export async function runPrMode(context: Context): Promise<string> {
   )
 
   for (const file of files) {
-    core.info(`Processing file: ${file}`)
+    core.info(`* Processing file: ${file}`)
 
     let reply = ''
     const prFileContent = await getContent(file, context.ref, context)
