@@ -25,6 +25,13 @@ export function stripTimestampFromLogs(str: string): string {
   return str.replaceAll(regex, '')
 }
 
+/**
+ * Filters an array of commit files based on status and regular expression filters.
+ *
+ * @param files - An array of commit files.
+ * @param regExFilters - An array of regular expression filters.
+ * @returns An array of filtered commit files.
+ */
 export function filterCommitFiles(
   files: Record<string, string>[],
   regExFilters: string[]
@@ -107,10 +114,22 @@ export function interpolateObject(
   return newDic
 }
 
+/**
+ * Prints the given message if the debug mode is enabled.
+ *
+ * @param message - The message to be printed.
+ * @returns void
+ */
 export function rawPrintIfDebug(message: string): void {
   if (core.isDebug()) core.info(message)
 }
 
+/**
+ * Logs a grouped debug message with a specified title and message.
+ *
+ * @param title - The title of the debug group.
+ * @param message - The message to be logged.
+ */
 export function debugGroupedMsg(title: string, message: string): void {
   if (core.isDebug()) {
     core.startGroup(title)
