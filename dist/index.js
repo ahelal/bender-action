@@ -34909,13 +34909,15 @@ function wrappy (fn, cb) {
 
 // static application configuration
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.maxRecursion = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
 exports.maxTokens = 384;
-// Default max recursion for OpenAI
-exports.maxRecursion = 3;
+// Default max recursion for OpenAI Job mode
+exports.maxRecursionJob = 3;
+// Default max recursion for OpenAI PR mode
+exports.maxRecursionPr = 2;
 
 
 /***/ }),
@@ -35298,7 +35300,7 @@ async function runJobMode(context) {
     const jobLog = await (0, github_api_1.getJobLogs)(context);
     const message = (0, openai_api_1.setupInitialMessage)(context, jobLog);
     let usage = {};
-    for (let i = 1; i <= config_1.maxRecursion; i++) {
+    for (let i = 1; i <= config_1.maxRecursionJob; i++) {
         const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
         if (aiResponse.usage !== undefined)
             usage = aiResponse.usage;
@@ -35362,6 +35364,7 @@ exports.runPrMode = runPrMode;
 const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
+const config_1 = __nccwpck_require__(6373);
 async function runPrMode(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
     const files = filesInPR.map(f => f.filename);
@@ -35384,13 +35387,12 @@ async function runPrMode(context) {
             core.error(`Unable to get file content ${file} ${context.ref}`);
             continue;
         }
-        // check if the file has been commented on before
         const fileComment = relevantComments.find(comment => comment.path === file);
         if (fileComment) {
             core.warning(`Skipping file ${file} has been commented on before `);
             continue;
         }
-        for (let i = 1; i <= 2; i++) {
+        for (let i = 1; i <= config_1.maxRecursionPr; i++) {
             const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
             const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
             // assign the response to the usage object
@@ -35514,7 +35516,6 @@ async function openAiRequest(message, context) {
         max_tokens: config_1.maxTokens,
         stream: false
     });
-    core.debug(`OpenAI response: ${JSON.stringify(response, null, 2)}`);
     (0, util_1.debugGroupedMsg)('Azure OpenAI response', `HTTP Response: ${JSON.stringify(response, null, 2)}`);
     return response;
 }
@@ -35537,14 +35538,18 @@ You'll receive GitHub Action job log that indicate failures. Your response shoul
 2. Insufficient Information or Unable to Suggest a Solution:
     - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: 'CONTENT_OF_FILE_NEEDED "<valid unix path>"' (e.g., 'CONTENT_OF_FILE_NEEDED "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
     - If there's no way forward, reply with 'Not enough information to provide a solution.'`;
-exports.githubActionSecurityPrompt = `As a pair programmer engineer assistant, your purpose is to identify security risks in code, and suggest best security practices and general code improvements. You will receive a diff content from a pull request. Your response should be formatted as text and follow these guidelines:
-1- Keep your reply as concise as possible. Your code review is limited to 400 words ONLY.
-2- If sufficient information provided:
-    - Identify potential security risks & how to mitigate them.
-    - Identify and hint on improving code quality, readability and best practice.
-3- if insufficient information (diff is not enough to get context eg. less then 3 lines) or unable to suggest a solution:
-    - If you need full access to specific files, request them in the following format: CONTENT_OF_FILE_NEEDED "filename" (e.g., CONTENT_OF_FILE_NEEDED "src/index.js"). If a directory structure is provided, cross-reference the file path with the directory structure.
-    - If there's no way forward, reply with: Not enough information to provide a suggestion.`;
+exports.githubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, you should:
+- Suggest best code security practices and general code quality improvements.
+- Review the diff content from a pull request and provide feedback formatted as text, following these guidelines:
+1. Conciseness: Use minimum words to keep your reply concise. Your code review is limited to 400 words ONLY.
+2. Detailed Feedback:
+    - If sufficient information is provided:
+        - Identify potential security risks and how to mitigate them.
+        - Identify and suggest improvements for code quality, readability, and best practices.
+    - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context):
+        - If you need full access to specific files, reply in this format: CONTENT_OF_FILE_NEEDED "filename" (e.g., CONTENT_OF_FILE_NEEDED "src/index.js").
+        - If there's no way forward, reply with: Not enough information to provide a suggestion.
+`;
 
 
 /***/ }),

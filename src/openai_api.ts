@@ -98,7 +98,6 @@ async function openAiRequest(
     stream: false
   })
 
-  core.debug(`OpenAI response: ${JSON.stringify(response, null, 2)}`)
   debugGroupedMsg(
     'Azure OpenAI response',
     `HTTP Response: ${JSON.stringify(response, null, 2)}`

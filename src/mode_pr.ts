@@ -9,6 +9,7 @@ import {
 } from './github_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context } from './types'
+import { maxRecursionPr } from './config'
 
 export async function runPrMode(context: Context): Promise<string> {
   const filesInPR = await getCommitFiles(context)
@@ -41,14 +42,13 @@ export async function runPrMode(context: Context): Promise<string> {
       continue
     }
 
-    // check if the file has been commented on before
     const fileComment = relevantComments.find(comment => comment.path === file)
     if (fileComment) {
       core.warning(`Skipping file ${file} has been commented on before `)
       continue
     }
 
-    for (let i = 1; i <= 2; i++) {
+    for (let i = 1; i <= maxRecursionPr; i++) {
       const message = setupInitialMessagePr(context, prFileContent, file)
       const aiResponse = await openAiRequest(message, context)
 
