@@ -27,12 +27,12 @@ jobs:
       - name: Echo dir context
         run: echo ${{env.dir_context}}
 
-      - name: Run Bender (if failure)
-        uses: ahelal/bender-action@main
+      - name: Run Bender
+        uses: ahelal/bender-action@feature/pr_comment
         id: bender
         with:
           mode: 'pr'
-          # gh-token: ${{ secrets.GHTOKEN }}
+          gh-token: ${{ secrets.GHTOKEN }}
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}

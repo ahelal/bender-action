@@ -7,7 +7,7 @@ import {
 } from './github_api'
 import { setupInitialMessage, openAiRequest } from './openai_api'
 import { CompletionUsage, Context } from './types'
-import { maxRecursion } from './config'
+import { maxRecursionJob } from './config'
 
 export async function runJobMode(context: Context): Promise<string> {
   // Getting GH action job information
@@ -30,7 +30,7 @@ export async function runJobMode(context: Context): Promise<string> {
   const message = setupInitialMessage(context, jobLog)
 
   let usage: CompletionUsage = {} as CompletionUsage
-  for (let i = 1; i <= maxRecursion; i++) {
+  for (let i = 1; i <= maxRecursionJob; i++) {
     const aiResponse = await openAiRequest(message, context)
     if (aiResponse.usage !== undefined) usage = aiResponse.usage
 

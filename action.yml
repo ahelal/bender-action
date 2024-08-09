@@ -4,7 +4,7 @@ author: ahelal
 
 inputs:
   mode:
-    description: 'Mode of operation'
+    description: 'Mode of operation (job|pr)'
     required: true
     default: 'job'
 
@@ -19,7 +19,9 @@ inputs:
     required: false
 
   az-openai-endpoint:
-    description: Azure OpenAI Endpoint URL
+    description:
+      Azure OpenAI Endpoint URL, example
+      https://eastus2.api.cognitive.microsoft.com"
     required: true
 
   az-openai-deployment:
@@ -49,6 +51,7 @@ inputs:
   files-selection:
     description:
       In PR mode, Filter files to be used for context, comma seperated regex
+      i.e. '/*.ts$;/*.js$'
     default: ''
     required: true
 

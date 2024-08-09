@@ -6,6 +6,7 @@ import {
   githubActionSecurityPrompt
 } from './openai_prompts'
 import { maxTokens } from './config'
+import { debugGroupedMsg } from './util'
 
 function setupInitialMessage(
   context: Record<string, string>,
@@ -43,14 +44,15 @@ function setupInitialMessage(
 
 function setupInitialMessagePr(
   context: Record<string, string>,
-  diffText: string
+  diffText: string,
+  filePath: string
 ): ChatCompletionMessageParam[] {
   const systemMessage: ChatCompletionMessageParam = {
     role: 'system',
     content: githubActionSecurityPrompt
   }
 
-  let userMessageStr = `Diff:\n---\n${diffText}\n`
+  let userMessageStr = `${filePath} diff:\n---\n${diffText}\n`
 
   if (context.dirContext) {
     userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`
@@ -83,7 +85,11 @@ async function openAiRequest(
   } = context
 
   core.info('* Request response from Azure OpenAI')
-  core.debug(`Message: ${JSON.stringify(message, null, 2)}`)
+  debugGroupedMsg(
+    'Azure OpenAI Message',
+    `Message: ${JSON.stringify(message, null, 2)}`
+  )
+
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
   const response = await client.chat.completions.create({
     messages: message,
@@ -92,7 +98,11 @@ async function openAiRequest(
     stream: false
   })
 
-  core.debug(`OpenAI response: ${JSON.stringify(response, null, 2)}`)
+  debugGroupedMsg(
+    'Azure OpenAI response',
+    `HTTP Response: ${JSON.stringify(response, null, 2)}`
+  )
+
   return response
 }
 

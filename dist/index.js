@@ -9573,15 +9573,6 @@ function onceStrict (fn) {
 
 /***/ }),
 
-/***/ 4833:
-/***/ ((module) => {
-
-"use strict";
-function _typeof(obj){"@babel/helpers - typeof";return _typeof="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(obj){return typeof obj}:function(obj){return obj&&"function"==typeof Symbol&&obj.constructor===Symbol&&obj!==Symbol.prototype?"symbol":typeof obj},_typeof(obj)}function _createForOfIteratorHelper(o,allowArrayLike){var it=typeof Symbol!=="undefined"&&o[Symbol.iterator]||o["@@iterator"];if(!it){if(Array.isArray(o)||(it=_unsupportedIterableToArray(o))||allowArrayLike&&o&&typeof o.length==="number"){if(it)o=it;var i=0;var F=function F(){};return{s:F,n:function n(){if(i>=o.length)return{done:true};return{done:false,value:o[i++]}},e:function e(_e2){throw _e2},f:F}}throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}var normalCompletion=true,didErr=false,err;return{s:function s(){it=it.call(o)},n:function n(){var step=it.next();normalCompletion=step.done;return step},e:function e(_e3){didErr=true;err=_e3},f:function f(){try{if(!normalCompletion&&it["return"]!=null)it["return"]()}finally{if(didErr)throw err}}}}function _defineProperty(obj,key,value){key=_toPropertyKey(key);if(key in obj){Object.defineProperty(obj,key,{value:value,enumerable:true,configurable:true,writable:true})}else{obj[key]=value}return obj}function _toPropertyKey(arg){var key=_toPrimitive(arg,"string");return _typeof(key)==="symbol"?key:String(key)}function _toPrimitive(input,hint){if(_typeof(input)!=="object"||input===null)return input;var prim=input[Symbol.toPrimitive];if(prim!==undefined){var res=prim.call(input,hint||"default");if(_typeof(res)!=="object")return res;throw new TypeError("@@toPrimitive must return a primitive value.")}return(hint==="string"?String:Number)(input)}function _slicedToArray(arr,i){return _arrayWithHoles(arr)||_iterableToArrayLimit(arr,i)||_unsupportedIterableToArray(arr,i)||_nonIterableRest()}function _nonIterableRest(){throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}function _unsupportedIterableToArray(o,minLen){if(!o)return;if(typeof o==="string")return _arrayLikeToArray(o,minLen);var n=Object.prototype.toString.call(o).slice(8,-1);if(n==="Object"&&o.constructor)n=o.constructor.name;if(n==="Map"||n==="Set")return Array.from(o);if(n==="Arguments"||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n))return _arrayLikeToArray(o,minLen)}function _arrayLikeToArray(arr,len){if(len==null||len>arr.length)len=arr.length;for(var i=0,arr2=new Array(len);i<len;i++){arr2[i]=arr[i]}return arr2}function _iterableToArrayLimit(arr,i){var _i=null==arr?null:"undefined"!=typeof Symbol&&arr[Symbol.iterator]||arr["@@iterator"];if(null!=_i){var _s,_e,_x,_r,_arr=[],_n=!0,_d=!1;try{if(_x=(_i=_i.call(arr)).next,0===i){if(Object(_i)!==_i)return;_n=!1}else for(;!(_n=(_s=_x.call(_i)).done)&&(_arr.push(_s.value),_arr.length!==i);_n=!0){;}}catch(err){_d=!0,_e=err}finally{try{if(!_n&&null!=_i["return"]&&(_r=_i["return"](),Object(_r)!==_r))return}finally{if(_d)throw _e}}return _arr}}function _arrayWithHoles(arr){if(Array.isArray(arr))return arr}module.exports=function(input){if(!input)return[];if(typeof input!=="string"||input.match(/^\s+$/))return[];var lines=input.split("\n");if(lines.length===0)return[];var files=[];var currentFile=null;var currentChunk=null;var deletedLineCounter=0;var addedLineCounter=0;var currentFileChanges=null;var normal=function normal(line){var _currentChunk;(_currentChunk=currentChunk)===null||_currentChunk===void 0?void 0:_currentChunk.changes.push({type:"normal",normal:true,ln1:deletedLineCounter++,ln2:addedLineCounter++,content:line});currentFileChanges.oldLines--;currentFileChanges.newLines--};var start=function start(line){var _parseFiles;var _ref=(_parseFiles=parseFiles(line))!==null&&_parseFiles!==void 0?_parseFiles:[],_ref2=_slicedToArray(_ref,2),fromFileName=_ref2[0],toFileName=_ref2[1];currentFile={chunks:[],deletions:0,additions:0,from:fromFileName,to:toFileName};files.push(currentFile)};var restart=function restart(){if(!currentFile||currentFile.chunks.length)start()};var newFile=function newFile(_,match){restart();currentFile["new"]=true;currentFile.newMode=match[1];currentFile.from="/dev/null"};var deletedFile=function deletedFile(_,match){restart();currentFile.deleted=true;currentFile.oldMode=match[1];currentFile.to="/dev/null"};var oldMode=function oldMode(_,match){restart();currentFile.oldMode=match[1]};var newMode=function newMode(_,match){restart();currentFile.newMode=match[1]};var index=function index(line,match){restart();currentFile.index=line.split(" ").slice(1);if(match[1]){currentFile.oldMode=currentFile.newMode=match[1].trim()}};var fromFile=function fromFile(line){restart();currentFile.from=parseOldOrNewFile(line)};var toFile=function toFile(line){restart();currentFile.to=parseOldOrNewFile(line)};var toNumOfLines=function toNumOfLines(number){return+(number||1)};var chunk=function chunk(line,match){if(!currentFile){start(line)}var _match$slice=match.slice(1),_match$slice2=_slicedToArray(_match$slice,4),oldStart=_match$slice2[0],oldNumLines=_match$slice2[1],newStart=_match$slice2[2],newNumLines=_match$slice2[3];deletedLineCounter=+oldStart;addedLineCounter=+newStart;currentChunk={content:line,changes:[],oldStart:+oldStart,oldLines:toNumOfLines(oldNumLines),newStart:+newStart,newLines:toNumOfLines(newNumLines)};currentFileChanges={oldLines:toNumOfLines(oldNumLines),newLines:toNumOfLines(newNumLines)};currentFile.chunks.push(currentChunk)};var del=function del(line){if(!currentChunk)return;currentChunk.changes.push({type:"del",del:true,ln:deletedLineCounter++,content:line});currentFile.deletions++;currentFileChanges.oldLines--};var add=function add(line){if(!currentChunk)return;currentChunk.changes.push({type:"add",add:true,ln:addedLineCounter++,content:line});currentFile.additions++;currentFileChanges.newLines--};var eof=function eof(line){var _currentChunk$changes3;if(!currentChunk)return;var _currentChunk$changes=currentChunk.changes.slice(-1),_currentChunk$changes2=_slicedToArray(_currentChunk$changes,1),mostRecentChange=_currentChunk$changes2[0];currentChunk.changes.push((_currentChunk$changes3={type:mostRecentChange.type},_defineProperty(_currentChunk$changes3,mostRecentChange.type,true),_defineProperty(_currentChunk$changes3,"ln1",mostRecentChange.ln1),_defineProperty(_currentChunk$changes3,"ln2",mostRecentChange.ln2),_defineProperty(_currentChunk$changes3,"ln",mostRecentChange.ln),_defineProperty(_currentChunk$changes3,"content",line),_currentChunk$changes3))};var schemaHeaders=[[/^diff\s/,start],[/^new file mode (\d+)$/,newFile],[/^deleted file mode (\d+)$/,deletedFile],[/^old mode (\d+)$/,oldMode],[/^new mode (\d+)$/,newMode],[/^index\s[\da-zA-Z]+\.\.[\da-zA-Z]+(\s(\d+))?$/,index],[/^---\s/,fromFile],[/^\+\+\+\s/,toFile],[/^@@\s+-(\d+),?(\d+)?\s+\+(\d+),?(\d+)?\s@@/,chunk],[/^\\ No newline at end of file$/,eof]];var schemaContent=[[/^\\ No newline at end of file$/,eof],[/^-/,del],[/^\+/,add],[/^\s+/,normal]];var parseContentLine=function parseContentLine(line){for(var _i2=0,_schemaContent=schemaContent;_i2<_schemaContent.length;_i2++){var _schemaContent$_i=_slicedToArray(_schemaContent[_i2],2),pattern=_schemaContent$_i[0],handler=_schemaContent$_i[1];var match=line.match(pattern);if(match){handler(line,match);break}}if(currentFileChanges.oldLines===0&&currentFileChanges.newLines===0){currentFileChanges=null}};var parseHeaderLine=function parseHeaderLine(line){for(var _i3=0,_schemaHeaders=schemaHeaders;_i3<_schemaHeaders.length;_i3++){var _schemaHeaders$_i=_slicedToArray(_schemaHeaders[_i3],2),pattern=_schemaHeaders$_i[0],handler=_schemaHeaders$_i[1];var match=line.match(pattern);if(match){handler(line,match);break}}};var parseLine=function parseLine(line){if(currentFileChanges){parseContentLine(line)}else{parseHeaderLine(line)}return};var _iterator=_createForOfIteratorHelper(lines),_step;try{for(_iterator.s();!(_step=_iterator.n()).done;){var line=_step.value;parseLine(line)}}catch(err){_iterator.e(err)}finally{_iterator.f()}return files};var fileNameDiffRegex=/(a|i|w|c|o|1|2)\/.*(?=["']? ["']?(b|i|w|c|o|1|2)\/)|(b|i|w|c|o|1|2)\/.*$/g;var gitFileHeaderRegex=/^(a|b|i|w|c|o|1|2)\//;var parseFiles=function parseFiles(line){var fileNames=line===null||line===void 0?void 0:line.match(fileNameDiffRegex);return fileNames===null||fileNames===void 0?void 0:fileNames.map(function(fileName){return fileName.replace(gitFileHeaderRegex,"").replace(/("|')$/,"")})};var qoutedFileNameRegex=/^\\?['"]|\\?['"]$/g;var parseOldOrNewFile=function parseOldOrNewFile(line){var fileName=leftTrimChars(line,"-+").trim();fileName=removeTimeStamp(fileName);return fileName.replace(qoutedFileNameRegex,"").replace(gitFileHeaderRegex,"")};var leftTrimChars=function leftTrimChars(string,trimmingChars){string=makeString(string);if(!trimmingChars&&String.prototype.trimLeft)return string.trimLeft();var trimmingString=formTrimmingString(trimmingChars);return string.replace(new RegExp("^".concat(trimmingString,"+")),"")};var timeStampRegex=/\t.*|\d{4}-\d\d-\d\d\s\d\d:\d\d:\d\d(.\d+)?\s(\+|-)\d\d\d\d/;var removeTimeStamp=function removeTimeStamp(string){var timeStamp=timeStampRegex.exec(string);if(timeStamp){string=string.substring(0,timeStamp.index).trim()}return string};var formTrimmingString=function formTrimmingString(trimmingChars){if(trimmingChars===null||trimmingChars===undefined)return"\\s";else if(trimmingChars instanceof RegExp)return trimmingChars.source;return"[".concat(makeString(trimmingChars).replace(/([.*+?^=!:${}()|[\]/\\])/g,"\\$1"),"]")};var makeString=function makeString(itemToConvert){return(itemToConvert!==null&&itemToConvert!==void 0?itemToConvert:"")+""};
-
-
-/***/ }),
-
 /***/ 4256:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -34916,15 +34907,19 @@ function wrappy (fn, cb) {
 
 "use strict";
 
-// static application configuration
+// **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.maxRecursion = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
 exports.maxTokens = 384;
-// Default max recursion for OpenAI
-exports.maxRecursion = 3;
+// Default max recursion for OpenAI Job mode
+exports.maxRecursionJob = 3;
+// Default max recursion for OpenAI PR mode
+exports.maxRecursionPr = 2;
+// Default max word count for OpenAI PR mode
+exports.maxWordCountPr = 300;
 
 
 /***/ }),
@@ -34957,9 +34952,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getJob = getJob;
 exports.getJobLogs = getJobLogs;
@@ -34967,53 +34959,14 @@ exports.getActionRuns = getActionRuns;
 exports.getContent = getContent;
 exports.getJobYaml = getJobYaml;
 exports.getFileContent4Context = getFileContent4Context;
-exports.getPullRequestDiff = getPullRequestDiff;
+exports.getUserInfo = getUserInfo;
+exports.getCommitFiles = getCommitFiles;
+exports.getComments = getComments;
+exports.postComment = postComment;
 const core = __importStar(__nccwpck_require__(2186));
 const core_1 = __nccwpck_require__(6762);
 const config_1 = __nccwpck_require__(6373);
-const parse_diff_1 = __importDefault(__nccwpck_require__(4833));
-function filterDiff(files, regExFilters) {
-    if (regExFilters.length < 1 || files.length < 1)
-        return files;
-    let filteredFiles = [];
-    for (const regEx of regExFilters) {
-        filteredFiles = filteredFiles.concat(files.filter(f => f.to && new RegExp(regEx, 'g').test(f.to)));
-    }
-    return [...new Set(filteredFiles)];
-}
-/**
- * Replaces placeholders in a string with corresponding values from a context object.
- *
- * @param str - The string containing placeholders to be replaced.
- * @param context - The context object containing key-value pairs for replacement.
- * @returns The string with placeholders replaced by their corresponding values.
- */
-function interpolateString(str, context) {
-    return str.replace(/\${(.*?)}/g, (match, key) => context[key] || match);
-}
-/**
- * Interpolates values from the given `context` object into the `target` object.
- * If a key in `target` exists in `context`, the corresponding value from `context` is used.
- * Otherwise, the original value from `target` is used.
- *
- * @param target - The target object to interpolate values into.
- * @param context - The context object containing the values to interpolate.
- * @returns A new object with interpolated values.
- */
-// function interpolateObject(
-//   target: Record<string, string>,
-//   context: Context
-// ): Record<string, string> {
-//   const newDic: Record<string, string> = {}
-//   for (const [key, value] of Object.entries(target)) {
-//     if (key in context) {
-//       newDic[key] = context[key]
-//     } else {
-//       newDic[key] = value
-//     }
-//   }
-//   return newDic
-// }
+const util_1 = __nccwpck_require__(2629);
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function getActionRuns(context) {
     const response = await doRequest({
@@ -35041,16 +34994,12 @@ async function getContent(filepath, ref, context) {
     }, context);
     return atob(response.data.content);
 }
-function stripLogs(str) {
-    const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{7}Z\s/gm;
-    return str.replaceAll(regex, '');
-}
 async function getJobLogs(context) {
     const response = await doRequest({
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/actions/jobs/${context.jobId}/logs`
     }, context);
-    return stripLogs(response.data);
+    return (0, util_1.stripTimestampFromLogs)(response.data);
 }
 async function getJobYaml(context) {
     const jobAction = await getActionRuns(context);
@@ -35058,6 +35007,7 @@ async function getJobYaml(context) {
     return jobYaml;
 }
 async function getFileContent4Context(response, context) {
+    (0, util_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`);
     const regex = /CONTENT_OF_FILE_NEEDED "(.*?)"/gm;
     const matches = [...response.matchAll(regex)];
     if (matches.length < 1) {
@@ -35065,45 +35015,65 @@ async function getFileContent4Context(response, context) {
         return false;
     }
     const found = matches.map(match => match[1]);
-    core.info(`Fetching more context from repo: ${found[0]}:${context['ref']}`);
-    const fileContent = await getContent(found[0], context['ref'], context);
+    core.info(`Fetching more context from repo: ${found[0]}:${context.ref}`);
+    const fileContent = await getContent(found[0], context.ref, context);
     return { filename: found[0], content: fileContent };
 }
-async function getPullRequestDiff(pullRequestNumber, context, regExs) {
-    const response = await doRequest({
-        baseUrl: 'https://github.com',
+async function getCommitFiles(context) {
+    const files = await doRequest({
         method: 'GET',
-        path: `/${context.owner}/${context.repo}/pull/${pullRequestNumber}.diff`
-    }, { Accept: 'application/vnd.github.v3.diff' });
-    const filesDiff = (0, parse_diff_1.default)(response.data);
-    const filteredDiff = filterDiff(filesDiff, regExs);
-    core.debug(`filteredDiff files: ${JSON.stringify(filteredDiff.map(f => f.to), null, 2)}`);
-    return filteredDiff
-        .map(f => f.chunks
-        .map(c => `\nfile: ${f.to}\n---\n ${c.changes.map(t => t.content).join('\n')}`)
-        .join('\n'))
-        .join('\n');
+        path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
+    }, context);
+    return (0, util_1.filterCommitFiles)(files.data.files, context.filesSelection.split(','));
 }
-async function doRequest(params, context) {
-    const { baseUrl, method, path, payload, headers } = params;
+async function getUserInfo(context) {
+    const user = await doRequest({
+        method: 'GET',
+        path: '/user'
+    }, context);
+    return user.data;
+}
+async function getComments(context) {
+    const response = await doRequest({
+        method: 'GET',
+        path: `/repos/${context.owner}/${context.repo}/pulls/${context.pr}/comments`
+    }, context);
+    // path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}/comments`
+    return response.data;
+}
+async function postComment(pullRequestNumber, context, body) {
+    const response = await doRequest({
+        method: 'POST',
+        path: `/repos/${context.owner}/${context.repo}/pulls/${pullRequestNumber}/comments`
+    }, context, body);
+    return response.data;
+}
+async function doRequest(params, context, body) {
+    const { baseUrl, method, path, headers } = params;
     let iBaseUrl = baseUrl;
+    let iPayload = {};
     if (!iBaseUrl)
         iBaseUrl = 'https://api.github.com';
     const config = { baseUrl: iBaseUrl };
     if (context.ghToken)
         config['auth'] = context.ghToken;
     const octokit = new core_1.Octokit(config);
-    const iMethodPath = interpolateString(`${method} ${path}`, context);
-    core.debug(`doRequest methodPath: ${iMethodPath}`);
-    // payload = interpolateObject(payload, context)
-    core.debug(`doRequest payload: ${JSON.stringify(payload, null, 2)}}`);
+    const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
+    core.startGroup(`doRequest ${iMethodPath}`);
+    core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
+    iPayload = (0, util_1.interpolateObject)(body, context);
+    core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
     let iHeaders = headers;
     if (!iHeaders)
         iHeaders = {};
     iHeaders['X-GitHub-Api-Version'] = config_1.GithubAPIversion;
-    const response = await octokit.request(iMethodPath, iHeaders);
+    const response = await octokit.request(iMethodPath, {
+        headers: iHeaders,
+        ...iPayload
+    });
     core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
-    if (response.status !== 200) {
+    core.endGroup();
+    if (response.status < 200 || response.status >= 300) {
         core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
     }
     return response;
@@ -35146,7 +35116,7 @@ exports.getContextFromPayload = getContextFromPayload;
 const core = __importStar(__nccwpck_require__(2186));
 // import * as github from '@actions/github'
 const github_1 = __nccwpck_require__(5438);
-const allowedModes = ['pr', 'job'];
+const util_1 = __nccwpck_require__(2629);
 /**
  * Get predfined action inputs for actions.
  * @returns {Record<string, string>} Resolves when the action is complete.
@@ -35154,9 +35124,8 @@ const allowedModes = ['pr', 'job'];
 function getInputs() {
     const inputs = {};
     inputs['mode'] = core.getInput('mode', { required: true });
-    if (!allowedModes.includes(inputs['mode'])) {
+    if (!['pr', 'job'].includes(inputs['mode']))
         throw new Error(`Invalid mode: ${inputs['mode']}`);
-    }
     inputs['ghToken'] = core.getInput('gh-token', { required: false });
     inputs['ghJob'] = core.getInput('gh-job', {
         required: false
@@ -35197,16 +35166,16 @@ function getInputs() {
  * @returns {Record<string, string>} Resolves when the action is complete.
  */
 function getContextFromPayload() {
-    core.debug(`GIT Payload: ${JSON.stringify(github_1.context.payload, null, 2)}`);
+    (0, util_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context.payload, null, 2)}`);
     const requiredContext = {};
     const full_name = github_1.context.payload.repository?.full_name?.split('/') || [];
     requiredContext['full_name'] = full_name.join('/');
     requiredContext['owner'] = full_name[0];
     requiredContext['repo'] = full_name[1];
-    requiredContext['runId'] = github_1.context.runId.toString();
+    requiredContext['runId'] = github_1.context.runId.toString() ?? '';
     requiredContext['ref'] = github_1.context.ref;
-    if (github_1.context.payload.number)
-        requiredContext['pr'] = github_1.context.payload.number.toString();
+    requiredContext['pr'] = github_1.context.payload.number.toString() ?? '';
+    requiredContext['commitId'] = github_1.context.payload.after.toString() ?? '';
     return requiredContext;
 }
 
@@ -35248,6 +35217,7 @@ const wait_1 = __nccwpck_require__(5259);
 const inputs_1 = __nccwpck_require__(7063);
 const mode_job_1 = __nccwpck_require__(8341);
 const mode_pr_1 = __nccwpck_require__(5750);
+const util_1 = __nccwpck_require__(2629);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -35257,7 +35227,7 @@ async function run() {
         let context = (0, inputs_1.getInputs)();
         const payloadContext = (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
-        core.debug(`Context: ${JSON.stringify(context, null, 2)}`);
+        (0, util_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`);
         await (0, wait_1.wait)(parseInt(context.delay, 10));
         let usage;
         if (context.mode === 'pr')
@@ -35269,7 +35239,7 @@ async function run() {
         core.setOutput('usage', usage);
     }
     catch (error) {
-        core.error('An error occurred during the action');
+        core.error('An unexpected error occurred during the action');
         // Fail the workflow step if an error occurs
         if (error instanceof Error && error !== null) {
             core.error(`\nMessage: ${error.message}`);
@@ -35333,7 +35303,7 @@ async function runJobMode(context) {
     const jobLog = await (0, github_api_1.getJobLogs)(context);
     const message = (0, openai_api_1.setupInitialMessage)(context, jobLog);
     let usage = {};
-    for (let i = 1; i <= config_1.maxRecursion; i++) {
+    for (let i = 1; i <= config_1.maxRecursionJob; i++) {
         const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
         if (aiResponse.usage !== undefined)
             usage = aiResponse.usage;
@@ -35399,37 +35369,59 @@ const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 async function runPrMode(context) {
-    // const regx = ['/*.yml$', '/*.ts$']
-    const response = await (0, github_api_1.getPullRequestDiff)(context['pr'], { owner: context['owner'], repo: context['repo'] }, context['filesSelection'].split(';'));
-    const message = (0, openai_api_1.setupInitialMessagePr)(context, response);
-    let usage = {};
-    for (let i = 1; i <= config_1.maxRecursion; i++) {
-        const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
-        // assign the response to the usage object
-        if (aiResponse.usage !== undefined)
-            usage = aiResponse.usage;
-        for (const result of aiResponse.choices) {
-            const content = result.message.content;
-            core.info(`###### [ Bender Response ] ######\n${content}\n############\n`);
+    const filesInPR = await (0, github_api_1.getCommitFiles)(context);
+    const files = filesInPR.map(f => f.filename);
+    if (filesInPR.length < 1)
+        core.warning(`No files found in the PR, that matchs the regEx filter '${context.filesSelection}' `);
+    const user = await (0, github_api_1.getUserInfo)(context);
+    const prComments = await (0, github_api_1.getComments)(context);
+    const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
+        comment.subject_type === 'file' &&
+        comment.commit_id === context.commitId &&
+        files.includes(comment.path));
+    for (const file of files) {
+        core.info(`* Processing file: ${file}`);
+        let reply = '';
+        const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
+        if (!prFileContent) {
+            core.error(`Unable to get file content ${file} ${context.ref}`);
+            continue;
+        }
+        const fileComment = relevantComments.find(comment => comment.path === file);
+        if (fileComment) {
+            core.warning(`Skipping file ${file} has been commented on before `);
+            continue;
+        }
+        for (let i = 1; i <= config_1.maxRecursionPr; i++) {
+            const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
+            const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
+            // assign the response to the usage object
+            if (aiResponse.choices.length > 1) {
+                console.warn('This should not happen more then one choice');
+                console.debug('AI Response choices: ', aiResponse.choices);
+            }
+            const content = aiResponse.choices[0].message.content;
+            reply = content ?? '';
+            const firstChoice = aiResponse.choices[0];
+            if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
+                core.debug('No more context needed');
+                break;
+            }
+            const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
+            if (!fileContent) {
+                core.warning('Unable to get file content');
+                break;
+            }
             message.push({ role: 'assistant', content });
         }
-        const firstChoice = aiResponse.choices[0];
-        if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
-            core.debug('No more context needed');
-            break;
-        }
-        const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
-        if (!fileContent) {
-            core.warning('Unable to get file content');
-            break;
-        }
-        const { filename, content } = fileContent;
-        message.push({
-            role: 'user',
-            content: `Content of file ${filename}:\n---\n${content}\n`
+        (0, github_api_1.postComment)(context.pr, context, {
+            body: reply,
+            commit_id: context.commitId,
+            path: file,
+            subject_type: 'file'
         });
     }
-    return JSON.stringify(usage);
+    return '';
 }
 
 
@@ -35471,6 +35463,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const openai_1 = __nccwpck_require__(47);
 const openai_prompts_1 = __nccwpck_require__(8903);
 const config_1 = __nccwpck_require__(6373);
+const util_1 = __nccwpck_require__(2629);
 function setupInitialMessage(context, jobLog) {
     const systemMessage = {
         role: 'system',
@@ -35493,12 +35486,12 @@ function setupInitialMessage(context, jobLog) {
     };
     return [systemMessage, userMessage];
 }
-function setupInitialMessagePr(context, diffText) {
+function setupInitialMessagePr(context, diffText, filePath) {
     const systemMessage = {
         role: 'system',
         content: openai_prompts_1.githubActionSecurityPrompt
     };
-    let userMessageStr = `Diff:\n---\n${diffText}\n`;
+    let userMessageStr = `${filePath} diff:\n---\n${diffText}\n`;
     if (context.dirContext) {
         userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`;
     }
@@ -35515,7 +35508,7 @@ function setupInitialMessagePr(context, diffText) {
 async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
     core.info('* Request response from Azure OpenAI');
-    core.debug(`Message: ${JSON.stringify(message, null, 2)}`);
+    (0, util_1.debugGroupedMsg)('Azure OpenAI Message', `Message: ${JSON.stringify(message, null, 2)}`);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({
         messages: message,
@@ -35523,7 +35516,7 @@ async function openAiRequest(message, context) {
         max_tokens: config_1.maxTokens,
         stream: false
     });
-    core.debug(`OpenAI response: ${JSON.stringify(response, null, 2)}`);
+    (0, util_1.debugGroupedMsg)('Azure OpenAI response', `HTTP Response: ${JSON.stringify(response, null, 2)}`);
     return response;
 }
 
@@ -35531,12 +35524,13 @@ async function openAiRequest(message, context) {
 /***/ }),
 
 /***/ 8903:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.githubActionSecurityPrompt = exports.githubActionFailurePrompt = void 0;
+const config_1 = __nccwpck_require__(6373);
 exports.githubActionFailurePrompt = `As a software engineer assistant, your purpose is to identify errors and suggest solutions to fix them. 
 You'll receive GitHub Action job log that indicate failures. Your response should be formatted as text and follow these guidelines:
 1. Sufficient Information Provided:
@@ -35545,14 +35539,170 @@ You'll receive GitHub Action job log that indicate failures. Your response shoul
 2. Insufficient Information or Unable to Suggest a Solution:
     - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: 'CONTENT_OF_FILE_NEEDED "<valid unix path>"' (e.g., 'CONTENT_OF_FILE_NEEDED "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
     - If there's no way forward, reply with 'Not enough information to provide a solution.'`;
-exports.githubActionSecurityPrompt = `As a security engineer assistant, your purpose is to identify security risks in code & configuration and suggest best security practices.
-You'll receive a diff content from a pull request. Your response should be formatted as text and follow these guidelines:
-1. Sufficient Information Provided:
-    - Identitify potential secirty risk in code.
-    - Provide a suggestion to improve security.
-2. Insufficient Information or Unable to Suggest a Solution:
-    - If you need full access to specific files you can request them in the following formart 'CONTENT_OF_FILE_NEEDED "<valid unix path>"' (e.g., 'CONTENT_OF_FILE_NEEDED "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
-    - If there's no way forward, reply with 'Not enough information to provide a suggestion.'`;
+exports.githubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
+- You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality. 
+- Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${config_1.maxWordCountPr} words ONLY*.
+- Don't provide a title or descriptions.
+- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: CONTENT_OF_FILE_NEEDED "filename" (e.g., CONTENT_OF_FILE_NEEDED "src/index.js").
+- If there's no way forward, reply with: Not enough information to provide a suggestion.`;
+
+
+/***/ }),
+
+/***/ 2629:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.sanitizeString = sanitizeString;
+exports.stripTimestampFromLogs = stripTimestampFromLogs;
+exports.filterCommitFiles = filterCommitFiles;
+exports.interpolateString = interpolateString;
+exports.interpolateObject = interpolateObject;
+exports.rawPrintIfDebug = rawPrintIfDebug;
+exports.debugGroupedMsg = debugGroupedMsg;
+const core = __importStar(__nccwpck_require__(2186));
+/**
+ * Sanitizes a string by replacing all characters except the first and last with asterisks.
+ * If the string is empty or null, an empty string is returned.
+ * @param str - The string to sanitize.
+ * @returns The sanitized string.
+ */
+function sanitizeString(str) {
+    if (!str)
+        return '';
+    return str.length <= 2
+        ? str
+        : str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
+}
+/**
+ * Removes timestamps from log strings.
+ *
+ * @param str - The log string with timestamps.
+ * @returns The log string without timestamps.
+ */
+function stripTimestampFromLogs(str) {
+    const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{7}Z\s/gm;
+    return str.replaceAll(regex, '');
+}
+/**
+ * Filters an array of commit files based on status and regular expression filters.
+ *
+ * @param files - An array of commit files.
+ * @param regExFilters - An array of regular expression filters.
+ * @returns An array of filtered commit files.
+ */
+function filterCommitFiles(files, regExFilters) {
+    const allowedStatus = ['added', 'modified', 'renamed'];
+    core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
+    if (files.length < 1) {
+        core.warning('No files found in the response to filter.');
+        return [];
+    }
+    // filter files based on status
+    const filteredFilesStatus = files.filter((f) => allowedStatus.includes(f.status));
+    if (filteredFilesStatus.length < 1) {
+        core.warning('No files found with status added, modified or renamed.');
+        return [];
+    }
+    if (regExFilters.length < 1)
+        return filteredFilesStatus;
+    let filteredFiles = [];
+    for (const regEx of regExFilters) {
+        filteredFiles = filteredFiles.concat(filteredFilesStatus.filter(f => f.filename && new RegExp(regEx, 'g').test(f.filename)));
+    }
+    const unqiueFiles = [...new Set(filteredFiles)];
+    // loop through the files and print names.
+    core.info(`* Filtered file (${unqiueFiles.length}): ${unqiueFiles.map(f => f.filename).join(', ')}`);
+    return unqiueFiles;
+}
+/**
+ * Replaces placeholders in a string with corresponding values from a context object.
+ *
+ * @param str - The string containing placeholders to be replaced.
+ * @param context - The context object containing key-value pairs for replacement.
+ * @returns The string with placeholders replaced by their corresponding values.
+ */
+function interpolateString(str, context) {
+    return str.replace(/\${(.*?)}/g, (match, key) => context[key] || match);
+}
+/**
+ * Interpolates values from the given `context` object into the `target` object.
+ * If a key in `target` exists in `context`, the corresponding value from `context` is used.
+ * Otherwise, the original value from `target` is used.
+ *
+ * @param target - The target object to interpolate values into.
+ * @param context - The context object containing the values to interpolate.
+ * @returns A new object with interpolated values.
+ */
+function interpolateObject(target, context) {
+    if (!target)
+        return {};
+    const newDic = {};
+    let targetObj = {};
+    if (typeof target === 'string') {
+        targetObj = JSON.parse(target);
+    }
+    else {
+        targetObj = target;
+    }
+    for (const [key, value] of Object.entries(targetObj)) {
+        if (key in context) {
+            newDic[key] = context[key];
+        }
+        else {
+            newDic[key] = value;
+        }
+    }
+    return newDic;
+}
+/**
+ * Prints the given message if the debug mode is enabled.
+ *
+ * @param message - The message to be printed.
+ * @returns void
+ */
+function rawPrintIfDebug(message) {
+    if (core.isDebug())
+        core.info(message);
+}
+/**
+ * Logs a grouped debug message with a specified title and message.
+ *
+ * @param title - The title of the debug group.
+ * @param message - The message to be logged.
+ */
+function debugGroupedMsg(title, message) {
+    if (core.isDebug()) {
+        core.startGroup(title);
+        core.debug(message);
+        core.endGroup();
+    }
+}
 
 
 /***/ }),

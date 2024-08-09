@@ -1,58 +1,16 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
-import { OctokitResponse, Context, requestParams, parseDiff } from './types'
+import { OctokitResponse, Context, requestParams } from './types'
 import { GithubAPIversion } from './config'
-import parse from 'parse-diff'
 
-function filterDiff(
-  files: parseDiff.File[],
-  regExFilters: string[]
-): parseDiff.File[] {
-  if (regExFilters.length < 1 || files.length < 1) return files
-  let filteredFiles: parseDiff.File[] = []
-
-  for (const regEx of regExFilters) {
-    filteredFiles = filteredFiles.concat(
-      files.filter(f => f.to && new RegExp(regEx, 'g').test(f.to))
-    )
-  }
-  return [...new Set(filteredFiles)]
-}
-
-/**
- * Replaces placeholders in a string with corresponding values from a context object.
- *
- * @param str - The string containing placeholders to be replaced.
- * @param context - The context object containing key-value pairs for replacement.
- * @returns The string with placeholders replaced by their corresponding values.
- */
-function interpolateString(str: string, context: Context): string {
-  return str.replace(/\${(.*?)}/g, (match, key) => context[key] || match)
-}
-
-/**
- * Interpolates values from the given `context` object into the `target` object.
- * If a key in `target` exists in `context`, the corresponding value from `context` is used.
- * Otherwise, the original value from `target` is used.
- *
- * @param target - The target object to interpolate values into.
- * @param context - The context object containing the values to interpolate.
- * @returns A new object with interpolated values.
- */
-// function interpolateObject(
-//   target: Record<string, string>,
-//   context: Context
-// ): Record<string, string> {
-//   const newDic: Record<string, string> = {}
-//   for (const [key, value] of Object.entries(target)) {
-//     if (key in context) {
-//       newDic[key] = context[key]
-//     } else {
-//       newDic[key] = value
-//     }
-//   }
-//   return newDic
-// }
+import {
+  sanitizeString,
+  stripTimestampFromLogs,
+  filterCommitFiles,
+  interpolateString,
+  interpolateObject,
+  debugGroupedMsg
+} from './util'
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function getActionRuns(context: Context): Promise<any> {
@@ -104,11 +62,6 @@ async function getContent(
   return atob(response.data.content)
 }
 
-function stripLogs(str: string): string {
-  const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{7}Z\s/gm
-  return str.replaceAll(regex, '')
-}
-
 async function getJobLogs(context: Context): Promise<string> {
   const response = await doRequest(
     {
@@ -117,7 +70,7 @@ async function getJobLogs(context: Context): Promise<string> {
     },
     context
   )
-  return stripLogs(response.data)
+  return stripTimestampFromLogs(response.data)
 }
 
 async function getJobYaml(context: Context): Promise<string> {
@@ -134,6 +87,10 @@ async function getFileContent4Context(
   response: string,
   context: Context
 ): Promise<{ filename: string; content: string } | false> {
+  debugGroupedMsg(
+    'getFileContent4Context',
+    `Response: ${JSON.stringify(response, null, 2)}`
+  )
   const regex = /CONTENT_OF_FILE_NEEDED "(.*?)"/gm
   const matches = [...response.matchAll(regex)]
   if (matches.length < 1) {
@@ -143,53 +100,72 @@ async function getFileContent4Context(
     return false
   }
   const found = matches.map(match => match[1])
-  core.info(`Fetching more context from repo: ${found[0]}:${context['ref']}`)
-  const fileContent = await getContent(found[0], context['ref'], context)
+  core.info(`Fetching more context from repo: ${found[0]}:${context.ref}`)
+  const fileContent = await getContent(found[0], context.ref, context)
   return { filename: found[0], content: fileContent }
 }
 
-async function getPullRequestDiff(
+async function getCommitFiles(
+  context: Context
+): Promise<Record<string, string>[]> {
+  const files = await doRequest(
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
+    },
+    context
+  )
+  return filterCommitFiles(files.data.files, context.filesSelection.split(','))
+}
+
+async function getUserInfo(context: Context): Promise<Record<string, any>> {
+  const user = await doRequest(
+    {
+      method: 'GET',
+      path: '/user'
+    },
+    context
+  )
+  return user.data
+}
+
+async function getComments(context: Context): Promise<Record<string, any>[]> {
+  const response = await doRequest(
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/pulls/${context.pr}/comments`
+    },
+    context
+  )
+  // path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}/comments`
+
+  return response.data
+}
+
+async function postComment(
   pullRequestNumber: string,
   context: Context,
-  regExs: string[]
+  body: Record<string, string>
 ): Promise<string> {
   const response = await doRequest(
     {
-      baseUrl: 'https://github.com',
-      method: 'GET',
-      path: `/${context.owner}/${context.repo}/pull/${pullRequestNumber}.diff`
+      method: 'POST',
+      path: `/repos/${context.owner}/${context.repo}/pulls/${pullRequestNumber}/comments`
     },
-    { Accept: 'application/vnd.github.v3.diff' }
+    context,
+    body
   )
-  const filesDiff = parse(response.data)
-  const filteredDiff = filterDiff(filesDiff, regExs)
-
-  core.debug(
-    `filteredDiff files: ${JSON.stringify(
-      filteredDiff.map(f => f.to),
-      null,
-      2
-    )}`
-  )
-
-  return filteredDiff
-    .map(f =>
-      f.chunks
-        .map(
-          c =>
-            `\nfile: ${f.to}\n---\n ${c.changes.map(t => t.content).join('\n')}`
-        )
-        .join('\n')
-    )
-    .join('\n')
+  return response.data
 }
 
 async function doRequest(
   params: requestParams,
-  context: Context
+  context: Context,
+  body?: Record<string, string>
 ): Promise<OctokitResponse<any, number>> {
-  const { baseUrl, method, path, payload, headers } = params
+  const { baseUrl, method, path, headers } = params
   let iBaseUrl = baseUrl
+  let iPayload = {}
   if (!iBaseUrl) iBaseUrl = 'https://api.github.com'
 
   const config: Record<string, string> = { baseUrl: iBaseUrl }
@@ -197,18 +173,27 @@ async function doRequest(
   const octokit = new Octokit(config)
 
   const iMethodPath = interpolateString(`${method} ${path}`, context)
-  core.debug(`doRequest methodPath: ${iMethodPath}`)
 
-  // payload = interpolateObject(payload, context)
-  core.debug(`doRequest payload: ${JSON.stringify(payload, null, 2)}}`)
+  core.startGroup(`doRequest ${iMethodPath}`)
+  core.debug(
+    `doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${sanitizeString(context.ghToken)} }`
+  )
+
+  iPayload = interpolateObject(body, context)
+  core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`)
+
   let iHeaders = headers
   if (!iHeaders) iHeaders = {}
   iHeaders['X-GitHub-Api-Version'] = GithubAPIversion
 
-  const response = await octokit.request(iMethodPath, iHeaders)
+  const response = await octokit.request(iMethodPath, {
+    headers: iHeaders,
+    ...iPayload
+  })
   core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
+  core.endGroup()
 
-  if (response.status !== 200) {
+  if (response.status < 200 || response.status >= 300) {
     core.setFailed(
       `Github API request failed with status code ${response.status}. ${response.data.message}`
     )
@@ -224,5 +209,8 @@ export {
   getContent,
   getJobYaml,
   getFileContent4Context,
-  getPullRequestDiff
+  getUserInfo,
+  getCommitFiles,
+  getComments,
+  postComment
 }

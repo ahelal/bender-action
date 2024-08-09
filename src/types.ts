@@ -6,8 +6,6 @@ import {
 /*eslint import/no-unresolved: [2, { ignore: ['OctokitResponse'] }]*/
 import { OctokitResponse } from '@octokit/types/dist-types/OctokitResponse'
 
-import parseDiff from 'parse-diff'
-
 export interface CompletionUsage {
   completion_tokens: number
   prompt_tokens: number
@@ -22,13 +20,7 @@ export interface requestParams {
   method: string
   path: string
   headers?: Record<string, string>
-  payload?: string
   baseUrl?: string
 }
 
-export {
-  OctokitResponse,
-  ChatCompletionMessageParam,
-  ChatCompletion,
-  parseDiff
-}
+export { OctokitResponse, ChatCompletionMessageParam, ChatCompletion }
