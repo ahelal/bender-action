@@ -23,7 +23,7 @@ export async function run(): Promise<void> {
     else throw new Error(`Invalid mode: ${context.mode}`)
     core.setOutput('usage', usage)
   } catch (error) {
-    core.error('An error occurred during the action')
+    core.error('An unexpected error occurred during the action')
     // Fail the workflow step if an error occurs
     if (error instanceof Error && error !== null) {
       core.error(`\nMessage: ${error.message}`)

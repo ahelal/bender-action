@@ -43,14 +43,15 @@ function setupInitialMessage(
 
 function setupInitialMessagePr(
   context: Record<string, string>,
-  diffText: string
+  diffText: string,
+  filePath: string
 ): ChatCompletionMessageParam[] {
   const systemMessage: ChatCompletionMessageParam = {
     role: 'system',
     content: githubActionSecurityPrompt
   }
 
-  let userMessageStr = `Diff:\n---\n${diffText}\n`
+  let userMessageStr = `${filePath} diff:\n---\n${diffText}\n`
 
   if (context.dirContext) {
     userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`

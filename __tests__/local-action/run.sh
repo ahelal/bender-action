@@ -16,7 +16,7 @@ if [ "${1}" == "install" ]; then
 elif [ "${1}" == "job" ]; then
 	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env"
 elif [ "${1}" == "pr" ]; then
-	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env-pr.sh"
+	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env_pr.sh"
 else
 	echo "Invalid argument, supported arrguments: install, job, pr"
 	exit 0

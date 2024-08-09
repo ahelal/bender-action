@@ -27,8 +27,8 @@ jobs:
       - name: Echo dir context
         run: echo ${{env.dir_context}}
 
-      - name: Run Bender (if failure)
-        uses: ahelal/bender-action@main
+      - name: Run Bender
+        uses: ahelal/bender-action@feature/pr_comment
         id: bender
         with:
           mode: 'pr'
