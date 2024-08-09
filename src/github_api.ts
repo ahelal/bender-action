@@ -8,8 +8,7 @@ import {
   stripTimestampFromLogs,
   filterCommitFiles,
   interpolateString,
-  interpolateObject,
-  rawPrintIfDebug
+  interpolateObject
 } from './util'
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */

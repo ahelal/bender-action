@@ -34907,9 +34907,9 @@ function wrappy (fn, cb) {
 
 "use strict";
 
-// static application configuration
+// **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34918,6 +34918,8 @@ exports.maxTokens = 384;
 exports.maxRecursionJob = 3;
 // Default max recursion for OpenAI PR mode
 exports.maxRecursionPr = 2;
+// Default max word count for OpenAI PR mode
+exports.maxWordCountPr = 300;
 
 
 /***/ }),
@@ -35524,12 +35526,13 @@ async function openAiRequest(message, context) {
 /***/ }),
 
 /***/ 8903:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.githubActionSecurityPrompt = exports.githubActionFailurePrompt = void 0;
+const config_1 = __nccwpck_require__(6373);
 exports.githubActionFailurePrompt = `As a software engineer assistant, your purpose is to identify errors and suggest solutions to fix them. 
 You'll receive GitHub Action job log that indicate failures. Your response should be formatted as text and follow these guidelines:
 1. Sufficient Information Provided:
@@ -35540,7 +35543,7 @@ You'll receive GitHub Action job log that indicate failures. Your response shoul
     - If there's no way forward, reply with 'Not enough information to provide a solution.'`;
 exports.githubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
 - You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality. 
-- Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *300 words ONLY*.
+- Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${config_1.maxWordCountPr} words ONLY*.
 - Don't provide a title or descriptions.
 - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: CONTENT_OF_FILE_NEEDED "filename" (e.g., CONTENT_OF_FILE_NEEDED "src/index.js").
 - If there's no way forward, reply with: Not enough information to provide a suggestion.`;

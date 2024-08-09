@@ -1,4 +1,4 @@
-// static application configuration
+// **** static application configuration ****
 
 // Default Github API version
 export const GithubAPIversion = '2022-11-28'
@@ -11,3 +11,6 @@ export const maxRecursionJob = 3
 
 // Default max recursion for OpenAI PR mode
 export const maxRecursionPr = 2
+
+// Default max word count for OpenAI PR mode
+export const maxWordCountPr = 300
