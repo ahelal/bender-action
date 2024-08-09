@@ -107,50 +107,10 @@ export function interpolateObject(
   return newDic
 }
 
-// function filterFiles(
-//   responseFiles: OctokitResponse<any>,
-//   regExFilters: string[]
-// ): Record<string, string>[] {
-//   const allowedStatus = ['added', 'modified', 'renamed']
-//   const files: Record<string, string>[] = responseFiles.data
-//   if (files.length < 1) {
-//     core.warning('No files found in the response to filter.')
-//     return []
-//   }
-//   // filter files based on status
-//   const filteredFilesStatus = files.filter((f: any) =>
-//     allowedStatus.includes(f.status)
-//   )
-//   if (filteredFilesStatus.length < 1) {
-//     core.warning('No files found with status added, modified or renamed.')
-//     return []
-//   }
-//   if (regExFilters.length < 1) return filteredFilesStatus
+export function isDebugMode(): boolean {
+  return process.env.ACTIONS_RUNNER_DEBUG === 'true'
+}
 
-//   let filteredFiles: Record<string, string>[] = []
-//   for (const regEx of regExFilters) {
-//     filteredFiles = filteredFiles.concat(
-//       filteredFilesStatus.filter(
-//         f => f.filename && new RegExp(regEx, 'g').test(f.filename)
-//       )
-//     )
-//   }
-//   const unqiueFiles = [...new Set(filteredFiles)]
-//   return unqiueFiles
-// }
-
-// function filterDiff(
-//   files: parseDiff.File[],
-//   regExFilters: string[]
-// ): parseDiff.File[] {
-//   if (regExFilters.length < 1 || files.length < 1) return files
-//   let filteredFiles: parseDiff.File[] = []
-
-//   for (const regEx of regExFilters) {
-//     filteredFiles = filteredFiles.concat(
-//       files.filter(f => f.to && new RegExp(regEx, 'g').test(f.to))
-//     )
-//   }
-//   const unqiueDiff = [...new Set(filteredFiles)]
-//   return unqiueDiff
-// }
+export function printIfDebug(message: string): void {
+  if (isDebugMode()) core.info(message)
+}

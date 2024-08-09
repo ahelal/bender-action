@@ -8,7 +8,8 @@ import {
   stripTimestampFromLogs,
   filterCommitFiles,
   interpolateString,
-  interpolateObject
+  interpolateObject,
+  printIfDebug
 } from './util'
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */
@@ -168,11 +169,12 @@ async function doRequest(
   const octokit = new Octokit(config)
 
   const iMethodPath = interpolateString(`${method} ${path}`, context)
-  core.debug(`::group::doRequest`)
+
+  printIfDebug(`::group::doRequest-${iMethodPath}`)
   core.debug(
     `doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${santizeString(context.ghToken)} }`
   )
-  core.debug(`doRequest method path: ${iMethodPath}`)
+  // core.debug(`doRequest method path: ${iMethodPath}`)
 
   iPayload = interpolateObject(body, context)
   core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`)
@@ -186,7 +188,7 @@ async function doRequest(
     ...iPayload
   })
   core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
-  core.debug('::endgroup::')
+  printIfDebug(`::endgroup::`)
   if (response.status < 200 || response.status >= 300) {
     core.setFailed(
       `Github API request failed with status code ${response.status}. ${response.data.message}`
