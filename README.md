@@ -48,7 +48,7 @@ dir-context:
   default: ''
 
 job-context:
-  description: Should the github action yaml be provided as context
+  description: Should the github action YAML be provided as context
   default: 'false'
 
 user-context:
@@ -75,7 +75,7 @@ Set Up Secrets and Variables:
 Ensure you have the necessary secrets for example (GH_TOKEN, OA_ENDPOINT,
 OA_DEPLOYMENT, OA_KEY) set up in your GitHub repository settings.
 
-Check the example workflow yaml for examples.
+Check the example workflow YAML examples.
 
 ## Example workflow
 
@@ -84,7 +84,7 @@ Check the example workflow yaml for examples.
 In Job mode, Bender should run only if a job failed, it will inspect the job
 failed and give recommendation on hot to fix the problem.
 
-```yaml
+```YAML
 name: YOR JOB
 on:
   push:
@@ -149,7 +149,7 @@ resolving issues in your CI/CD pipelines.
 In PR mode, Bender acts as a code reviewer, focusing on security and
 recommending code improvments.
 
-```yaml
+```YAML
 name: Bender PR
 on:
   pull_request:
