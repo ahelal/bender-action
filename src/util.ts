@@ -111,7 +111,17 @@ export function isDebugMode(): boolean {
   return process.env.ACTIONS_RUNNER_DEBUG === 'true'
 }
 
+function printALlEnvVariables(): void {
+  core.info('All environment variables:')
+  for (const key in process.env) {
+    core.info(`${key}: ${process.env[key]}`)
+  }
+}
+
 export function printIfDebug(message: string): void {
-  core.debug(`DEBUG******: ${isDebugMode()}`)
+  // core.debug(`DEBUG******: ${isDebugMode()}`)
+  // print all environment variables
+
+  printALlEnvVariables()
   if (isDebugMode()) core.info(message)
 }

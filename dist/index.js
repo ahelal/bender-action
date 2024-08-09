@@ -35673,8 +35673,16 @@ function interpolateObject(target, context) {
 function isDebugMode() {
     return process.env.ACTIONS_RUNNER_DEBUG === 'true';
 }
+function printALlEnvVariables() {
+    core.info('All environment variables:');
+    for (const key in process.env) {
+        core.info(`${key}: ${process.env[key]}`);
+    }
+}
 function printIfDebug(message) {
-    core.debug(`DEBUG******: ${isDebugMode()}`);
+    // core.debug(`DEBUG******: ${isDebugMode()}`)
+    // print all environment variables
+    printALlEnvVariables();
     if (isDebugMode())
         core.info(message);
 }
