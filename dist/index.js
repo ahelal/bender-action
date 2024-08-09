@@ -35054,9 +35054,8 @@ async function doRequest(params, context, body) {
         config['auth'] = context.ghToken;
     const octokit = new core_1.Octokit(config);
     const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
-    (0, util_1.printIfDebug)(`::group::doRequest-${iMethodPath}`);
+    (0, util_1.rawPrintIfDebug)(`::group::doRequest-${iMethodPath}`);
     core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.santizeString)(context.ghToken)} }`);
-    // core.debug(`doRequest method path: ${iMethodPath}`)
     iPayload = (0, util_1.interpolateObject)(body, context);
     core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
     let iHeaders = headers;
@@ -35068,7 +35067,7 @@ async function doRequest(params, context, body) {
         ...iPayload
     });
     core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
-    (0, util_1.printIfDebug)(`::endgroup::`);
+    (0, util_1.rawPrintIfDebug)(`::endgroup::`);
     if (response.status < 200 || response.status >= 300) {
         core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
     }
@@ -35581,7 +35580,7 @@ exports.filterCommitFiles = filterCommitFiles;
 exports.interpolateString = interpolateString;
 exports.interpolateObject = interpolateObject;
 exports.isDebugMode = isDebugMode;
-exports.printIfDebug = printIfDebug;
+exports.rawPrintIfDebug = rawPrintIfDebug;
 const core = __importStar(__nccwpck_require__(2186));
 /**
  * Sanitizes a string by replacing all characters except the first and last with asterisks.
@@ -35673,9 +35672,9 @@ function interpolateObject(target, context) {
 function isDebugMode() {
     return process.env.RUNNER_DEBUG === '1' ?? false;
 }
-function printIfDebug(message) {
+function rawPrintIfDebug(message) {
     if (isDebugMode())
-        core.info(message);
+        console.log(message);
 }
 
 

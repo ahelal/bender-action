@@ -111,6 +111,6 @@ export function isDebugMode(): boolean {
   return process.env.RUNNER_DEBUG === '1' ?? false
 }
 
-export function printIfDebug(message: string): void {
-  if (isDebugMode()) core.info(message)
+export function rawPrintIfDebug(message: string): void {
+  if (isDebugMode()) console.log(message)
 }
