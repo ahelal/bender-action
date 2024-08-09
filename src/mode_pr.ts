@@ -32,7 +32,7 @@ export async function runPrMode(context: Context): Promise<string> {
   )
 
   for (const file of files) {
-    core.info(`Processing file: ${file}}`)
+    core.info(`Processing file: ${file}`)
 
     let reply = ''
     const prFileContent = await getContent(file, context.ref, context)

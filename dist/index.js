@@ -35054,9 +35054,9 @@ async function doRequest(params, context, body) {
         config['auth'] = context.ghToken;
     const octokit = new core_1.Octokit(config);
     const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
-    core.debug(`::group::doRequest`);
+    (0, util_1.printIfDebug)(`::group::doRequest-${iMethodPath}`);
     core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.santizeString)(context.ghToken)} }`);
-    core.debug(`doRequest method path: ${iMethodPath}`);
+    // core.debug(`doRequest method path: ${iMethodPath}`)
     iPayload = (0, util_1.interpolateObject)(body, context);
     core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
     let iHeaders = headers;
@@ -35068,7 +35068,7 @@ async function doRequest(params, context, body) {
         ...iPayload
     });
     core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
-    core.debug('::endgroup::');
+    (0, util_1.printIfDebug)(`::endgroup::`);
     if (response.status < 200 || response.status >= 300) {
         core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
     }
@@ -35376,7 +35376,7 @@ async function runPrMode(context) {
         comment.commit_id === context.commitId &&
         files.includes(comment.path));
     for (const file of files) {
-        core.info(`Processing file: ${file}}`);
+        core.info(`Processing file: ${file}`);
         let reply = '';
         const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
         if (!prFileContent) {
@@ -35580,6 +35580,8 @@ exports.stripTimestampFromLogs = stripTimestampFromLogs;
 exports.filterCommitFiles = filterCommitFiles;
 exports.interpolateString = interpolateString;
 exports.interpolateObject = interpolateObject;
+exports.isDebugMode = isDebugMode;
+exports.printIfDebug = printIfDebug;
 const core = __importStar(__nccwpck_require__(2186));
 /**
  * Sanitizes a string by replacing all characters except the first and last with asterisks.
@@ -35668,50 +35670,13 @@ function interpolateObject(target, context) {
     }
     return newDic;
 }
-// function filterFiles(
-//   responseFiles: OctokitResponse<any>,
-//   regExFilters: string[]
-// ): Record<string, string>[] {
-//   const allowedStatus = ['added', 'modified', 'renamed']
-//   const files: Record<string, string>[] = responseFiles.data
-//   if (files.length < 1) {
-//     core.warning('No files found in the response to filter.')
-//     return []
-//   }
-//   // filter files based on status
-//   const filteredFilesStatus = files.filter((f: any) =>
-//     allowedStatus.includes(f.status)
-//   )
-//   if (filteredFilesStatus.length < 1) {
-//     core.warning('No files found with status added, modified or renamed.')
-//     return []
-//   }
-//   if (regExFilters.length < 1) return filteredFilesStatus
-//   let filteredFiles: Record<string, string>[] = []
-//   for (const regEx of regExFilters) {
-//     filteredFiles = filteredFiles.concat(
-//       filteredFilesStatus.filter(
-//         f => f.filename && new RegExp(regEx, 'g').test(f.filename)
-//       )
-//     )
-//   }
-//   const unqiueFiles = [...new Set(filteredFiles)]
-//   return unqiueFiles
-// }
-// function filterDiff(
-//   files: parseDiff.File[],
-//   regExFilters: string[]
-// ): parseDiff.File[] {
-//   if (regExFilters.length < 1 || files.length < 1) return files
-//   let filteredFiles: parseDiff.File[] = []
-//   for (const regEx of regExFilters) {
-//     filteredFiles = filteredFiles.concat(
-//       files.filter(f => f.to && new RegExp(regEx, 'g').test(f.to))
-//     )
-//   }
-//   const unqiueDiff = [...new Set(filteredFiles)]
-//   return unqiueDiff
-// }
+function isDebugMode() {
+    return process.env.ACTIONS_RUNNER_DEBUG === 'true';
+}
+function printIfDebug(message) {
+    if (isDebugMode())
+        core.info(message);
+}
 
 
 /***/ }),
