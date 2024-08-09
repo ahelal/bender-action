@@ -7,33 +7,28 @@ services and handle failed jobs in your GitHub workflows. This action can fetch
 logs, provide context, and utilize OpenAI to assist in debugging and resolving
 issues. It cam also review your code and comment directly in your pull requests.
 
-## Modes
-
-### Job mode
-
-In Job mode, Bender should run only if a job failed, it will inspect the job
-failed and give recommendation on hot to fix the problem.
-
-### PR mode
-
-In PR mode, Bender acts as a code reviewer, focusing on security and
-recommending code improvments.
-
 ## Inputs
 
 ```yml
+mode:
+  description: 'Mode of operation (job|pr)'
+  required: true
+  default: 'job'
+
 gh-token:
   description: GH personal access token (if using private repos)
   required: false
 
 gh-job:
   description:
-    Specify the failed job name. If not defined, will loop through all jobs and
-    pick the first failed one.
+    Specify the failed job name. If not defined will loop through all job and
+    pick first failed one.
   required: false
 
 az-openai-endpoint:
-  description: Azure OpenAI Endpoint URL
+  description:
+    Azure OpenAI Endpoint URL, example
+    https://eastus2.api.cognitive.microsoft.com"
   required: true
 
 az-openai-deployment:
@@ -53,20 +48,41 @@ dir-context:
   default: ''
 
 job-context:
-  description: Should the GitHub action YAML be provided as context
-  default: false
+  description: Should the github action yaml be provided as context
+  default: 'false'
 
 user-context:
   description: Extra OpenAI user context
   default: ''
 
+files-selection:
+  description:
+    In PR mode, Filter files to be used for context, comma seperated regex i.e.
+    '/*.ts$;/*.js$'
+  default: ''
+  required: true
+
 delay:
   description: Delay in seconds before fetching logs from GH action
-  default: 1
+  default: '1'
   required: true
 ```
 
+## Usage Instructions
+
+Set Up Secrets and Variables:
+
+Ensure you have the necessary secrets for example (GH_TOKEN, OA_ENDPOINT,
+OA_DEPLOYMENT, OA_KEY) set up in your GitHub repository settings.
+
+Check the example workflow yaml for examples.
+
 ## Example workflow
+
+### Job mode
+
+In Job mode, Bender should run only if a job failed, it will inspect the job
+failed and give recommendation on hot to fix the problem.
 
 ```yaml
 name: YOR JOB
@@ -112,13 +128,6 @@ jobs:
           dir-context: ${{ env.dir_context }}
 ```
 
-### Usage Instructions
-
-Set Up Secrets and Variables:
-
-Ensure you have the necessary secrets (GH_TOKEN, OA_ENDPOINT, OA_DEPLOYMENT,
-OA_KEY) set up in your GitHub repository settings.
-
 Define the Workflow:
 
 Copy the example workflow into your .github/workflows/ directory in your
@@ -134,3 +143,49 @@ workflow. Monitor the workflow runs in the GitHub Actions tab of your
 repository. By following these steps, you can effectively integrate the Bender
 Action into your GitHub workflows to leverage Azure OpenAI for debugging and
 resolving issues in your CI/CD pipelines.
+
+### PR mode
+
+In PR mode, Bender acts as a code reviewer, focusing on security and
+recommending code improvments.
+
+```yaml
+name: Bender PR
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  bender-action:
+    name: Bender-action security insights
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Get dir context
+        id: getdir
+        run: |
+          dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
+          echo "dir_context=${dirs}" >> "$GITHUB_ENV"
+
+      - name: Echo dir context
+        run: echo ${{env.dir_context}}
+
+      - name: Run Bender
+        uses: ahelal/bender-action@feature/pr_comment
+        id: bender
+        with:
+          mode: 'pr'
+          gh-token: ${{ secrets.GHTOKEN }}
+          az-openai-endpoint: ${{vars.OA_ENDPOINT}}
+          az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
+          az-openai-key: ${{secrets.OA_KEY}}
+          dir-context: ${{ env.dir_context }}
+          files-selection: '/*.ts$'
+
+      - name: Print Output
+        id: output
+        run: echo "${{ steps.bender.outputs.usage }}"
+```
