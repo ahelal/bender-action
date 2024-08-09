@@ -1,5 +1,24 @@
 # Bender Action
 
+## Overview
+
+The Bender Action is a GitHub Action designed to interact with Azure OpenAI
+services and handle failed jobs in your GitHub workflows. This action can fetch
+logs, provide context, and utilize OpenAI to assist in debugging and resolving
+issues. It cam also review your code and comment directly in your pull requests.
+
+## Modes
+
+### Job mode
+
+In Job mode, Bender should run only if a job failed, it will inspect the job
+failed and give recommendation on hot to fix the problem.
+
+### PR mode
+
+In PR mode, Bender acts as a code reviewer, focusing on security and
+recommending code improvments.
+
 ## Inputs
 
 ```yml
@@ -9,8 +28,8 @@ gh-token:
 
 gh-job:
   description:
-    Specify the failed job name. If not defined will loop through all job and
-    pick first failed one.
+    Specify the failed job name. If not defined, will loop through all jobs and
+    pick the first failed one.
   required: false
 
 az-openai-endpoint:
@@ -34,7 +53,7 @@ dir-context:
   default: ''
 
 job-context:
-  description: Should the github action yaml be provided as context
+  description: Should the GitHub action YAML be provided as context
   default: false
 
 user-context:
@@ -50,7 +69,7 @@ delay:
 ## Example workflow
 
 ```yaml
-name: Generic Python
+name: YOR JOB
 on:
   push:
     branches: ['main']
@@ -58,7 +77,7 @@ on:
     branches: ['main']
 
 jobs:
-  python:
+  myjob:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +89,7 @@ jobs:
 
   bender:
     runs-on: ubuntu-latest
-    needs: [python]
+    needs: [myjob]
     if: ${{ always() && contains(needs.*.result, 'failure') }}
     steps:
       - name: Checkout
@@ -85,9 +104,33 @@ jobs:
       - name: Run Bender (if failure)
         uses: ahelal/bender-action@main
         with:
+          mode: 'job'
           gh-token: ${{ secrets.GH_TOKEB }} # if needed
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
 ```
+
+### Usage Instructions
+
+Set Up Secrets and Variables:
+
+Ensure you have the necessary secrets (GH_TOKEN, OA_ENDPOINT, OA_DEPLOYMENT,
+OA_KEY) set up in your GitHub repository settings.
+
+Define the Workflow:
+
+Copy the example workflow into your .github/workflows/ directory in your
+repository. Modify the myjob job to suit your needs, ensuring it runs the
+necessary scripts or commands. Configure the Bender Job:
+
+The bender job is configured to run only if the myjob job fails. It checks out
+the repository, gathers directory context, and runs the Bender Action with the
+provided inputs. Run the Workflow:
+
+Push changes to the main branch or create a pull request to trigger the
+workflow. Monitor the workflow runs in the GitHub Actions tab of your
+repository. By following these steps, you can effectively integrate the Bender
+Action into your GitHub workflows to leverage Azure OpenAI for debugging and
+resolving issues in your CI/CD pipelines.
