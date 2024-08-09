@@ -35056,7 +35056,7 @@ async function doRequest(params, context, body) {
         config['auth'] = context.ghToken;
     const octokit = new core_1.Octokit(config);
     const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
-    (0, util_1.rawPrintIfDebug)(`::group::doRequest`);
+    core.startGroup(`doRequest ${iMethodPath}`);
     core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.santizeString)(context.ghToken)} }`);
     iPayload = (0, util_1.interpolateObject)(body, context);
     core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
@@ -35069,7 +35069,7 @@ async function doRequest(params, context, body) {
         ...iPayload
     });
     core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
-    (0, util_1.rawPrintIfDebug)(`::endgroup::`);
+    core.endGroup();
     if (response.status < 200 || response.status >= 300) {
         core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
     }
