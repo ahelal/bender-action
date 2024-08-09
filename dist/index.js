@@ -35371,7 +35371,7 @@ async function runPrMode(context) {
     const prComments = await (0, github_api_1.getComments)(context);
     // console.log(`**Comments**: ${JSON.stringify(prComments, null, 2)}`)
     // && comment.path
-    const relvantComments = prComments.filter(comment => comment.user.login === user.login &&
+    const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
         comment.subject_type === 'file' &&
         comment.commit_id === context.commitId &&
         files.includes(comment.path));
@@ -35384,7 +35384,7 @@ async function runPrMode(context) {
             continue;
         }
         // check if the file has been commented on before
-        const fileComment = relvantComments.find(comment => comment.path === file);
+        const fileComment = relevantComments.find(comment => comment.path === file);
         if (fileComment) {
             core.warning(`Skipping file ${file} has been commented on before `);
             continue;
@@ -35674,6 +35674,7 @@ function isDebugMode() {
     return process.env.ACTIONS_RUNNER_DEBUG === 'true';
 }
 function printIfDebug(message) {
+    core.debug(`DEBUG******: ${isDebugMode()}`);
     if (isDebugMode())
         core.info(message);
 }

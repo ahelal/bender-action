@@ -23,7 +23,7 @@ export async function runPrMode(context: Context): Promise<string> {
   const prComments = await getComments(context)
   // console.log(`**Comments**: ${JSON.stringify(prComments, null, 2)}`)
   // && comment.path
-  const relvantComments = prComments.filter(
+  const relevantComments = prComments.filter(
     comment =>
       comment.user.login === user.login &&
       comment.subject_type === 'file' &&
@@ -42,7 +42,7 @@ export async function runPrMode(context: Context): Promise<string> {
     }
 
     // check if the file has been commented on before
-    const fileComment = relvantComments.find(comment => comment.path === file)
+    const fileComment = relevantComments.find(comment => comment.path === file)
     if (fileComment) {
       core.warning(`Skipping file ${file} has been commented on before `)
       continue

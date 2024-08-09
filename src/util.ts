@@ -112,5 +112,6 @@ export function isDebugMode(): boolean {
 }
 
 export function printIfDebug(message: string): void {
+  core.debug(`DEBUG******: ${isDebugMode()}`)
   if (isDebugMode()) core.info(message)
 }
