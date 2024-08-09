@@ -35515,6 +35515,7 @@ async function openAiRequest(message, context) {
         stream: false
     });
     core.debug(`OpenAI response: ${JSON.stringify(response, null, 2)}`);
+    (0, util_1.debugGroupedMsg)('Azure OpenAI response', `HTTP Response: ${JSON.stringify(response, null, 2)}`);
     return response;
 }
 
@@ -35582,7 +35583,6 @@ exports.stripTimestampFromLogs = stripTimestampFromLogs;
 exports.filterCommitFiles = filterCommitFiles;
 exports.interpolateString = interpolateString;
 exports.interpolateObject = interpolateObject;
-exports.isDebugMode = isDebugMode;
 exports.rawPrintIfDebug = rawPrintIfDebug;
 exports.debugGroupedMsg = debugGroupedMsg;
 const core = __importStar(__nccwpck_require__(2186));
@@ -35673,18 +35673,15 @@ function interpolateObject(target, context) {
     }
     return newDic;
 }
-function isDebugMode() {
-    return process.env.RUNNER_DEBUG === '1' ?? false;
-}
 function rawPrintIfDebug(message) {
-    if (isDebugMode())
+    if (core.isDebug())
         core.info(message);
 }
 function debugGroupedMsg(title, message) {
-    if (isDebugMode()) {
-        core.info(`::group::${title}`);
+    if (core.isDebug()) {
+        core.startGroup(title);
         core.debug(message);
-        core.info(`::endgroup::`);
+        core.endGroup();
     }
 }
 

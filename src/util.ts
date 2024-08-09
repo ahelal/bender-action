@@ -107,18 +107,14 @@ export function interpolateObject(
   return newDic
 }
 
-export function isDebugMode(): boolean {
-  return process.env.RUNNER_DEBUG === '1' ?? false
-}
-
 export function rawPrintIfDebug(message: string): void {
-  if (isDebugMode()) core.info(message)
+  if (core.isDebug()) core.info(message)
 }
 
 export function debugGroupedMsg(title: string, message: string): void {
-  if (isDebugMode()) {
-    core.info(`::group::${title}`)
+  if (core.isDebug()) {
+    core.startGroup(title)
     core.debug(message)
-    core.info(`::endgroup::`)
+    core.endGroup()
   }
 }
