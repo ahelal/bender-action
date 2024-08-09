@@ -170,7 +170,7 @@ async function doRequest(
 
   const iMethodPath = interpolateString(`${method} ${path}`, context)
 
-  rawPrintIfDebug(`::group::doRequest-${iMethodPath}`)
+  rawPrintIfDebug(`::group::doRequest`)
   core.debug(
     `doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${santizeString(context.ghToken)} }`
   )

@@ -35054,7 +35054,7 @@ async function doRequest(params, context, body) {
         config['auth'] = context.ghToken;
     const octokit = new core_1.Octokit(config);
     const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
-    (0, util_1.rawPrintIfDebug)(`::group::doRequest-${iMethodPath}`);
+    (0, util_1.rawPrintIfDebug)(`::group::doRequest`);
     core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.santizeString)(context.ghToken)} }`);
     iPayload = (0, util_1.interpolateObject)(body, context);
     core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
@@ -35111,6 +35111,7 @@ exports.getContextFromPayload = getContextFromPayload;
 const core = __importStar(__nccwpck_require__(2186));
 // import * as github from '@actions/github'
 const github_1 = __nccwpck_require__(5438);
+const util_1 = __nccwpck_require__(2629);
 /**
  * Get predfined action inputs for actions.
  * @returns {Record<string, string>} Resolves when the action is complete.
@@ -35160,7 +35161,7 @@ function getInputs() {
  * @returns {Record<string, string>} Resolves when the action is complete.
  */
 function getContextFromPayload() {
-    core.debug(`GIT Payload: ${JSON.stringify(github_1.context.payload, null, 2)}`);
+    (0, util_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context.payload, null, 2)}`);
     const requiredContext = {};
     const full_name = github_1.context.payload.repository?.full_name?.split('/') || [];
     requiredContext['full_name'] = full_name.join('/');
@@ -35211,6 +35212,7 @@ const wait_1 = __nccwpck_require__(5259);
 const inputs_1 = __nccwpck_require__(7063);
 const mode_job_1 = __nccwpck_require__(8341);
 const mode_pr_1 = __nccwpck_require__(5750);
+const util_1 = __nccwpck_require__(2629);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -35220,7 +35222,7 @@ async function run() {
         let context = (0, inputs_1.getInputs)();
         const payloadContext = (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
-        core.debug(`Context: ${JSON.stringify(context, null, 2)}`);
+        (0, util_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`);
         await (0, wait_1.wait)(parseInt(context.delay, 10));
         let usage;
         if (context.mode === 'pr')
@@ -35459,6 +35461,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const openai_1 = __nccwpck_require__(47);
 const openai_prompts_1 = __nccwpck_require__(8903);
 const config_1 = __nccwpck_require__(6373);
+const util_1 = __nccwpck_require__(2629);
 function setupInitialMessage(context, jobLog) {
     const systemMessage = {
         role: 'system',
@@ -35503,7 +35506,7 @@ function setupInitialMessagePr(context, diffText, filePath) {
 async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
     core.info('* Request response from Azure OpenAI');
-    core.debug(`Message: ${JSON.stringify(message, null, 2)}`);
+    (0, util_1.debugGroupedMsg)('Azure OpenAI Message', `Message: ${JSON.stringify(message, null, 2)}`);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({
         messages: message,
@@ -35581,6 +35584,7 @@ exports.interpolateString = interpolateString;
 exports.interpolateObject = interpolateObject;
 exports.isDebugMode = isDebugMode;
 exports.rawPrintIfDebug = rawPrintIfDebug;
+exports.debugGroupedMsg = debugGroupedMsg;
 const core = __importStar(__nccwpck_require__(2186));
 /**
  * Sanitizes a string by replacing all characters except the first and last with asterisks.
@@ -35674,7 +35678,14 @@ function isDebugMode() {
 }
 function rawPrintIfDebug(message) {
     if (isDebugMode())
-        console.log(message);
+        core.info(message);
+}
+function debugGroupedMsg(title, message) {
+    if (isDebugMode()) {
+        core.info(`::group::${title}`);
+        core.debug(message);
+        core.info(`::endgroup::`);
+    }
 }
 
 

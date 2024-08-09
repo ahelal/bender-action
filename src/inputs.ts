@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 // import * as github from '@actions/github'
 import { context } from '@actions/github'
+import { debugGroupedMsg } from './util'
 /**
  * Get predfined action inputs for actions.
  * @returns {Record<string, string>} Resolves when the action is complete.
@@ -65,7 +66,10 @@ export function getInputs(): Record<string, string> {
  */
 
 export function getContextFromPayload(): Record<string, string> {
-  core.debug(`GIT Payload: ${JSON.stringify(context.payload, null, 2)}`)
+  debugGroupedMsg(
+    `GH Context event`,
+    `GH Action context event ${JSON.stringify(context.payload, null, 2)}`
+  )
 
   const requiredContext: Record<string, string> = {}
   const full_name = context.payload.repository?.full_name?.split('/') || []

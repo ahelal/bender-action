@@ -112,5 +112,13 @@ export function isDebugMode(): boolean {
 }
 
 export function rawPrintIfDebug(message: string): void {
-  if (isDebugMode()) console.log(message)
+  if (isDebugMode()) core.info(message)
+}
+
+export function debugGroupedMsg(title: string, message: string): void {
+  if (isDebugMode()) {
+    core.info(`::group::${title}`)
+    core.debug(message)
+    core.info(`::endgroup::`)
+  }
 }
