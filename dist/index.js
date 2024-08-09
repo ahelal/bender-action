@@ -35671,18 +35671,9 @@ function interpolateObject(target, context) {
     return newDic;
 }
 function isDebugMode() {
-    return process.env.ACTIONS_RUNNER_DEBUG === 'true';
-}
-function printALlEnvVariables() {
-    core.info('All environment variables:');
-    for (const key in process.env) {
-        core.info(`${key}: ${process.env[key]}`);
-    }
+    return process.env.RUNNER_DEBUG === '1' ?? false;
 }
 function printIfDebug(message) {
-    // core.debug(`DEBUG******: ${isDebugMode()}`)
-    // print all environment variables
-    printALlEnvVariables();
     if (isDebugMode())
         core.info(message);
 }

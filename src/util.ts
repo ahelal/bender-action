@@ -108,20 +108,9 @@ export function interpolateObject(
 }
 
 export function isDebugMode(): boolean {
-  return process.env.ACTIONS_RUNNER_DEBUG === 'true'
-}
-
-function printALlEnvVariables(): void {
-  core.info('All environment variables:')
-  for (const key in process.env) {
-    core.info(`${key}: ${process.env[key]}`)
-  }
+  return process.env.RUNNER_DEBUG === '1' ?? false
 }
 
 export function printIfDebug(message: string): void {
-  // core.debug(`DEBUG******: ${isDebugMode()}`)
-  // print all environment variables
-
-  printALlEnvVariables()
   if (isDebugMode()) core.info(message)
 }
