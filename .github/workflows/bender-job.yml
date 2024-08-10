@@ -19,8 +19,8 @@ jobs:
   bender-action:
     name: Bender job mode
     needs: [fail]
-    # if: ${{ always() && contains(needs.*.result, 'failure') }}
     if: always()
+    continue-on-error: true
     runs-on: ubuntu-latest
 
     steps:
