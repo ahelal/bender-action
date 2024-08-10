@@ -18,13 +18,16 @@ jobs:
   bender-action:
     name: Bender job mode
     needs: [fail]
-    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    # if: ${{ always() && contains(needs.*.result, 'failure') }}
+    if: always()
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
+      - name: Echo Needs
+        run: echo "${{needs.*.result }}"
 
       - name: Get dir context
         id: getdir
