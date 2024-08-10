@@ -35621,12 +35621,12 @@ function stripTimestampFromLogs(str) {
  * @returns An array of filtered commit files.
  */
 function filterCommitFiles(files, regExFilters) {
-    const allowedStatus = ['added', 'modified', 'renamed'];
-    core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
-    if (files.length < 1) {
+    if (!files || files.length < 1) {
         core.warning('No files found in the response to filter.');
         return [];
     }
+    const allowedStatus = ['added', 'modified', 'renamed'];
+    core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
     // filter files based on status
     const filteredFilesStatus = files.filter((f) => allowedStatus.includes(f.status));
     if (filteredFilesStatus.length < 1) {

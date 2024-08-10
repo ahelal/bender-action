@@ -1,6 +1,7 @@
 // import * as core from '@actions/core'
 // import { context } from '@actions/github'
-import { getInputs, getContextFromPayload } from '../src/inputs'
+import { getInputs } from '../src/inputs'
+// getContextFromPayload
 
 // jest.mock('@actions/core')
 // jest.mock('@actions/github')

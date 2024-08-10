@@ -1,5 +1,4 @@
-name: bender PR
-
+name: Bender Job
 on:
   pull_request:
     branches:
@@ -9,8 +8,18 @@ permissions:
   contents: read
 
 jobs:
+  fail:
+    name: Fail
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fail
+        run: exit 1
+
   bender-action:
-    name: Bender pr mode
+    name: Bender job mode
+    needs: [fail]
+    if: ${{ always() && contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -31,13 +40,12 @@ jobs:
         uses: ahelal/bender-action@feature/tests
         id: bender
         with:
-          mode: 'pr'
+          mode: 'job'
           gh-token: ${{ secrets.GHTOKEN }}
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
-          files-selection: '/src*.ts$'
 
       - name: Print Output
         id: output

@@ -36,15 +36,16 @@ export function filterCommitFiles(
   files: Record<string, string>[],
   regExFilters: string[]
 ): Record<string, string>[] {
+  if (!files || files.length < 1) {
+    core.warning('No files found in the response to filter.')
+    return []
+  }
+
   const allowedStatus = ['added', 'modified', 'renamed']
   core.info(
     `* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`
   )
 
-  if (files.length < 1) {
-    core.warning('No files found in the response to filter.')
-    return []
-  }
   // filter files based on status
   const filteredFilesStatus = files.filter((f: Record<string, string>) =>
     allowedStatus.includes(f.status)
