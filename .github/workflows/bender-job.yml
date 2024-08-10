@@ -11,17 +11,14 @@ jobs:
   fail:
     name: Fail
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Fail
         run: exit 1
-      - name: Succeed
-        run: exit 0
+        continue-on-error: true
   bender-action:
     name: Bender job mode
     needs: [fail]
     if: always()
-    continue-on-error: true
     runs-on: ubuntu-latest
 
     steps:
