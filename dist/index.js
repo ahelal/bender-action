@@ -35378,11 +35378,56 @@ const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+async function processFile(file, context, relevantComments) {
+    core.info(`* Processing file: ${file}`);
+    let reply = '';
+    const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
+    if (!prFileContent) {
+        core.error(`Unable to get file content ${file} ${context.ref}`);
+        return;
+    }
+    const fileComment = relevantComments.find(comment => comment.path === file);
+    if (fileComment) {
+        core.warning(`Skipping file ${file} has been commented on before`);
+        return;
+    }
+    for (let i = 1; i <= config_1.maxRecursionPr; i++) {
+        const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
+        const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
+        if (aiResponse.choices.length > 1) {
+            core.warning('This should not happen: more than one choice in OpenAI response');
+            core.debug(`AI Response choices: JSON.stringify(aiResponse.choices)`);
+            return;
+        }
+        const content = aiResponse.choices[0].message.content;
+        reply = content ?? '';
+        const firstChoice = aiResponse.choices[0];
+        if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
+            core.debug('No more context needed');
+            break;
+        }
+        const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
+        if (!fileContent) {
+            core.warning('Unable to get file content');
+            break;
+        }
+        message.push({ role: 'assistant', content });
+    }
+    await (0, github_api_1.postComment)(context.pr, context, {
+        body: reply,
+        commit_id: context.commitId,
+        path: file,
+        subject_type: 'file'
+    });
+}
 async function runPrMode(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
     const files = filesInPR.map(f => f.filename);
-    if (filesInPR.length < 1)
-        core.warning(`No files found in the PR, that matchs the regEx filter '${context.filesSelection}' `);
+    if (filesInPR.length < 1) {
+        core.warning(`No files found in the PR, that match the regEx filter '${context.filesSelection}'`);
+        return '';
+    }
     const user = await (0, github_api_1.getUserInfo)(context);
     const prComments = await (0, github_api_1.getComments)(context);
     const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
@@ -35390,46 +35435,7 @@ async function runPrMode(context) {
         comment.commit_id === context.commitId &&
         files.includes(comment.path));
     for (const file of files) {
-        core.info(`* Processing file: ${file}`);
-        let reply = '';
-        const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
-        if (!prFileContent) {
-            core.error(`Unable to get file content ${file} ${context.ref}`);
-            continue;
-        }
-        const fileComment = relevantComments.find(comment => comment.path === file);
-        if (fileComment) {
-            core.warning(`Skipping file ${file} has been commented on before `);
-            continue;
-        }
-        for (let i = 1; i <= config_1.maxRecursionPr; i++) {
-            const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
-            const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
-            // assign the response to the usage object
-            if (aiResponse.choices.length > 1) {
-                console.warn('This should not happen more then one choice');
-                console.debug('AI Response choices: ', aiResponse.choices);
-            }
-            const content = aiResponse.choices[0].message.content;
-            reply = content ?? '';
-            const firstChoice = aiResponse.choices[0];
-            if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
-                core.debug('No more context needed');
-                break;
-            }
-            const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
-            if (!fileContent) {
-                core.warning('Unable to get file content');
-                break;
-            }
-            message.push({ role: 'assistant', content });
-        }
-        (0, github_api_1.postComment)(context.pr, context, {
-            body: reply,
-            commit_id: context.commitId,
-            path: file,
-            subject_type: 'file'
-        });
+        await processFile(file, context, relevantComments);
     }
     return '';
 }
