@@ -34909,7 +34909,7 @@ function wrappy (fn, cb) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.waitTime = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34922,6 +34922,12 @@ exports.maxRecursionPr = 2;
 exports.maxWordCountPr = 300;
 // Wait time in seconds before starting
 exports.waitTime = '1';
+// Max input length for github action logs
+exports.MAX_INPUT_LOG_LENGTH = 20000;
+// Max input length for files
+exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH;
+// Max number of regex patterns
+exports.MAX_REGEX_PATTERNS = 10;
 
 
 /***/ }),
@@ -35590,6 +35596,7 @@ exports.interpolateObject = interpolateObject;
 exports.rawPrintIfDebug = rawPrintIfDebug;
 exports.debugGroupedMsg = debugGroupedMsg;
 const core = __importStar(__nccwpck_require__(2186));
+const config_1 = __nccwpck_require__(6373);
 /**
  * Sanitizes a string by replacing all characters except the first and last with asterisks.
  * If the string is empty or null, an empty string is returned.
@@ -35608,6 +35615,9 @@ function sanitizeString(str) {
  * @returns The log string without timestamps.
  */
 function stripTimestampFromLogs(str) {
+    if (str.length > config_1.MAX_INPUT_LOG_LENGTH) {
+        throw new Error('Input string is too long');
+    }
     const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{7}Z\s/gm;
     return str.replaceAll(regex, '');
 }
@@ -35623,24 +35633,42 @@ function filterCommitFiles(files, regExFilters) {
         core.warning('No files found in the response to filter.');
         return [];
     }
-    const allowedStatus = ['added', 'modified', 'renamed'];
-    core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
-    // filter files based on status
-    const filteredFilesStatus = files.filter((f) => allowedStatus.includes(f.status));
+    filterValidateInput(files, regExFilters);
+    const filteredFilesStatus = filterByStatus(files);
     if (filteredFilesStatus.length < 1) {
         core.warning('No files found with status added, modified or renamed.');
         return [];
     }
-    if (regExFilters.length < 1)
-        return filteredFilesStatus;
+    const filteredFiles = regExFilters.length > 0
+        ? filterByRegex(filteredFilesStatus, regExFilters)
+        : filteredFilesStatus;
+    // Remove duplicates
+    const uniqueFiles = [...new Set(filteredFiles)];
+    core.info(`* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`);
+    return uniqueFiles;
+}
+function filterValidateInput(files, regExFilters) {
+    const totalFilenameLength = files
+        .map(f => f.filename.length)
+        .reduce((sum, len) => sum + len, 0);
+    if (totalFilenameLength > config_1.MAX_INPUT_FILES_LENGTH) {
+        throw new Error(`Input filenames array is too long over ${config_1.MAX_INPUT_FILES_LENGTH}`);
+    }
+    if (regExFilters.length > config_1.MAX_REGEX_PATTERNS) {
+        throw new Error(`Too many regex patterns max limit is ${config_1.MAX_REGEX_PATTERNS}`);
+    }
+}
+function filterByStatus(files) {
+    const allowedStatus = ['added', 'modified', 'renamed'];
+    core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
+    return files.filter(f => allowedStatus.includes(f.status));
+}
+function filterByRegex(files, regExFilters) {
     let filteredFiles = [];
     for (const regEx of regExFilters) {
-        filteredFiles = filteredFiles.concat(filteredFilesStatus.filter(f => f.filename && new RegExp(regEx, 'g').test(f.filename)));
+        filteredFiles = filteredFiles.concat(files.filter(f => f.filename && new RegExp(regEx, 'g').test(f.filename)));
     }
-    const unqiueFiles = [...new Set(filteredFiles)];
-    // loop through the files and print names.
-    core.info(`* Filtered file (${unqiueFiles.length}): ${unqiueFiles.map(f => f.filename).join(', ')}`);
-    return unqiueFiles;
+    return filteredFiles;
 }
 /**
  * Replaces placeholders in a string with corresponding values from a context object.

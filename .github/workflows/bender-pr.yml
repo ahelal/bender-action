@@ -37,7 +37,7 @@ jobs:
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
-          files-selection: '^src*.ts$'
+          files-selection: '/src.*.ts$'
 
       - name: Print Output
         id: output

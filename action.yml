@@ -53,7 +53,7 @@ inputs:
   files-selection:
     description:
       In PR mode, Filter files to be used for context, comma seperated regex
-      i.e. '/*.ts$;/*.js$'
+      i.e. '/src.*.ts$;/.*.js$'
     default: ''
     required: true
 
