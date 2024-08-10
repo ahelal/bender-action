@@ -15,7 +15,8 @@ jobs:
     steps:
       - name: Fail
         run: exit 1
-
+      - name: Succeed
+        run: exit 0
   bender-action:
     name: Bender job mode
     needs: [fail]
