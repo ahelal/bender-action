@@ -56,6 +56,14 @@ describe('filterCommitFiles', () => {
     ])
   })
 
+  it('should return all files if no expression filters is provided', () => {
+    expect(filterCommitFiles(files, [])).toEqual([
+      { filename: 'file1.txt', status: 'added' },
+      { filename: 'file2.txt', status: 'modified' },
+      { filename: 'file3.txt', status: 'renamed' }
+    ])
+  })
+
   it('should return the filtered files based on regular expression filters', () => {
     expect(filterCommitFiles(files, ['file1'])).toEqual([
       { filename: 'file1.txt', status: 'added' }
@@ -64,6 +72,36 @@ describe('filterCommitFiles', () => {
       { filename: 'file2.txt', status: 'modified' },
       { filename: 'file3.txt', status: 'renamed' }
     ])
+  })
+
+  it('should return the filtered files based on advanced regular expression filters', () => {
+    const realFiles = [
+      { filename: '.github/workflows/bender-pr.yml', status: 'added' },
+      { filename: 'README.md', status: 'added' },
+      { filename: 'action.yml', status: 'added' },
+      { filename: 'dist/index.js', status: 'modified' },
+      { filename: 'dist/index.js.map', status: 'modified' },
+      { filename: 'src/config.ts', status: 'renamed' },
+      { filename: 'src/util.ts', status: 'added' },
+      { filename: 'src/test.py', status: 'added' }
+    ]
+    expect(filterCommitFiles(realFiles, ['src.*.ts$'])).toEqual([
+      { filename: 'src/config.ts', status: 'renamed' },
+      { filename: 'src/util.ts', status: 'added' }
+    ])
+    expect(filterCommitFiles(realFiles, ['src*', '.*.md'])).toEqual([
+      { filename: 'src/config.ts', status: 'renamed' },
+      { filename: 'src/util.ts', status: 'added' },
+      { filename: 'src/test.py', status: 'added' },
+      { filename: 'README.md', status: 'added' }
+    ])
+    //   expect(filterCommitFiles(realFiles, ['.(?!(py|js|map)$)([^.]+$'])).toEqual([
+    //     { filename: '.github/workflows/bender-pr.yml', status: 'added' },
+    //     { filename: 'README.md', status: 'added' },
+    //     { filename: 'action.yml', status: 'added' },
+    //     { filename: 'src/config.ts', status: 'renamed' },
+    //     { filename: 'src/util.ts', status: 'added' }
+    //   ])
   })
 })
 
