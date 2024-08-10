@@ -9,9 +9,7 @@ import { Context } from './types'
  */
 export function sanitizeString(str: string): string {
   if (!str) return ''
-  return str.length <= 2
-    ? str
-    : str[0] + '*'.repeat(str.length - 2) + str[str.length - 1]
+  return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`
 }
 
 /**

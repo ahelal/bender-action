@@ -35599,9 +35599,7 @@ const core = __importStar(__nccwpck_require__(2186));
 function sanitizeString(str) {
     if (!str)
         return '';
-    return str.length <= 2
-        ? str
-        : str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
+    return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`;
 }
 /**
  * Removes timestamps from log strings.
