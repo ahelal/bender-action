@@ -34909,7 +34909,7 @@ function wrappy (fn, cb) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.waitTime = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34920,6 +34920,8 @@ exports.maxRecursionJob = 3;
 exports.maxRecursionPr = 2;
 // Default max word count for OpenAI PR mode
 exports.maxWordCountPr = 300;
+// Wait time in seconds before starting
+exports.waitTime = '1';
 
 
 /***/ }),
@@ -35156,9 +35158,6 @@ function getInputs() {
     inputs['filesSelection'] = core.getInput('files-selection', {
         required: false
     });
-    inputs['delay'] = core.getInput('delay', {
-        required: true
-    });
     return inputs;
 }
 /**
@@ -35172,10 +35171,14 @@ function getContextFromPayload() {
     requiredContext['full_name'] = full_name.join('/');
     requiredContext['owner'] = full_name[0];
     requiredContext['repo'] = full_name[1];
-    requiredContext['runId'] = github_1.context.runId.toString() ?? '';
+    requiredContext['runId'] = github_1.context.runId ? github_1.context.runId.toString() : '';
     requiredContext['ref'] = github_1.context.ref;
-    requiredContext['pr'] = github_1.context.payload.number.toString() ?? '';
-    requiredContext['commitId'] = github_1.context.payload.after.toString() ?? '';
+    requiredContext['pr'] = github_1.context.payload.number
+        ? github_1.context.payload.number.toString()
+        : '';
+    requiredContext['commitId'] = github_1.context.payload.after
+        ? github_1.context.payload.after.toString()
+        : '';
     return requiredContext;
 }
 
@@ -35218,6 +35221,7 @@ const inputs_1 = __nccwpck_require__(7063);
 const mode_job_1 = __nccwpck_require__(8341);
 const mode_pr_1 = __nccwpck_require__(5750);
 const util_1 = __nccwpck_require__(2629);
+const config_1 = __nccwpck_require__(6373);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -35228,7 +35232,7 @@ async function run() {
         const payloadContext = (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
         (0, util_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`);
-        await (0, wait_1.wait)(parseInt(context.delay, 10));
+        await (0, wait_1.wait)(parseInt(config_1.waitTime, 10));
         let usage;
         if (context.mode === 'pr')
             usage = (0, mode_pr_1.runPrMode)(context);

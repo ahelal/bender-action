@@ -2,10 +2,10 @@
 
 ## Overview
 
-The Bender Action is a GitHub Action designed to interact with Azure OpenAI
-services and handle failed jobs in your GitHub workflows. This action can fetch
-logs, provide context, and utilize OpenAI to assist in debugging and resolving
-issues. It cam also review your code and comment directly in your pull requests.
+Bender is a GitHub Action designed to interact with Azure OpenAI services and
+assist you with failed jobs and review your PRs with security in mind in your
+GitHub workflows. It provides logs and source code for context and utilizes
+OpenAI to assist in debugging, resolving issues, and providing feedback.
 
 ## Inputs
 
@@ -16,7 +16,8 @@ mode:
   default: 'job'
 
 gh-token:
-  description: GH personal access token (if using private repos)
+  description:
+    GH personal access token (if using private repos or PR mode for commenting
   required: false
 
 gh-job:
@@ -60,11 +61,6 @@ files-selection:
     In PR mode, Filter files to be used for context, comma seperated regex i.e.
     '/*.ts$;/*.js$'
   default: ''
-  required: true
-
-delay:
-  description: Delay in seconds before fetching logs from GH action
-  default: '1'
   required: true
 ```
 

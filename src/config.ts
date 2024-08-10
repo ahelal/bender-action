@@ -14,3 +14,6 @@ export const maxRecursionPr = 2
 
 // Default max word count for OpenAI PR mode
 export const maxWordCountPr = 300
+
+// Wait time in seconds before starting
+export const waitTime = '1'

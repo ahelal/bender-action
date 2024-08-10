@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 // import * as github from '@actions/github'
 import { context } from '@actions/github'
 import { debugGroupedMsg } from './util'
+
 /**
  * Get predfined action inputs for actions.
  * @returns {Record<string, string>} Resolves when the action is complete.
@@ -54,10 +55,6 @@ export function getInputs(): Record<string, string> {
     required: false
   })
 
-  inputs['delay'] = core.getInput('delay', {
-    required: true
-  })
-
   return inputs
 }
 /**
@@ -76,10 +73,14 @@ export function getContextFromPayload(): Record<string, string> {
   requiredContext['full_name'] = full_name.join('/')
   requiredContext['owner'] = full_name[0]
   requiredContext['repo'] = full_name[1]
-  requiredContext['runId'] = context.runId.toString() ?? ''
+  requiredContext['runId'] = context.runId ? context.runId.toString() : ''
   requiredContext['ref'] = context.ref
-  requiredContext['pr'] = context.payload.number.toString() ?? ''
-  requiredContext['commitId'] = context.payload.after.toString() ?? ''
+  requiredContext['pr'] = context.payload.number
+    ? context.payload.number.toString()
+    : ''
+  requiredContext['commitId'] = context.payload.after
+    ? context.payload.after.toString()
+    : ''
 
   return requiredContext
 }

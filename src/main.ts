@@ -4,6 +4,7 @@ import { getInputs, getContextFromPayload } from './inputs'
 import { runJobMode } from './mode_job'
 import { runPrMode } from './mode_pr'
 import { debugGroupedMsg } from './util'
+import { waitTime } from './config'
 
 /**
  * The main function for the action.
@@ -16,7 +17,7 @@ export async function run(): Promise<void> {
     context = Object.assign({}, context, payloadContext)
     debugGroupedMsg('Context', `Context: ${JSON.stringify(context, null, 2)}`)
 
-    await wait(parseInt(context.delay, 10))
+    await wait(parseInt(waitTime, 10))
 
     let usage: Promise<string>
     if (context.mode === 'pr') usage = runPrMode(context)

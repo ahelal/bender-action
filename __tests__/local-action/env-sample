@@ -12,7 +12,6 @@ INPUT_az-openai-deployment="<OPENAI_DEPLOYMENT>"
 # optional INPUTs
 INPUT_gh-token="<GITHUB_TOKEN>"
 INPUT_az-openai-apiVersion="2024-05-01-preview"
-INPUT_delay="2"
 INPUT_dir-context="<DIR_CONTEXT>"
 INPUT_job-context="false"
 # GitHub Actions default environment variables. These are set for every run of a
