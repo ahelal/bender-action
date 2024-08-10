@@ -28,7 +28,7 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
       - name: Echo Needs
-        run: echo "${{needs.*.result }}"
+        run: echo "${{needs.fail.result }}"
 
       - name: Get dir context
         id: getdir
