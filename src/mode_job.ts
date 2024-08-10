@@ -14,7 +14,7 @@ export async function runJobMode(context: Context): Promise<string> {
   const currentJob = await getJob(context)
   if (!currentJob) {
     core.warning(
-      'Unable to get job ID, either no failed job or wrong job name provided'
+      `Unable to get job ID, either no failed job or wrong job name provided`
     )
     return ''
   }
