@@ -11,7 +11,7 @@ jobs:
   fail:
     name: Fail
     runs-on: ubuntu-latest
-
+    continue-on-error: true
     steps:
       - name: Fail
         run: exit 1
