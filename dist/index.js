@@ -35783,9 +35783,6 @@ const core = __importStar(__nccwpck_require__(2186));
 async function wait(seconds) {
     core.info(`* Waiting for ${seconds} seconds.`);
     return new Promise(resolve => {
-        if (isNaN(seconds)) {
-            throw new Error('seconds not a number');
-        }
         setTimeout(() => resolve(), seconds * 1000);
     });
 }
