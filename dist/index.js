@@ -35303,7 +35303,7 @@ async function runJobMode(context) {
     // Getting GH action job information
     const currentJob = await (0, github_api_1.getJob)(context);
     if (!currentJob) {
-        core.warning('Unable to get job ID, either no failed job or wrong job name provided');
+        core.warning(`Unable to get job ID, either no failed job or wrong job name provided`);
         return '';
     }
     context.jobId = currentJob.id;
