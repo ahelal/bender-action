@@ -24,7 +24,7 @@ jobs:
           dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
           echo "dir_context=${dirs}" >> "$GITHUB_ENV"
 
-      - name: Echo dir context
+      - name: echo dir context
         run: echo ${{env.dir_context}}
 
       - name: Run Bender

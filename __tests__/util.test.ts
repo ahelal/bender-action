@@ -95,13 +95,6 @@ describe('filterCommitFiles', () => {
       { filename: 'src/test.py', status: 'added' },
       { filename: 'README.md', status: 'added' }
     ])
-    //   expect(filterCommitFiles(realFiles, ['.(?!(py|js|map)$)([^.]+$'])).toEqual([
-    //     { filename: '.github/workflows/bender-pr.yml', status: 'added' },
-    //     { filename: 'README.md', status: 'added' },
-    //     { filename: 'action.yml', status: 'added' },
-    //     { filename: 'src/config.ts', status: 'renamed' },
-    //     { filename: 'src/util.ts', status: 'added' }
-    //   ])
   })
 })
 

@@ -15,6 +15,7 @@ jobs:
       - name: Fail
         run: exit 1
         continue-on-error: true
+
   bender-action:
     name: Bender job mode
     needs: [fail]
@@ -25,7 +26,7 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
-      - name: Echo Needs
+      - name: echo Needs
         run: echo "${{needs.fail.result }}"
 
       - name: Get dir context
@@ -34,7 +35,7 @@ jobs:
           dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
           echo "dir_context=${dirs}" >> "$GITHUB_ENV"
 
-      - name: Echo dir context
+      - name: echo dir context
         run: echo ${{env.dir_context}}
 
       - name: Run Bender
@@ -42,6 +43,7 @@ jobs:
         id: bender
         with:
           mode: 'job'
+          gh-job: ${{needs.fail.id}}
           gh-token: ${{ secrets.GHTOKEN }}
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
@@ -51,3 +53,27 @@ jobs:
       - name: Print Output
         id: output
         run: echo "${{ steps.bender.outputs.usage }}"
+
+  bender-action-failure:
+    runs-on: ubuntu-latest
+    needs: [bender-action]
+    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get dir context
+        id: getdir
+        run:
+          echo "dir_context=$(find . -path ./.git -prune -o -print | base64 | tr
+          '\n' ' ')" >> $GITHUB_ENV
+
+      - name: Run Bender (if failure)
+        uses: ahelal/bender-action@main
+        with:
+          mode: 'job'
+          gh-token: ${{ secrets.GH_TOKEB }} # if needed
+          az-openai-endpoint: ${{vars.OA_ENDPOINT}}
+          az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
+          az-openai-key: ${{secrets.OA_KEY}}
+          dir-context: ${{ env.dir_context }}
