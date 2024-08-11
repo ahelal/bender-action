@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Fail
-        run: exit 1
+        run: |
+          exit_code=1
+          exit "${exit_code}"
         continue-on-error: true
 
   bender-action:
