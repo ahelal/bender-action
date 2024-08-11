@@ -34963,6 +34963,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.doRequest = doRequest;
 exports.getJob = getJob;
 exports.getJobLogs = getJobLogs;
 exports.getActionRuns = getActionRuns;
@@ -35057,13 +35058,16 @@ async function postComment(pullRequestNumber, context, body) {
     }, context, body);
     return response.data;
 }
-async function doRequest(params, context, body) {
+async function doRequest(params, context, body, requestFetch) {
     const { baseUrl = 'https://api.github.com', method, path, headers = {} } = params;
     const { ghToken } = context;
     const config = { baseUrl };
     if (ghToken)
         config['auth'] = ghToken;
-    const octokit = new core_1.Octokit(config);
+    const requestOctoKit = requestFetch
+        ? { request: { fetch: requestFetch } }
+        : {};
+    const octokit = new core_1.Octokit({ ...config, ...requestOctoKit });
     const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
     if (core.isDebug())
         core.startGroup(`doRequest ${iMethodPath}`);

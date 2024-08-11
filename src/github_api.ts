@@ -156,10 +156,11 @@ async function postComment(
   return response.data
 }
 
-async function doRequest(
+export async function doRequest(
   params: requestParams,
   context: Context,
-  body?: Record<string, string>
+  body?: Record<string, string>,
+  requestFetch?: () => Promise<any>
 ): Promise<OctokitResponse<any, number>> {
   const {
     baseUrl = 'https://api.github.com',
@@ -172,7 +173,10 @@ async function doRequest(
   const config: Record<string, string> = { baseUrl }
   if (ghToken) config['auth'] = ghToken
 
-  const octokit = new Octokit(config)
+  const requestOctoKit = requestFetch
+    ? { request: { fetch: requestFetch } }
+    : {}
+  const octokit = new Octokit({ ...config, ...requestOctoKit })
 
   const iMethodPath = interpolateString(`${method} ${path}`, context)
 
