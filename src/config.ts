@@ -26,3 +26,6 @@ export const MAX_INPUT_FILES_LENGTH = MAX_INPUT_LOG_LENGTH
 
 // Max number of regex patterns
 export const MAX_REGEX_PATTERNS = 10
+
+// WOrd to use to indicate that the content of a file is needed
+export const CONTENT_OF_FILE_NEEDED = 'CONTENT_OF_FILE_NEEDED'

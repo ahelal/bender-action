@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
 import { OctokitResponse, Context, requestParams } from './types'
-import { GithubAPIversion } from './config'
+import { GithubAPIversion, CONTENT_OF_FILE_NEEDED } from './config'
 
 import {
   sanitizeString,
@@ -91,7 +91,7 @@ async function getFileContent4Context(
     'getFileContent4Context',
     `Response: ${JSON.stringify(response, null, 2)}`
   )
-  const regex = /CONTENT_OF_FILE_NEEDED "(.*?)"/gm
+  const regex = new RegExp(`${CONTENT_OF_FILE_NEEDED} "(.*?)"`, 'gm')
   const matches = [...response.matchAll(regex)]
   if (matches.length < 1) {
     core.warning(
@@ -163,35 +163,36 @@ async function doRequest(
   context: Context,
   body?: Record<string, string>
 ): Promise<OctokitResponse<any, number>> {
-  const { baseUrl, method, path, headers } = params
-  let iBaseUrl = baseUrl
-  let iPayload = {}
-  if (!iBaseUrl) iBaseUrl = 'https://api.github.com'
+  const {
+    baseUrl = 'https://api.github.com',
+    method,
+    path,
+    headers = {}
+  } = params
+  const { ghToken } = context
 
-  const config: Record<string, string> = { baseUrl: iBaseUrl }
-  if (context.ghToken) config['auth'] = context.ghToken
+  const config: Record<string, string> = { baseUrl }
+  if (ghToken) config['auth'] = ghToken
+
   const octokit = new Octokit(config)
 
   const iMethodPath = interpolateString(`${method} ${path}`, context)
 
-  core.startGroup(`doRequest ${iMethodPath}`)
+  if (core.isDebug()) core.startGroup(`doRequest ${iMethodPath}`)
   core.debug(
-    `doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${sanitizeString(context.ghToken)} }`
+    `doRequest octokit init: { baseURL: ${baseUrl} auth: ${sanitizeString(context.ghToken)} }`
   )
-
-  iPayload = interpolateObject(body, context)
+  const iPayload = interpolateObject(body, context)
   core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`)
 
-  let iHeaders = headers
-  if (!iHeaders) iHeaders = {}
-  iHeaders['X-GitHub-Api-Version'] = GithubAPIversion
+  headers['X-GitHub-Api-Version'] = GithubAPIversion
 
   const response = await octokit.request(iMethodPath, {
-    headers: iHeaders,
+    headers,
     ...iPayload
   })
   core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
-  core.endGroup()
+  if (core.isDebug()) core.endGroup()
 
   if (response.status < 200 || response.status >= 300) {
     core.setFailed(

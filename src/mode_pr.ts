@@ -9,7 +9,7 @@ import {
 } from './github_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context } from './types'
-import { maxRecursionPr } from './config'
+import { maxRecursionPr, CONTENT_OF_FILE_NEEDED } from './config'
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function processFile(
@@ -48,7 +48,7 @@ async function processFile(
     reply = content ?? ''
 
     const firstChoice = aiResponse.choices[0]
-    if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
+    if (!firstChoice?.message?.content?.includes(CONTENT_OF_FILE_NEEDED)) {
       core.debug('No more context needed')
       break
     }
