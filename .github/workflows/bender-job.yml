@@ -43,7 +43,7 @@ jobs:
         id: bender
         with:
           mode: 'job'
-          gh-job: 'fail'
+          gh-job: 'Fail'
           gh-token: ${{ secrets.GHTOKEN }}
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
