@@ -34909,7 +34909,7 @@ function wrappy (fn, cb) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.CONTENT_OF_FILE_NEEDED = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34928,6 +34928,8 @@ exports.MAX_INPUT_LOG_LENGTH = 20000;
 exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH;
 // Max number of regex patterns
 exports.MAX_REGEX_PATTERNS = 10;
+// WOrd to use to indicate that the content of a file is needed
+exports.CONTENT_OF_FILE_NEEDED = 'CONTENT_OF_FILE_NEEDED';
 
 
 /***/ }),
@@ -35016,7 +35018,7 @@ async function getJobYaml(context) {
 }
 async function getFileContent4Context(response, context) {
     (0, util_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`);
-    const regex = /CONTENT_OF_FILE_NEEDED "(.*?)"/gm;
+    const regex = new RegExp(`${config_1.CONTENT_OF_FILE_NEEDED} "(.*?)"`, 'gm');
     const matches = [...response.matchAll(regex)];
     if (matches.length < 1) {
         core.warning('No file content matched, this can be incorrect response format from OpenAI. try to run again');
@@ -35046,7 +35048,6 @@ async function getComments(context) {
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/pulls/${context.pr}/comments`
     }, context);
-    // path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}/comments`
     return response.data;
 }
 async function postComment(pullRequestNumber, context, body) {
@@ -35057,30 +35058,26 @@ async function postComment(pullRequestNumber, context, body) {
     return response.data;
 }
 async function doRequest(params, context, body) {
-    const { baseUrl, method, path, headers } = params;
-    let iBaseUrl = baseUrl;
-    let iPayload = {};
-    if (!iBaseUrl)
-        iBaseUrl = 'https://api.github.com';
-    const config = { baseUrl: iBaseUrl };
-    if (context.ghToken)
-        config['auth'] = context.ghToken;
+    const { baseUrl = 'https://api.github.com', method, path, headers = {} } = params;
+    const { ghToken } = context;
+    const config = { baseUrl };
+    if (ghToken)
+        config['auth'] = ghToken;
     const octokit = new core_1.Octokit(config);
     const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
-    core.startGroup(`doRequest ${iMethodPath}`);
-    core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
-    iPayload = (0, util_1.interpolateObject)(body, context);
+    if (core.isDebug())
+        core.startGroup(`doRequest ${iMethodPath}`);
+    core.debug(`doRequest octokit init: { baseURL: ${baseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
+    const iPayload = (0, util_1.interpolateObject)(body, context);
     core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
-    let iHeaders = headers;
-    if (!iHeaders)
-        iHeaders = {};
-    iHeaders['X-GitHub-Api-Version'] = config_1.GithubAPIversion;
+    headers['X-GitHub-Api-Version'] = config_1.GithubAPIversion;
     const response = await octokit.request(iMethodPath, {
-        headers: iHeaders,
+        headers,
         ...iPayload
     });
     core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
-    core.endGroup();
+    if (core.isDebug())
+        core.endGroup();
     if (response.status < 200 || response.status >= 300) {
         core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
     }
@@ -35323,7 +35320,7 @@ async function runJobMode(context) {
             message.push({ role: 'assistant', content });
         }
         const firstChoice = aiResponse.choices[0];
-        if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
+        if (!firstChoice?.message?.content?.includes(config_1.CONTENT_OF_FILE_NEEDED)) {
             core.debug('No more context needed');
             break;
         }
@@ -35403,7 +35400,7 @@ async function processFile(file, context, relevantComments) {
         const content = aiResponse.choices[0].message.content;
         reply = content ?? '';
         const firstChoice = aiResponse.choices[0];
-        if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
+        if (!firstChoice?.message?.content?.includes(config_1.CONTENT_OF_FILE_NEEDED)) {
             core.debug('No more context needed');
             break;
         }
@@ -35553,13 +35550,13 @@ You'll receive GitHub Action job log that indicate failures. Your response shoul
     - State the cause of the job failure.
     - Provide a solution to fix the error.
 2. Insufficient Information or Unable to Suggest a Solution:
-    - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: 'CONTENT_OF_FILE_NEEDED "<valid unix path>"' (e.g., 'CONTENT_OF_FILE_NEEDED "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
+    - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CONTENT_OF_FILE_NEEDED} "<valid unix path>"' (e.g., '${config_1.CONTENT_OF_FILE_NEEDED} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
     - If there's no way forward, reply with 'Not enough information to provide a solution.'`;
 exports.githubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
 - You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality. 
 - Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${config_1.maxWordCountPr} words ONLY*.
 - Don't provide a title or descriptions.
-- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: CONTENT_OF_FILE_NEEDED "filename" (e.g., CONTENT_OF_FILE_NEEDED "src/index.js").
+- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: '${config_1.CONTENT_OF_FILE_NEEDED} "<valid unix path>/filename"' (e.g., ${config_1.CONTENT_OF_FILE_NEEDED} "src/index.js").
 - If there's no way forward, reply with: Not enough information to provide a suggestion.`;
 
 

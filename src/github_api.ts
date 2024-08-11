@@ -137,8 +137,6 @@ async function getComments(context: Context): Promise<Record<string, any>[]> {
     },
     context
   )
-  // path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}/comments`
-
   return response.data
 }
 
