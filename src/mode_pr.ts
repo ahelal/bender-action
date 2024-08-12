@@ -73,6 +73,8 @@ async function processFile(
     path: file,
     subject_type: 'file'
   })
+  // for debug
+  console.info(reply)
 }
 
 export async function runPrMode(context: Context): Promise<string> {

@@ -35428,6 +35428,8 @@ async function processFile(file, context, relevantComments) {
         path: file,
         subject_type: 'file'
     });
+    // for debug
+    console.info(reply);
 }
 async function runPrMode(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
@@ -35567,7 +35569,7 @@ exports.githubActionSecurityPrompt = `As a security specialist focused on identi
 - Your reply should: 
     - Be formatted as text, concise, and to the point.
     - Not exceed ${config_1.maxWordCountPr} words.
-    - Include a hash and line number range for each recommendation (e.g., line 5-6 will be '#5-6', single line 5 '#5').
+    - Include a hash and line number range then your reply, for each recommendation (e.g., line 5-6 will be '#5-6 Your reply', single line 5 '#5 Your reply').
 - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
 - If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
 // export const OLdgithubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
