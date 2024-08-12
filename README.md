@@ -7,6 +7,9 @@ assist you with failed jobs and review your PRs with security in mind in your
 GitHub workflows. It provides logs and source code for context and utilizes
 OpenAI to assist in debugging, resolving issues, and providing feedback.
 
+If you need to deploy Azure OpenAI you can head to [infra](/infra) directory and
+follow the `Readme` to deploy AzureOI with bicep.
+
 ## Inputs
 
 ```yml

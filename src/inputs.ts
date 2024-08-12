@@ -14,7 +14,9 @@ export function getInputs(): Record<string, string> {
   if (!['pr', 'job'].includes(inputs['mode']))
     throw new Error(`Invalid mode: ${inputs['mode']}`)
 
-  inputs['ghToken'] = core.getInput('gh-token', { required: false })
+  inputs['ghToken'] = core.getInput('gh-token', {
+    required: inputs['mode'] === 'pr'
+  })
 
   inputs['ghJob'] = core.getInput('gh-job', {
     required: false
