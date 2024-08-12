@@ -34,6 +34,11 @@ jobs:
         run: |
           echo "::warning file=bender-action/.github/workflows/bender-pr.yml,line=37,endLine=47,title='bender'::bender stufff stuff"
 
+      - name: echo annotation3
+        run: |
+          echo "bender-action/.github/workflows/bender-pr.yml"
+          echo "##[warning]   50:55  warning  Some hello test"
+
       - name: Run Bender
         uses: ./
         id: bender
