@@ -9,7 +9,10 @@ import {
 } from './github_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context } from './types'
-import { maxRecursionPr, CONTENT_OF_FILE_NEEDED } from './config'
+import { maxRecursionPr, CMD_INCLUDE_FILE } from './config'
+
+// core.notice('More context needed')
+// AnnotationProperties
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function processFile(
@@ -22,7 +25,7 @@ async function processFile(
   let reply = ''
   const prFileContent = await getContent(file, context.ref, context)
   if (!prFileContent) {
-    core.error(`Unable to get file content ${file} ${context.ref}`)
+    core.error(`Unable to fetch file content '${file}' '${context.ref}'`)
     return
   }
 
@@ -48,7 +51,7 @@ async function processFile(
     reply = content ?? ''
 
     const firstChoice = aiResponse.choices[0]
-    if (!firstChoice?.message?.content?.includes(CONTENT_OF_FILE_NEEDED)) {
+    if (!firstChoice?.message?.content?.includes(CMD_INCLUDE_FILE)) {
       core.debug('No more context needed')
       break
     }
@@ -76,12 +79,7 @@ export async function runPrMode(context: Context): Promise<string> {
   const filesInPR = await getCommitFiles(context)
   const files = filesInPR.map(f => f.filename)
 
-  if (filesInPR.length < 1) {
-    core.warning(
-      `No files found in the PR, that match the regEx filter '${context.filesSelection}'`
-    )
-    return ''
-  }
+  if (filesInPR.length < 1) return ''
 
   const user = await getUserInfo(context)
   const prComments = await getComments(context)

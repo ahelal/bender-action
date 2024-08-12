@@ -7,7 +7,7 @@ import {
 } from './github_api'
 import { setupInitialMessage, openAiRequest } from './openai_api'
 import { CompletionUsage, Context } from './types'
-import { maxRecursionJob, CONTENT_OF_FILE_NEEDED } from './config'
+import { maxRecursionJob, CMD_INCLUDE_FILE } from './config'
 
 export async function runJobMode(context: Context): Promise<string> {
   // Getting GH action job information
@@ -41,7 +41,7 @@ export async function runJobMode(context: Context): Promise<string> {
     }
 
     const firstChoice = aiResponse.choices[0]
-    if (!firstChoice?.message?.content?.includes(CONTENT_OF_FILE_NEEDED)) {
+    if (!firstChoice?.message?.content?.includes(CMD_INCLUDE_FILE)) {
       core.debug('No more context needed')
       break
     }

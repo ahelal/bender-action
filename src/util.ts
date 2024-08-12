@@ -63,9 +63,15 @@ export function filterCommitFiles(
   // Remove duplicates
   const uniqueFiles = [...new Set(filteredFiles)]
 
-  core.info(
-    `* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`
-  )
+  if (uniqueFiles.length < 1) {
+    core.warning(
+      `No files found in the PR, that match the regEx filter '${uniqueFiles}'`
+    )
+  } else {
+    core.info(
+      `* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`
+    )
+  }
   return uniqueFiles
 }
 

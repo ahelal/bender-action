@@ -34909,7 +34909,7 @@ function wrappy (fn, cb) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CONTENT_OF_FILE_NEEDED = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34920,6 +34920,8 @@ exports.maxRecursionJob = 3;
 exports.maxRecursionPr = 2;
 // Default max word count for OpenAI PR mode
 exports.maxWordCountPr = 300;
+// Default max word count for OpenAI JOB mode
+exports.maxWordCountJob = 500;
 // Wait time in seconds before starting
 exports.waitTime = '1';
 // Max input length for github action logs
@@ -34928,8 +34930,9 @@ exports.MAX_INPUT_LOG_LENGTH = 20000;
 exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH;
 // Max number of regex patterns
 exports.MAX_REGEX_PATTERNS = 10;
-// WOrd to use to indicate that the content of a file is needed
-exports.CONTENT_OF_FILE_NEEDED = 'CONTENT_OF_FILE_NEEDED';
+// Word to use to indicate that the content of a file is needed
+exports.CMD_INCLUDE_FILE = '#CMD_INCLUDE_FILE';
+exports.CMD_NO_SUFFICIENT_INFO = '#CMD_NO_SUFFICIENT_INFO';
 
 
 /***/ }),
@@ -35019,7 +35022,7 @@ async function getJobYaml(context) {
 }
 async function getFileContent4Context(response, context) {
     (0, util_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`);
-    const regex = new RegExp(`${config_1.CONTENT_OF_FILE_NEEDED} "(.*?)"`, 'gm');
+    const regex = new RegExp(`${config_1.CMD_INCLUDE_FILE} "(.*?)"`, 'gm');
     const matches = [...response.matchAll(regex)];
     if (matches.length < 1) {
         core.warning('No file content matched, this can be incorrect response format from OpenAI. try to run again');
@@ -35326,7 +35329,7 @@ async function runJobMode(context) {
             message.push({ role: 'assistant', content });
         }
         const firstChoice = aiResponse.choices[0];
-        if (!firstChoice?.message?.content?.includes(config_1.CONTENT_OF_FILE_NEEDED)) {
+        if (!firstChoice?.message?.content?.includes(config_1.CMD_INCLUDE_FILE)) {
             core.debug('No more context needed');
             break;
         }
@@ -35381,13 +35384,15 @@ const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
+// core.notice('More context needed')
+// AnnotationProperties
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function processFile(file, context, relevantComments) {
     core.info(`* Processing file: ${file}`);
     let reply = '';
     const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
     if (!prFileContent) {
-        core.error(`Unable to get file content ${file} ${context.ref}`);
+        core.error(`Unable to fetch file content '${file}' '${context.ref}'`);
         return;
     }
     const fileComment = relevantComments.find(comment => comment.path === file);
@@ -35406,7 +35411,7 @@ async function processFile(file, context, relevantComments) {
         const content = aiResponse.choices[0].message.content;
         reply = content ?? '';
         const firstChoice = aiResponse.choices[0];
-        if (!firstChoice?.message?.content?.includes(config_1.CONTENT_OF_FILE_NEEDED)) {
+        if (!firstChoice?.message?.content?.includes(config_1.CMD_INCLUDE_FILE)) {
             core.debug('No more context needed');
             break;
         }
@@ -35427,10 +35432,8 @@ async function processFile(file, context, relevantComments) {
 async function runPrMode(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
     const files = filesInPR.map(f => f.filename);
-    if (filesInPR.length < 1) {
-        core.warning(`No files found in the PR, that match the regEx filter '${context.filesSelection}'`);
+    if (filesInPR.length < 1)
         return '';
-    }
     const user = await (0, github_api_1.getUserInfo)(context);
     const prComments = await (0, github_api_1.getComments)(context);
     const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
@@ -35550,20 +35553,29 @@ async function openAiRequest(message, context) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.githubActionSecurityPrompt = exports.githubActionFailurePrompt = void 0;
 const config_1 = __nccwpck_require__(6373);
-exports.githubActionFailurePrompt = `As a software engineer assistant, your purpose is to identify errors and suggest solutions to fix them. 
-You'll receive GitHub Action job log that indicate failures. Your response should be formatted as text and follow these guidelines:
-1. Sufficient Information Provided:
+exports.githubActionFailurePrompt = `As a software engineer assistant, your purpose is to identify errors and suggest solutions to fix them, follow these guidelines:
+- You'll receive GitHub Action job log that has a failures. 
+- Your reply should:
+    - Be formatted as text, concise, and to the point.
+    - Not exceed ${config_1.maxWordCountJob} words.
     - State the cause of the job failure.
     - Provide a solution to fix the error.
-2. Insufficient Information or Unable to Suggest a Solution:
-    - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CONTENT_OF_FILE_NEEDED} "<valid unix path>"' (e.g., '${config_1.CONTENT_OF_FILE_NEEDED} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
-    - If there's no way forward, reply with 'Not enough information to provide a solution.'`;
-exports.githubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
-- You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality. 
-- Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${config_1.maxWordCountPr} words ONLY*.
-- Don't provide a title or descriptions.
-- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: '${config_1.CONTENT_OF_FILE_NEEDED} "<valid unix path>/filename"' (e.g., ${config_1.CONTENT_OF_FILE_NEEDED} "src/index.js").
-- If there's no way forward, reply with: Not enough information to provide a suggestion.`;
+- If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
+- If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
+exports.githubActionSecurityPrompt = `As a security specialist focused on identifying security risks in source code, follow these guidelines:
+- You'll receive a source code or file diff.
+- Your reply should: 
+    - Be formatted as text, concise, and to the point.
+    - Not exceed ${config_1.maxWordCountPr} words.
+    - Include a hash and line number range for each recommendation (e.g., line 5-6 will be '#5-6', single line 5 '#5').
+- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
+- If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
+// export const OLdgithubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
+// - You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality.
+// - Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${maxWordCountPr} words ONLY*.
+// - Don't provide a title or descriptions.
+// - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: '${CMD_INCLUDE_FILE} "<valid unix path>/filename"' (e.g., ${CMD_INCLUDE_FILE} "src/index.js").
+// - If there's no way forward, reply with: Not enough information to provide a suggestion.`
 
 
 /***/ }),
@@ -35653,7 +35665,12 @@ function filterCommitFiles(files, regExFilters) {
         : filteredFilesStatus;
     // Remove duplicates
     const uniqueFiles = [...new Set(filteredFiles)];
-    core.info(`* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`);
+    if (uniqueFiles.length < 1) {
+        core.warning(`No files found in the PR, that match the regEx filter '${uniqueFiles}'`);
+    }
+    else {
+        core.info(`* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`);
+    }
     return uniqueFiles;
 }
 function filterValidateInput(files, regExFilters) {

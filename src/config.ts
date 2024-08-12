@@ -15,6 +15,9 @@ export const maxRecursionPr = 2
 // Default max word count for OpenAI PR mode
 export const maxWordCountPr = 300
 
+// Default max word count for OpenAI JOB mode
+export const maxWordCountJob = 500
+
 // Wait time in seconds before starting
 export const waitTime = '1'
 
@@ -27,5 +30,7 @@ export const MAX_INPUT_FILES_LENGTH = MAX_INPUT_LOG_LENGTH
 // Max number of regex patterns
 export const MAX_REGEX_PATTERNS = 10
 
-// WOrd to use to indicate that the content of a file is needed
-export const CONTENT_OF_FILE_NEEDED = 'CONTENT_OF_FILE_NEEDED'
+// Word to use to indicate that the content of a file is needed
+export const CMD_INCLUDE_FILE = '#CMD_INCLUDE_FILE'
+
+export const CMD_NO_SUFFICIENT_INFO = '#CMD_NO_SUFFICIENT_INFO'

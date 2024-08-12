@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
 import { OctokitResponse, Context, requestParams } from './types'
-import { GithubAPIversion, CONTENT_OF_FILE_NEEDED } from './config'
+import { GithubAPIversion, CMD_INCLUDE_FILE } from './config'
 
 import {
   sanitizeString,
@@ -91,7 +91,7 @@ async function getFileContent4Context(
     'getFileContent4Context',
     `Response: ${JSON.stringify(response, null, 2)}`
   )
-  const regex = new RegExp(`${CONTENT_OF_FILE_NEEDED} "(.*?)"`, 'gm')
+  const regex = new RegExp(`${CMD_INCLUDE_FILE} "(.*?)"`, 'gm')
   const matches = [...response.matchAll(regex)]
   if (matches.length < 1) {
     core.warning(
