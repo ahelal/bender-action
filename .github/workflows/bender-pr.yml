@@ -27,12 +27,12 @@ jobs:
       - name: echo dir context
         run: echo ${{env.dir_context}}
 
-      - name: echo annotation
+      - name: echo annotation1
         run: |
           echo "::notice file=bender-action/.github/workflows/bender-pr.yml,line=30,endLine=33,title='annotation'::HELLO tests"
+      - name: echo annotation2
+        run: |
           echo "::warning file=bender-action/.github/workflows/bender-pr.yml,line=37,endLine=47,title='bender'::bender stufff stuff"
-
-          
 
       - name: Run Bender
         uses: ./
