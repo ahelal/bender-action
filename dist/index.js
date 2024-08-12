@@ -38844,6 +38844,239 @@ exports.setShims = setShims;
 
 /***/ }),
 
+/***/ 9304:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.partialParse = void 0;
+const tokenize = (input) => {
+    let current = 0;
+    let tokens = [];
+    while (current < input.length) {
+        let char = input[current];
+        if (char === '\\') {
+            current++;
+            continue;
+        }
+        if (char === '{') {
+            tokens.push({
+                type: 'brace',
+                value: '{',
+            });
+            current++;
+            continue;
+        }
+        if (char === '}') {
+            tokens.push({
+                type: 'brace',
+                value: '}',
+            });
+            current++;
+            continue;
+        }
+        if (char === '[') {
+            tokens.push({
+                type: 'paren',
+                value: '[',
+            });
+            current++;
+            continue;
+        }
+        if (char === ']') {
+            tokens.push({
+                type: 'paren',
+                value: ']',
+            });
+            current++;
+            continue;
+        }
+        if (char === ':') {
+            tokens.push({
+                type: 'separator',
+                value: ':',
+            });
+            current++;
+            continue;
+        }
+        if (char === ',') {
+            tokens.push({
+                type: 'delimiter',
+                value: ',',
+            });
+            current++;
+            continue;
+        }
+        if (char === '"') {
+            let value = '';
+            let danglingQuote = false;
+            char = input[++current];
+            while (char !== '"') {
+                if (current === input.length) {
+                    danglingQuote = true;
+                    break;
+                }
+                if (char === '\\') {
+                    current++;
+                    if (current === input.length) {
+                        danglingQuote = true;
+                        break;
+                    }
+                    value += char + input[current];
+                    char = input[++current];
+                }
+                else {
+                    value += char;
+                    char = input[++current];
+                }
+            }
+            char = input[++current];
+            if (!danglingQuote) {
+                tokens.push({
+                    type: 'string',
+                    value,
+                });
+            }
+            continue;
+        }
+        let WHITESPACE = /\s/;
+        if (char && WHITESPACE.test(char)) {
+            current++;
+            continue;
+        }
+        let NUMBERS = /[0-9]/;
+        if ((char && NUMBERS.test(char)) || char === '-' || char === '.') {
+            let value = '';
+            if (char === '-') {
+                value += char;
+                char = input[++current];
+            }
+            while ((char && NUMBERS.test(char)) || char === '.') {
+                value += char;
+                char = input[++current];
+            }
+            tokens.push({
+                type: 'number',
+                value,
+            });
+            continue;
+        }
+        let LETTERS = /[a-z]/i;
+        if (char && LETTERS.test(char)) {
+            let value = '';
+            while (char && LETTERS.test(char)) {
+                if (current === input.length) {
+                    break;
+                }
+                value += char;
+                char = input[++current];
+            }
+            if (value == 'true' || value == 'false' || value === 'null') {
+                tokens.push({
+                    type: 'name',
+                    value,
+                });
+            }
+            else {
+                // unknown token, e.g. `nul` which isn't quite `null`
+                current++;
+                continue;
+            }
+            continue;
+        }
+        current++;
+    }
+    return tokens;
+}, strip = (tokens) => {
+    if (tokens.length === 0) {
+        return tokens;
+    }
+    let lastToken = tokens[tokens.length - 1];
+    switch (lastToken.type) {
+        case 'separator':
+            tokens = tokens.slice(0, tokens.length - 1);
+            return strip(tokens);
+            break;
+        case 'number':
+            let lastCharacterOfLastToken = lastToken.value[lastToken.value.length - 1];
+            if (lastCharacterOfLastToken === '.' || lastCharacterOfLastToken === '-') {
+                tokens = tokens.slice(0, tokens.length - 1);
+                return strip(tokens);
+            }
+        case 'string':
+            let tokenBeforeTheLastToken = tokens[tokens.length - 2];
+            if (tokenBeforeTheLastToken?.type === 'delimiter') {
+                tokens = tokens.slice(0, tokens.length - 1);
+                return strip(tokens);
+            }
+            else if (tokenBeforeTheLastToken?.type === 'brace' && tokenBeforeTheLastToken.value === '{') {
+                tokens = tokens.slice(0, tokens.length - 1);
+                return strip(tokens);
+            }
+            break;
+        case 'delimiter':
+            tokens = tokens.slice(0, tokens.length - 1);
+            return strip(tokens);
+            break;
+    }
+    return tokens;
+}, unstrip = (tokens) => {
+    let tail = [];
+    tokens.map((token) => {
+        if (token.type === 'brace') {
+            if (token.value === '{') {
+                tail.push('}');
+            }
+            else {
+                tail.splice(tail.lastIndexOf('}'), 1);
+            }
+        }
+        if (token.type === 'paren') {
+            if (token.value === '[') {
+                tail.push(']');
+            }
+            else {
+                tail.splice(tail.lastIndexOf(']'), 1);
+            }
+        }
+    });
+    if (tail.length > 0) {
+        tail.reverse().map((item) => {
+            if (item === '}') {
+                tokens.push({
+                    type: 'brace',
+                    value: '}',
+                });
+            }
+            else if (item === ']') {
+                tokens.push({
+                    type: 'paren',
+                    value: ']',
+                });
+            }
+        });
+    }
+    return tokens;
+}, generate = (tokens) => {
+    let output = '';
+    tokens.map((token) => {
+        switch (token.type) {
+            case 'string':
+                output += '"' + token.value + '"';
+                break;
+            default:
+                output += token.value;
+                break;
+        }
+    });
+    return output;
+}, partialParse = (input) => JSON.parse(generate(unstrip(strip(tokenize(input)))));
+exports.partialParse = partialParse;
+//# sourceMappingURL=parser.js.map
+
+/***/ }),
+
 /***/ 1798:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -39750,7 +39983,7 @@ exports.isObj = isObj;
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.InternalServerError = exports.RateLimitError = exports.UnprocessableEntityError = exports.ConflictError = exports.NotFoundError = exports.PermissionDeniedError = exports.AuthenticationError = exports.BadRequestError = exports.APIConnectionTimeoutError = exports.APIConnectionError = exports.APIUserAbortError = exports.APIError = exports.OpenAIError = void 0;
+exports.ContentFilterFinishReasonError = exports.LengthFinishReasonError = exports.InternalServerError = exports.RateLimitError = exports.UnprocessableEntityError = exports.ConflictError = exports.NotFoundError = exports.PermissionDeniedError = exports.AuthenticationError = exports.BadRequestError = exports.APIConnectionTimeoutError = exports.APIConnectionError = exports.APIUserAbortError = exports.APIError = exports.OpenAIError = void 0;
 const core_1 = __nccwpck_require__(1798);
 class OpenAIError extends Error {
 }
@@ -39894,6 +40127,18 @@ exports.RateLimitError = RateLimitError;
 class InternalServerError extends APIError {
 }
 exports.InternalServerError = InternalServerError;
+class LengthFinishReasonError extends OpenAIError {
+    constructor() {
+        super(`Could not parse response content as the length limit was reached`);
+    }
+}
+exports.LengthFinishReasonError = LengthFinishReasonError;
+class ContentFilterFinishReasonError extends OpenAIError {
+    constructor() {
+        super(`Could not parse response content as the request was rejected by the content filter`);
+    }
+}
+exports.ContentFilterFinishReasonError = ContentFilterFinishReasonError;
 //# sourceMappingURL=error.js.map
 
 /***/ }),
@@ -40188,6 +40433,7 @@ const error_1 = __nccwpck_require__(8905);
 const RunnableFunction_1 = __nccwpck_require__(5464);
 const chatCompletionUtils_1 = __nccwpck_require__(7964);
 const EventStream_1 = __nccwpck_require__(132);
+const parser_1 = __nccwpck_require__(1543);
 const DEFAULT_MAX_CHAT_COMPLETIONS = 10;
 class AbstractChatCompletionRunner extends EventStream_1.EventStream {
     constructor() {
@@ -40292,7 +40538,7 @@ class AbstractChatCompletionRunner extends EventStream_1.EventStream {
             this._emit('totalUsage', __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_calculateTotalUsage).call(this));
         }
     }
-    async _createChatCompletion(completions, params, options) {
+    async _createChatCompletion(client, params, options) {
         const signal = options?.signal;
         if (signal) {
             if (signal.aborted)
@@ -40300,17 +40546,17 @@ class AbstractChatCompletionRunner extends EventStream_1.EventStream {
             signal.addEventListener('abort', () => this.controller.abort());
         }
         __classPrivateFieldGet(this, _AbstractChatCompletionRunner_instances, "m", _AbstractChatCompletionRunner_validateParams).call(this, params);
-        const chatCompletion = await completions.create({ ...params, stream: false }, { ...options, signal: this.controller.signal });
+        const chatCompletion = await client.chat.completions.create({ ...params, stream: false }, { ...options, signal: this.controller.signal });
         this._connected();
-        return this._addChatCompletion(chatCompletion);
+        return this._addChatCompletion((0, parser_1.parseChatCompletion)(chatCompletion, params));
     }
-    async _runChatCompletion(completions, params, options) {
+    async _runChatCompletion(client, params, options) {
         for (const message of params.messages) {
             this._addMessage(message, false);
         }
-        return await this._createChatCompletion(completions, params, options);
+        return await this._createChatCompletion(client, params, options);
     }
-    async _runFunctions(completions, params, options) {
+    async _runFunctions(client, params, options) {
         const role = 'function';
         const { function_call = 'auto', stream, ...restParams } = params;
         const singleFunctionToCall = typeof function_call !== 'string' && function_call?.name;
@@ -40328,7 +40574,7 @@ class AbstractChatCompletionRunner extends EventStream_1.EventStream {
             this._addMessage(message, false);
         }
         for (let i = 0; i < maxChatCompletions; ++i) {
-            const chatCompletion = await this._createChatCompletion(completions, {
+            const chatCompletion = await this._createChatCompletion(client, {
                 ...restParams,
                 function_call,
                 functions,
@@ -40374,25 +40620,46 @@ class AbstractChatCompletionRunner extends EventStream_1.EventStream {
                 return;
         }
     }
-    async _runTools(completions, params, options) {
+    async _runTools(client, params, options) {
         const role = 'tool';
         const { tool_choice = 'auto', stream, ...restParams } = params;
         const singleFunctionToCall = typeof tool_choice !== 'string' && tool_choice?.function?.name;
         const { maxChatCompletions = DEFAULT_MAX_CHAT_COMPLETIONS } = options || {};
+        // TODO(someday): clean this logic up
+        const inputTools = params.tools.map((tool) => {
+            if ((0, parser_1.isAutoParsableTool)(tool)) {
+                if (!tool.$callback) {
+                    throw new error_1.OpenAIError('Tool given to `.runTools()` that does not have an associated function');
+                }
+                return {
+                    type: 'function',
+                    function: {
+                        function: tool.$callback,
+                        name: tool.function.name,
+                        description: tool.function.description || '',
+                        parameters: tool.function.parameters,
+                        parse: tool.$parseRaw,
+                        strict: true,
+                    },
+                };
+            }
+            return tool;
+        });
         const functionsByName = {};
-        for (const f of params.tools) {
+        for (const f of inputTools) {
             if (f.type === 'function') {
                 functionsByName[f.function.name || f.function.function.name] = f.function;
             }
         }
         const tools = 'tools' in params ?
-            params.tools.map((t) => t.type === 'function' ?
+            inputTools.map((t) => t.type === 'function' ?
                 {
                     type: 'function',
                     function: {
                         name: t.function.name || t.function.function.name,
                         parameters: t.function.parameters,
                         description: t.function.description,
+                        strict: t.function.strict,
                     },
                 }
                 : t)
@@ -40401,7 +40668,7 @@ class AbstractChatCompletionRunner extends EventStream_1.EventStream {
             this._addMessage(message, false);
         }
         for (let i = 0; i < maxChatCompletions; ++i) {
-            const chatCompletion = await this._createChatCompletion(completions, {
+            const chatCompletion = await this._createChatCompletion(client, {
                 ...restParams,
                 tool_choice,
                 tools,
@@ -40411,7 +40678,7 @@ class AbstractChatCompletionRunner extends EventStream_1.EventStream {
             if (!message) {
                 throw new error_1.OpenAIError(`missing message in ChatCompletion response`);
             }
-            if (!message.tool_calls) {
+            if (!message.tool_calls?.length) {
                 return;
             }
             for (const tool_call of message.tool_calls) {
@@ -40421,8 +40688,8 @@ class AbstractChatCompletionRunner extends EventStream_1.EventStream {
                 const { name, arguments: args } = tool_call.function;
                 const fn = functionsByName[name];
                 if (!fn) {
-                    const content = `Invalid tool_call: ${JSON.stringify(name)}. Available options are: ${tools
-                        .map((f) => JSON.stringify(f.function.name))
+                    const content = `Invalid tool_call: ${JSON.stringify(name)}. Available options are: ${Object.keys(functionsByName)
+                        .map((name) => JSON.stringify(name))
                         .join(', ')}. Please try again`;
                     this._addMessage({ role, tool_call_id, content });
                     continue;
@@ -40462,7 +40729,11 @@ _AbstractChatCompletionRunner_instances = new WeakSet(), _AbstractChatCompletion
         const message = this.messages[i];
         if ((0, chatCompletionUtils_1.isAssistantMessage)(message)) {
             const { function_call, ...rest } = message;
-            const ret = { ...rest, content: message.content ?? null };
+            const ret = {
+                ...rest,
+                content: message.content ?? null,
+                refusal: message.refusal ?? null,
+            };
             if (function_call) {
                 ret.function_call = function_call;
             }
@@ -40489,6 +40760,7 @@ _AbstractChatCompletionRunner_instances = new WeakSet(), _AbstractChatCompletion
         }
         if ((0, chatCompletionUtils_1.isToolMessage)(message) &&
             message.content != null &&
+            typeof message.content === 'string' &&
             this.messages.some((x) => x.role === 'assistant' &&
                 x.tool_calls?.some((y) => y.type === 'function' && y.id === message.tool_call_id))) {
             return message.content;
@@ -40667,9 +40939,9 @@ class AssistantStream extends EventStream_1.EventStream {
         const stream = new streaming_1.Stream(this[Symbol.asyncIterator].bind(this), this.controller);
         return stream.toReadableStream();
     }
-    static createToolAssistantStream(threadId, runId, runs, body, options) {
+    static createToolAssistantStream(threadId, runId, runs, params, options) {
         const runner = new AssistantStream();
-        runner._run(() => runner._runToolAssistantStream(threadId, runId, runs, body, {
+        runner._run(() => runner._runToolAssistantStream(threadId, runId, runs, params, {
             ...options,
             headers: { ...options?.headers, 'X-Stainless-Helper-Method': 'stream' },
         }));
@@ -40696,9 +40968,9 @@ class AssistantStream extends EventStream_1.EventStream {
         }
         return this._addRun(__classPrivateFieldGet(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
     }
-    static createThreadAssistantStream(body, thread, options) {
+    static createThreadAssistantStream(params, thread, options) {
         const runner = new AssistantStream();
-        runner._run(() => runner._threadAssistantStream(body, thread, {
+        runner._run(() => runner._threadAssistantStream(params, thread, {
             ...options,
             headers: { ...options?.headers, 'X-Stainless-Helper-Method': 'stream' },
         }));
@@ -40816,8 +41088,8 @@ class AssistantStream extends EventStream_1.EventStream {
     _addRun(run) {
         return run;
     }
-    async _threadAssistantStream(body, thread, options) {
-        return await this._createThreadAssistantStream(thread, body, options);
+    async _threadAssistantStream(params, thread, options) {
+        return await this._createThreadAssistantStream(thread, params, options);
     }
     async _runAssistantStream(threadId, runs, params, options) {
         return await this._createAssistantStream(runs, threadId, params, options);
@@ -41100,22 +41372,22 @@ const AbstractChatCompletionRunner_1 = __nccwpck_require__(8398);
 const chatCompletionUtils_1 = __nccwpck_require__(7964);
 class ChatCompletionRunner extends AbstractChatCompletionRunner_1.AbstractChatCompletionRunner {
     /** @deprecated - please use `runTools` instead. */
-    static runFunctions(completions, params, options) {
+    static runFunctions(client, params, options) {
         const runner = new ChatCompletionRunner();
         const opts = {
             ...options,
             headers: { ...options?.headers, 'X-Stainless-Helper-Method': 'runFunctions' },
         };
-        runner._run(() => runner._runFunctions(completions, params, opts));
+        runner._run(() => runner._runFunctions(client, params, opts));
         return runner;
     }
-    static runTools(completions, params, options) {
+    static runTools(client, params, options) {
         const runner = new ChatCompletionRunner();
         const opts = {
             ...options,
             headers: { ...options?.headers, 'X-Stainless-Helper-Method': 'runTools' },
         };
-        runner._run(() => runner._runTools(completions, params, opts));
+        runner._run(() => runner._runTools(client, params, opts));
         return runner;
     }
     _addMessage(message) {
@@ -41135,28 +41407,34 @@ exports.ChatCompletionRunner = ChatCompletionRunner;
 
 "use strict";
 
-var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-};
 var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
     if (kind === "m") throw new TypeError("Private method is not writable");
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var _ChatCompletionStream_instances, _ChatCompletionStream_currentChatCompletionSnapshot, _ChatCompletionStream_beginRequest, _ChatCompletionStream_addChunk, _ChatCompletionStream_endRequest, _ChatCompletionStream_accumulateChatCompletion;
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _ChatCompletionStream_instances, _ChatCompletionStream_params, _ChatCompletionStream_choiceEventStates, _ChatCompletionStream_currentChatCompletionSnapshot, _ChatCompletionStream_beginRequest, _ChatCompletionStream_getChoiceEventState, _ChatCompletionStream_addChunk, _ChatCompletionStream_emitToolCallDoneEvent, _ChatCompletionStream_emitContentDoneEvents, _ChatCompletionStream_endRequest, _ChatCompletionStream_getAutoParseableResponseFormat, _ChatCompletionStream_accumulateChatCompletion;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ChatCompletionStream = void 0;
 const error_1 = __nccwpck_require__(8905);
 const AbstractChatCompletionRunner_1 = __nccwpck_require__(8398);
 const streaming_1 = __nccwpck_require__(884);
+const parser_1 = __nccwpck_require__(1543);
+const parser_2 = __nccwpck_require__(9304);
 class ChatCompletionStream extends AbstractChatCompletionRunner_1.AbstractChatCompletionRunner {
-    constructor() {
-        super(...arguments);
+    constructor(params) {
+        super();
         _ChatCompletionStream_instances.add(this);
+        _ChatCompletionStream_params.set(this, void 0);
+        _ChatCompletionStream_choiceEventStates.set(this, void 0);
         _ChatCompletionStream_currentChatCompletionSnapshot.set(this, void 0);
+        __classPrivateFieldSet(this, _ChatCompletionStream_params, params, "f");
+        __classPrivateFieldSet(this, _ChatCompletionStream_choiceEventStates, [], "f");
     }
     get currentChatCompletionSnapshot() {
         return __classPrivateFieldGet(this, _ChatCompletionStream_currentChatCompletionSnapshot, "f");
@@ -41169,16 +41447,17 @@ class ChatCompletionStream extends AbstractChatCompletionRunner_1.AbstractChatCo
      * in this context.
      */
     static fromReadableStream(stream) {
-        const runner = new ChatCompletionStream();
+        const runner = new ChatCompletionStream(null);
         runner._run(() => runner._fromReadableStream(stream));
         return runner;
     }
-    static createChatCompletion(completions, params, options) {
-        const runner = new ChatCompletionStream();
-        runner._run(() => runner._runChatCompletion(completions, { ...params, stream: true }, { ...options, headers: { ...options?.headers, 'X-Stainless-Helper-Method': 'stream' } }));
+    static createChatCompletion(client, params, options) {
+        const runner = new ChatCompletionStream(params);
+        runner._run(() => runner._runChatCompletion(client, { ...params, stream: true }, { ...options, headers: { ...options?.headers, 'X-Stainless-Helper-Method': 'stream' } }));
         return runner;
     }
-    async _createChatCompletion(completions, params, options) {
+    async _createChatCompletion(client, params, options) {
+        super._createChatCompletion;
         const signal = options?.signal;
         if (signal) {
             if (signal.aborted)
@@ -41186,7 +41465,7 @@ class ChatCompletionStream extends AbstractChatCompletionRunner_1.AbstractChatCo
             signal.addEventListener('abort', () => this.controller.abort());
         }
         __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_beginRequest).call(this);
-        const stream = await completions.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
+        const stream = await client.chat.completions.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
         this._connected();
         for await (const chunk of stream) {
             __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_addChunk).call(this, chunk);
@@ -41220,19 +41499,146 @@ class ChatCompletionStream extends AbstractChatCompletionRunner_1.AbstractChatCo
         }
         return this._addChatCompletion(__classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
     }
-    [(_ChatCompletionStream_currentChatCompletionSnapshot = new WeakMap(), _ChatCompletionStream_instances = new WeakSet(), _ChatCompletionStream_beginRequest = function _ChatCompletionStream_beginRequest() {
+    [(_ChatCompletionStream_params = new WeakMap(), _ChatCompletionStream_choiceEventStates = new WeakMap(), _ChatCompletionStream_currentChatCompletionSnapshot = new WeakMap(), _ChatCompletionStream_instances = new WeakSet(), _ChatCompletionStream_beginRequest = function _ChatCompletionStream_beginRequest() {
         if (this.ended)
             return;
         __classPrivateFieldSet(this, _ChatCompletionStream_currentChatCompletionSnapshot, undefined, "f");
+    }, _ChatCompletionStream_getChoiceEventState = function _ChatCompletionStream_getChoiceEventState(choice) {
+        let state = __classPrivateFieldGet(this, _ChatCompletionStream_choiceEventStates, "f")[choice.index];
+        if (state) {
+            return state;
+        }
+        state = {
+            content_done: false,
+            refusal_done: false,
+            logprobs_content_done: false,
+            logprobs_refusal_done: false,
+            done_tool_calls: new Set(),
+            current_tool_call_index: null,
+        };
+        __classPrivateFieldGet(this, _ChatCompletionStream_choiceEventStates, "f")[choice.index] = state;
+        return state;
     }, _ChatCompletionStream_addChunk = function _ChatCompletionStream_addChunk(chunk) {
         if (this.ended)
             return;
         const completion = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_accumulateChatCompletion).call(this, chunk);
         this._emit('chunk', chunk, completion);
-        const delta = chunk.choices[0]?.delta?.content;
-        const snapshot = completion.choices[0]?.message;
-        if (delta != null && snapshot?.role === 'assistant' && snapshot?.content) {
-            this._emit('content', delta, snapshot.content);
+        for (const choice of chunk.choices) {
+            const choiceSnapshot = completion.choices[choice.index];
+            if (choice.delta.content != null &&
+                choiceSnapshot.message?.role === 'assistant' &&
+                choiceSnapshot.message?.content) {
+                this._emit('content', choice.delta.content, choiceSnapshot.message.content);
+                this._emit('content.delta', {
+                    delta: choice.delta.content,
+                    snapshot: choiceSnapshot.message.content,
+                    parsed: choiceSnapshot.message.parsed,
+                });
+            }
+            if (choice.delta.refusal != null &&
+                choiceSnapshot.message?.role === 'assistant' &&
+                choiceSnapshot.message?.refusal) {
+                this._emit('refusal.delta', {
+                    delta: choice.delta.refusal,
+                    snapshot: choiceSnapshot.message.refusal,
+                });
+            }
+            if (choice.logprobs?.content != null && choiceSnapshot.message?.role === 'assistant') {
+                this._emit('logprobs.content.delta', {
+                    content: choice.logprobs?.content,
+                    snapshot: choiceSnapshot.logprobs?.content ?? [],
+                });
+            }
+            if (choice.logprobs?.refusal != null && choiceSnapshot.message?.role === 'assistant') {
+                this._emit('logprobs.refusal.delta', {
+                    refusal: choice.logprobs?.refusal,
+                    snapshot: choiceSnapshot.logprobs?.refusal ?? [],
+                });
+            }
+            const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
+            if (choiceSnapshot.finish_reason) {
+                __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitContentDoneEvents).call(this, choiceSnapshot);
+                if (state.current_tool_call_index != null) {
+                    __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitToolCallDoneEvent).call(this, choiceSnapshot, state.current_tool_call_index);
+                }
+            }
+            for (const toolCall of choice.delta.tool_calls ?? []) {
+                if (state.current_tool_call_index !== toolCall.index) {
+                    __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitContentDoneEvents).call(this, choiceSnapshot);
+                    // new tool call started, the previous one is done
+                    if (state.current_tool_call_index != null) {
+                        __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_emitToolCallDoneEvent).call(this, choiceSnapshot, state.current_tool_call_index);
+                    }
+                }
+                state.current_tool_call_index = toolCall.index;
+            }
+            for (const toolCallDelta of choice.delta.tool_calls ?? []) {
+                const toolCallSnapshot = choiceSnapshot.message.tool_calls?.[toolCallDelta.index];
+                if (!toolCallSnapshot?.type) {
+                    continue;
+                }
+                if (toolCallSnapshot?.type === 'function') {
+                    this._emit('tool_calls.function.arguments.delta', {
+                        name: toolCallSnapshot.function?.name,
+                        index: toolCallDelta.index,
+                        arguments: toolCallSnapshot.function.arguments,
+                        parsed_arguments: toolCallSnapshot.function.parsed_arguments,
+                        arguments_delta: toolCallDelta.function?.arguments ?? '',
+                    });
+                }
+                else {
+                    assertNever(toolCallSnapshot?.type);
+                }
+            }
+        }
+    }, _ChatCompletionStream_emitToolCallDoneEvent = function _ChatCompletionStream_emitToolCallDoneEvent(choiceSnapshot, toolCallIndex) {
+        const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
+        if (state.done_tool_calls.has(toolCallIndex)) {
+            // we've already fired the done event
+            return;
+        }
+        const toolCallSnapshot = choiceSnapshot.message.tool_calls?.[toolCallIndex];
+        if (!toolCallSnapshot) {
+            throw new Error('no tool call snapshot');
+        }
+        if (!toolCallSnapshot.type) {
+            throw new Error('tool call snapshot missing `type`');
+        }
+        if (toolCallSnapshot.type === 'function') {
+            const inputTool = __classPrivateFieldGet(this, _ChatCompletionStream_params, "f")?.tools?.find((tool) => tool.type === 'function' && tool.function.name === toolCallSnapshot.function.name);
+            this._emit('tool_calls.function.arguments.done', {
+                name: toolCallSnapshot.function.name,
+                index: toolCallIndex,
+                arguments: toolCallSnapshot.function.arguments,
+                parsed_arguments: (0, parser_1.isAutoParsableTool)(inputTool) ? inputTool.$parseRaw(toolCallSnapshot.function.arguments)
+                    : inputTool?.function.strict ? JSON.parse(toolCallSnapshot.function.arguments)
+                        : null,
+            });
+        }
+        else {
+            assertNever(toolCallSnapshot.type);
+        }
+    }, _ChatCompletionStream_emitContentDoneEvents = function _ChatCompletionStream_emitContentDoneEvents(choiceSnapshot) {
+        const state = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getChoiceEventState).call(this, choiceSnapshot);
+        if (choiceSnapshot.message.content && !state.content_done) {
+            state.content_done = true;
+            const responseFormat = __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getAutoParseableResponseFormat).call(this);
+            this._emit('content.done', {
+                content: choiceSnapshot.message.content,
+                parsed: responseFormat ? responseFormat.$parseRaw(choiceSnapshot.message.content) : null,
+            });
+        }
+        if (choiceSnapshot.message.refusal && !state.refusal_done) {
+            state.refusal_done = true;
+            this._emit('refusal.done', { refusal: choiceSnapshot.message.refusal });
+        }
+        if (choiceSnapshot.logprobs?.content && !state.logprobs_content_done) {
+            state.logprobs_content_done = true;
+            this._emit('logprobs.content.done', { content: choiceSnapshot.logprobs.content });
+        }
+        if (choiceSnapshot.logprobs?.refusal && !state.logprobs_refusal_done) {
+            state.logprobs_refusal_done = true;
+            this._emit('logprobs.refusal.done', { refusal: choiceSnapshot.logprobs.refusal });
         }
     }, _ChatCompletionStream_endRequest = function _ChatCompletionStream_endRequest() {
         if (this.ended) {
@@ -41243,9 +41649,16 @@ class ChatCompletionStream extends AbstractChatCompletionRunner_1.AbstractChatCo
             throw new error_1.OpenAIError(`request ended without sending any chunks`);
         }
         __classPrivateFieldSet(this, _ChatCompletionStream_currentChatCompletionSnapshot, undefined, "f");
-        return finalizeChatCompletion(snapshot);
+        __classPrivateFieldSet(this, _ChatCompletionStream_choiceEventStates, [], "f");
+        return finalizeChatCompletion(snapshot, __classPrivateFieldGet(this, _ChatCompletionStream_params, "f"));
+    }, _ChatCompletionStream_getAutoParseableResponseFormat = function _ChatCompletionStream_getAutoParseableResponseFormat() {
+        const responseFormat = __classPrivateFieldGet(this, _ChatCompletionStream_params, "f")?.response_format;
+        if ((0, parser_1.isAutoParsableResponseFormat)(responseFormat)) {
+            return responseFormat;
+        }
+        return null;
     }, _ChatCompletionStream_accumulateChatCompletion = function _ChatCompletionStream_accumulateChatCompletion(chunk) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         let snapshot = __classPrivateFieldGet(this, _ChatCompletionStream_currentChatCompletionSnapshot, "f");
         const { choices, ...rest } = chunk;
         if (!snapshot) {
@@ -41267,23 +41680,39 @@ class ChatCompletionStream extends AbstractChatCompletionRunner_1.AbstractChatCo
                     choice.logprobs = Object.assign({}, logprobs);
                 }
                 else {
-                    const { content, ...rest } = logprobs;
+                    const { content, refusal, ...rest } = logprobs;
+                    assertIsEmpty(rest);
                     Object.assign(choice.logprobs, rest);
                     if (content) {
                         (_a = choice.logprobs).content ?? (_a.content = []);
                         choice.logprobs.content.push(...content);
                     }
+                    if (refusal) {
+                        (_b = choice.logprobs).refusal ?? (_b.refusal = []);
+                        choice.logprobs.refusal.push(...refusal);
+                    }
                 }
             }
-            if (finish_reason)
+            if (finish_reason) {
                 choice.finish_reason = finish_reason;
+                if (__classPrivateFieldGet(this, _ChatCompletionStream_params, "f") && (0, parser_1.hasAutoParseableInput)(__classPrivateFieldGet(this, _ChatCompletionStream_params, "f"))) {
+                    if (finish_reason === 'length') {
+                        throw new error_1.LengthFinishReasonError();
+                    }
+                    if (finish_reason === 'content_filter') {
+                        throw new error_1.ContentFilterFinishReasonError();
+                    }
+                }
+            }
             Object.assign(choice, other);
             if (!delta)
                 continue; // Shouldn't happen; just in case.
-            const { content, function_call, role, tool_calls, ...rest } = delta;
+            const { content, refusal, function_call, role, tool_calls, ...rest } = delta;
+            assertIsEmpty(rest);
             Object.assign(choice.message, rest);
-            if (content)
-                choice.message.content = (choice.message.content || '') + content;
+            if (refusal) {
+                choice.message.refusal = (choice.message.refusal || '') + refusal;
+            }
             if (role)
                 choice.message.role = role;
             if (function_call) {
@@ -41294,27 +41723,37 @@ class ChatCompletionStream extends AbstractChatCompletionRunner_1.AbstractChatCo
                     if (function_call.name)
                         choice.message.function_call.name = function_call.name;
                     if (function_call.arguments) {
-                        (_b = choice.message.function_call).arguments ?? (_b.arguments = '');
+                        (_c = choice.message.function_call).arguments ?? (_c.arguments = '');
                         choice.message.function_call.arguments += function_call.arguments;
                     }
+                }
+            }
+            if (content) {
+                choice.message.content = (choice.message.content || '') + content;
+                if (!choice.message.refusal && __classPrivateFieldGet(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_getAutoParseableResponseFormat).call(this)) {
+                    choice.message.parsed = (0, parser_2.partialParse)(choice.message.content);
                 }
             }
             if (tool_calls) {
                 if (!choice.message.tool_calls)
                     choice.message.tool_calls = [];
                 for (const { index, id, type, function: fn, ...rest } of tool_calls) {
-                    const tool_call = ((_c = choice.message.tool_calls)[index] ?? (_c[index] = {}));
+                    const tool_call = ((_d = choice.message.tool_calls)[index] ?? (_d[index] = {}));
                     Object.assign(tool_call, rest);
                     if (id)
                         tool_call.id = id;
                     if (type)
                         tool_call.type = type;
                     if (fn)
-                        tool_call.function ?? (tool_call.function = { arguments: '' });
+                        tool_call.function ?? (tool_call.function = { name: fn.name ?? '', arguments: '' });
                     if (fn?.name)
                         tool_call.function.name = fn.name;
-                    if (fn?.arguments)
+                    if (fn?.arguments) {
                         tool_call.function.arguments += fn.arguments;
+                        if ((0, parser_1.shouldParseToolCall)(__classPrivateFieldGet(this, _ChatCompletionStream_params, "f"), tool_call)) {
+                            tool_call.function.parsed_arguments = (0, parser_2.partialParse)(tool_call.function.arguments);
+                        }
+                    }
                 }
             }
         }
@@ -41376,27 +41815,36 @@ class ChatCompletionStream extends AbstractChatCompletionRunner_1.AbstractChatCo
     }
 }
 exports.ChatCompletionStream = ChatCompletionStream;
-function finalizeChatCompletion(snapshot) {
+function finalizeChatCompletion(snapshot, params) {
     const { id, choices, created, model, system_fingerprint, ...rest } = snapshot;
-    return {
+    const completion = {
         ...rest,
         id,
         choices: choices.map(({ message, finish_reason, index, logprobs, ...choiceRest }) => {
-            if (!finish_reason)
+            if (!finish_reason) {
                 throw new error_1.OpenAIError(`missing finish_reason for choice ${index}`);
+            }
             const { content = null, function_call, tool_calls, ...messageRest } = message;
             const role = message.role; // this is what we expect; in theory it could be different which would make our types a slight lie but would be fine.
-            if (!role)
+            if (!role) {
                 throw new error_1.OpenAIError(`missing role for choice ${index}`);
+            }
             if (function_call) {
                 const { arguments: args, name } = function_call;
-                if (args == null)
+                if (args == null) {
                     throw new error_1.OpenAIError(`missing function_call.arguments for choice ${index}`);
-                if (!name)
+                }
+                if (!name) {
                     throw new error_1.OpenAIError(`missing function_call.name for choice ${index}`);
+                }
                 return {
                     ...choiceRest,
-                    message: { content, function_call: { arguments: args, name }, role },
+                    message: {
+                        content,
+                        function_call: { arguments: args, name },
+                        role,
+                        refusal: message.refusal ?? null,
+                    },
                     finish_reason,
                     index,
                     logprobs,
@@ -41412,17 +41860,22 @@ function finalizeChatCompletion(snapshot) {
                         ...messageRest,
                         role,
                         content,
+                        refusal: message.refusal ?? null,
                         tool_calls: tool_calls.map((tool_call, i) => {
                             const { function: fn, type, id, ...toolRest } = tool_call;
                             const { arguments: args, name, ...fnRest } = fn || {};
-                            if (id == null)
+                            if (id == null) {
                                 throw new error_1.OpenAIError(`missing choices[${index}].tool_calls[${i}].id\n${str(snapshot)}`);
-                            if (type == null)
+                            }
+                            if (type == null) {
                                 throw new error_1.OpenAIError(`missing choices[${index}].tool_calls[${i}].type\n${str(snapshot)}`);
-                            if (name == null)
+                            }
+                            if (name == null) {
                                 throw new error_1.OpenAIError(`missing choices[${index}].tool_calls[${i}].function.name\n${str(snapshot)}`);
-                            if (args == null)
+                            }
+                            if (args == null) {
                                 throw new error_1.OpenAIError(`missing choices[${index}].tool_calls[${i}].function.arguments\n${str(snapshot)}`);
+                            }
                             return { ...toolRest, id, type, function: { ...fnRest, name, arguments: args } };
                         }),
                     },
@@ -41430,7 +41883,7 @@ function finalizeChatCompletion(snapshot) {
             }
             return {
                 ...choiceRest,
-                message: { ...messageRest, content, role },
+                message: { ...messageRest, content, role, refusal: message.refusal ?? null },
                 finish_reason,
                 index,
                 logprobs,
@@ -41441,10 +41894,20 @@ function finalizeChatCompletion(snapshot) {
         object: 'chat.completion',
         ...(system_fingerprint ? { system_fingerprint } : {}),
     };
+    return (0, parser_1.maybeParseChatCompletion)(completion, params);
 }
 function str(x) {
     return JSON.stringify(x);
 }
+/**
+ * Ensures the given argument is an empty object, useful for
+ * asserting that all known properties on an object have been
+ * destructured.
+ */
+function assertIsEmpty(obj) {
+    return;
+}
+function assertNever(_x) { }
 //# sourceMappingURL=ChatCompletionStream.js.map
 
 /***/ }),
@@ -41459,27 +41922,29 @@ exports.ChatCompletionStreamingRunner = void 0;
 const ChatCompletionStream_1 = __nccwpck_require__(1353);
 class ChatCompletionStreamingRunner extends ChatCompletionStream_1.ChatCompletionStream {
     static fromReadableStream(stream) {
-        const runner = new ChatCompletionStreamingRunner();
+        const runner = new ChatCompletionStreamingRunner(null);
         runner._run(() => runner._fromReadableStream(stream));
         return runner;
     }
     /** @deprecated - please use `runTools` instead. */
-    static runFunctions(completions, params, options) {
-        const runner = new ChatCompletionStreamingRunner();
+    static runFunctions(client, params, options) {
+        const runner = new ChatCompletionStreamingRunner(null);
         const opts = {
             ...options,
             headers: { ...options?.headers, 'X-Stainless-Helper-Method': 'runFunctions' },
         };
-        runner._run(() => runner._runFunctions(completions, params, opts));
+        runner._run(() => runner._runFunctions(client, params, opts));
         return runner;
     }
-    static runTools(completions, params, options) {
-        const runner = new ChatCompletionStreamingRunner();
+    static runTools(client, params, options) {
+        const runner = new ChatCompletionStreamingRunner(
+        // @ts-expect-error TODO these types are incompatible
+        params);
         const opts = {
             ...options,
             headers: { ...options?.headers, 'X-Stainless-Helper-Method': 'runTools' },
         };
-        runner._run(() => runner._runTools(completions, params, opts));
+        runner._run(() => runner._runTools(client, params, opts));
         return runner;
     }
 }
@@ -41794,6 +42259,146 @@ function isPresent(obj) {
 }
 exports.isPresent = isPresent;
 //# sourceMappingURL=chatCompletionUtils.js.map
+
+/***/ }),
+
+/***/ 1543:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.validateInputTools = exports.hasAutoParseableInput = exports.shouldParseToolCall = exports.parseChatCompletion = exports.maybeParseChatCompletion = exports.isAutoParsableTool = exports.makeParseableTool = exports.isAutoParsableResponseFormat = exports.makeParseableResponseFormat = void 0;
+const error_1 = __nccwpck_require__(8905);
+function makeParseableResponseFormat(response_format, parser) {
+    const obj = { ...response_format };
+    Object.defineProperties(obj, {
+        $brand: {
+            value: 'auto-parseable-response-format',
+            enumerable: false,
+        },
+        $parseRaw: {
+            value: parser,
+            enumerable: false,
+        },
+    });
+    return obj;
+}
+exports.makeParseableResponseFormat = makeParseableResponseFormat;
+function isAutoParsableResponseFormat(response_format) {
+    return response_format?.['$brand'] === 'auto-parseable-response-format';
+}
+exports.isAutoParsableResponseFormat = isAutoParsableResponseFormat;
+function makeParseableTool(tool, { parser, callback, }) {
+    const obj = { ...tool };
+    Object.defineProperties(obj, {
+        $brand: {
+            value: 'auto-parseable-tool',
+            enumerable: false,
+        },
+        $parseRaw: {
+            value: parser,
+            enumerable: false,
+        },
+        $callback: {
+            value: callback,
+            enumerable: false,
+        },
+    });
+    return obj;
+}
+exports.makeParseableTool = makeParseableTool;
+function isAutoParsableTool(tool) {
+    return tool?.['$brand'] === 'auto-parseable-tool';
+}
+exports.isAutoParsableTool = isAutoParsableTool;
+function maybeParseChatCompletion(completion, params) {
+    if (!params || !hasAutoParseableInput(params)) {
+        return {
+            ...completion,
+            choices: completion.choices.map((choice) => ({
+                ...choice,
+                message: { ...choice.message, parsed: null, tool_calls: choice.message.tool_calls ?? [] },
+            })),
+        };
+    }
+    return parseChatCompletion(completion, params);
+}
+exports.maybeParseChatCompletion = maybeParseChatCompletion;
+function parseChatCompletion(completion, params) {
+    const choices = completion.choices.map((choice) => {
+        if (choice.finish_reason === 'length') {
+            throw new error_1.LengthFinishReasonError();
+        }
+        if (choice.finish_reason === 'content_filter') {
+            throw new error_1.ContentFilterFinishReasonError();
+        }
+        return {
+            ...choice,
+            message: {
+                ...choice.message,
+                tool_calls: choice.message.tool_calls?.map((toolCall) => parseToolCall(params, toolCall)) ?? [],
+                parsed: choice.message.content && !choice.message.refusal ?
+                    parseResponseFormat(params, choice.message.content)
+                    : null,
+            },
+        };
+    });
+    return { ...completion, choices };
+}
+exports.parseChatCompletion = parseChatCompletion;
+function parseResponseFormat(params, content) {
+    if (params.response_format?.type !== 'json_schema') {
+        return null;
+    }
+    if (params.response_format?.type === 'json_schema') {
+        if ('$parseRaw' in params.response_format) {
+            const response_format = params.response_format;
+            return response_format.$parseRaw(content);
+        }
+        return JSON.parse(content);
+    }
+    return null;
+}
+function parseToolCall(params, toolCall) {
+    const inputTool = params.tools?.find((inputTool) => inputTool.function?.name === toolCall.function.name);
+    return {
+        ...toolCall,
+        function: {
+            ...toolCall.function,
+            parsed_arguments: isAutoParsableTool(inputTool) ? inputTool.$parseRaw(toolCall.function.arguments)
+                : inputTool?.function.strict ? JSON.parse(toolCall.function.arguments)
+                    : null,
+        },
+    };
+}
+function shouldParseToolCall(params, toolCall) {
+    if (!params) {
+        return false;
+    }
+    const inputTool = params.tools?.find((inputTool) => inputTool.function?.name === toolCall.function.name);
+    return isAutoParsableTool(inputTool) || inputTool?.function.strict || false;
+}
+exports.shouldParseToolCall = shouldParseToolCall;
+function hasAutoParseableInput(params) {
+    if (isAutoParsableResponseFormat(params.response_format)) {
+        return true;
+    }
+    return (params.tools?.some((t) => isAutoParsableTool(t) || (t.type === 'function' && t.function.strict === true)) ?? false);
+}
+exports.hasAutoParseableInput = hasAutoParseableInput;
+function validateInputTools(tools) {
+    for (const tool of tools ?? []) {
+        if (tool.type !== 'function') {
+            throw new error_1.OpenAIError(`Currently only \`function\` tool types support auto-parsing; Received \`${tool.type}\``);
+        }
+        if (tool.function.strict !== true) {
+            throw new error_1.OpenAIError(`The \`${tool.function.name}\` tool is not marked with \`strict: true\`. Only strict function tools can be auto-parsed`);
+        }
+    }
+}
+exports.validateInputTools = validateInputTools;
+//# sourceMappingURL=parser.js.map
 
 /***/ }),
 
@@ -42353,26 +42958,38 @@ var RunnableFunction_1 = __nccwpck_require__(5464);
 Object.defineProperty(exports, "ParsingFunction", ({ enumerable: true, get: function () { return RunnableFunction_1.ParsingFunction; } }));
 Object.defineProperty(exports, "ParsingToolFunction", ({ enumerable: true, get: function () { return RunnableFunction_1.ParsingToolFunction; } }));
 const ChatCompletionStream_1 = __nccwpck_require__(1353);
+const parser_1 = __nccwpck_require__(1543);
 var ChatCompletionStream_2 = __nccwpck_require__(1353);
 Object.defineProperty(exports, "ChatCompletionStream", ({ enumerable: true, get: function () { return ChatCompletionStream_2.ChatCompletionStream; } }));
 class Completions extends resource_1.APIResource {
+    async parse(body, options) {
+        (0, parser_1.validateInputTools)(body.tools);
+        const completion = await this._client.chat.completions.create(body, {
+            ...options,
+            headers: {
+                ...options?.headers,
+                'X-Stainless-Helper-Method': 'beta.chat.completions.parse',
+            },
+        });
+        return (0, parser_1.parseChatCompletion)(completion, body);
+    }
     runFunctions(body, options) {
         if (body.stream) {
-            return ChatCompletionStreamingRunner_1.ChatCompletionStreamingRunner.runFunctions(this._client.chat.completions, body, options);
+            return ChatCompletionStreamingRunner_1.ChatCompletionStreamingRunner.runFunctions(this._client, body, options);
         }
-        return ChatCompletionRunner_1.ChatCompletionRunner.runFunctions(this._client.chat.completions, body, options);
+        return ChatCompletionRunner_1.ChatCompletionRunner.runFunctions(this._client, body, options);
     }
     runTools(body, options) {
         if (body.stream) {
-            return ChatCompletionStreamingRunner_1.ChatCompletionStreamingRunner.runTools(this._client.chat.completions, body, options);
+            return ChatCompletionStreamingRunner_1.ChatCompletionStreamingRunner.runTools(this._client, body, options);
         }
-        return ChatCompletionRunner_1.ChatCompletionRunner.runTools(this._client.chat.completions, body, options);
+        return ChatCompletionRunner_1.ChatCompletionRunner.runTools(this._client, body, options);
     }
     /**
      * Creates a chat completion stream
      */
     stream(body, options) {
-        return ChatCompletionStream_1.ChatCompletionStream.createChatCompletion(this._client.chat.completions, body, options);
+        return ChatCompletionStream_1.ChatCompletionStream.createChatCompletion(this._client, body, options);
     }
 }
 exports.Completions = Completions;
@@ -44709,7 +45326,7 @@ const addFormValue = async (form, key, value) => {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VERSION = void 0;
-exports.VERSION = '4.54.0'; // x-release-please-version
+exports.VERSION = '4.55.4'; // x-release-please-version
 //# sourceMappingURL=version.js.map
 
 /***/ }),
