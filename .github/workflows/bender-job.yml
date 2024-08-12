@@ -41,7 +41,7 @@ jobs:
         run: echo ${{env.dir_context}}
 
       - name: Run Bender
-        uses: ahelal/bender-action@feature/tests
+        uses: .
         id: bender
         with:
           mode: 'job'
@@ -71,10 +71,10 @@ jobs:
           '\n' ' ')" >> "$GITHUB_ENV"
 
       - name: Run Bender (if failure)
-        uses: ahelal/bender-action@main
+        uses: .
         with:
           mode: 'job'
-          gh-token: ${{ secrets.GH_TOKEB }} # if needed
+          gh-token: ${{ secrets.GH_TOKEB }}
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}

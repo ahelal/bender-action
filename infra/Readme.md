@@ -11,17 +11,17 @@ Original code is by
 Before you can deploy the Bicep template, ensure you have the following
 prerequisites:
 
-1. **Azure Subscription**: You need an active Azure subscription. If you don't
-   have one, you can create a free account at
-   [Azure Free Account](https://azure.microsoft.com/free/).
+- **Azure Subscription**: You need an active Azure subscription. If you don't
+  have one, you can create a free account at
+  [Azure Free Account](https://azure.microsoft.com/free/).
 
-2. **Azure CLI**: The Azure Command-Line Interface (CLI) is required to interact
-   with Azure resources. You can install it by following the instructions at
-   [Install Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli).
+- **Azure CLI**: The Azure Command-Line Interface (CLI) is required to interact
+  with Azure resources. You can install it by following the instructions at
+  [Install Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli).
 
-3. **Bicep CLI**: The Bicep CLI is required to build and deploy Bicep templates.
-   You can install it by following the instructions at
-   [Install Bicep CLI](https://docs.microsoft.com/azure/azure-resource-manager/bicep/install).
+- **Bicep CLI**: The Bicep CLI is required to build and deploy Bicep templates.
+  You can install it by following the instructions at
+  [Install Bicep CLI](https://docs.microsoft.com/azure/azure-resource-manager/bicep/install).
 
 ## Parameters
 
@@ -38,7 +38,7 @@ You can then edit the `openai.solution.bicepparam` to your liking
 
 To deploy run `./infra.sh deploy` Once a deploy is finished you can run
 `/infra.sh output` you will get a the _Azure OpenAI Endpoint_ and _OpenAI
-deployment_ and _OpenAI Key_ that you can use in your Github Action secrets.
+deployment_ and _OpenAI Key_ that you can use in your GitHub Action secrets.
 
 ## Cleanup
 
