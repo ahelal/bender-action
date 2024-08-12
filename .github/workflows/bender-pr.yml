@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   bender-action:
-    name: Bender-action security insights
+    name: Bender pr mode
     runs-on: ubuntu-latest
 
     steps:
@@ -24,11 +24,11 @@ jobs:
           dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
           echo "dir_context=${dirs}" >> "$GITHUB_ENV"
 
-      - name: Echo dir context
+      - name: echo dir context
         run: echo ${{env.dir_context}}
 
       - name: Run Bender
-        uses: ahelal/bender-action@feature/pr_comment
+        uses: ./
         id: bender
         with:
           mode: 'pr'
@@ -37,7 +37,7 @@ jobs:
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
-          files-selection: '/*.ts$'
+          files-selection: 'src.*.ts$'
 
       - name: Print Output
         id: output

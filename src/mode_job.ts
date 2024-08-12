@@ -7,14 +7,14 @@ import {
 } from './github_api'
 import { setupInitialMessage, openAiRequest } from './openai_api'
 import { CompletionUsage, Context } from './types'
-import { maxRecursionJob } from './config'
+import { maxRecursionJob, CONTENT_OF_FILE_NEEDED } from './config'
 
 export async function runJobMode(context: Context): Promise<string> {
   // Getting GH action job information
   const currentJob = await getJob(context)
   if (!currentJob) {
     core.warning(
-      'Unable to get job ID, either no failed job or wrong job name provided'
+      `Unable to get job ID, either no failed job or wrong job name provided`
     )
     return ''
   }
@@ -41,7 +41,7 @@ export async function runJobMode(context: Context): Promise<string> {
     }
 
     const firstChoice = aiResponse.choices[0]
-    if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
+    if (!firstChoice?.message?.content?.includes(CONTENT_OF_FILE_NEEDED)) {
       core.debug('No more context needed')
       break
     }

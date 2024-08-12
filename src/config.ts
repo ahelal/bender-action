@@ -14,3 +14,18 @@ export const maxRecursionPr = 2
 
 // Default max word count for OpenAI PR mode
 export const maxWordCountPr = 300
+
+// Wait time in seconds before starting
+export const waitTime = '1'
+
+// Max input length for github action logs
+export const MAX_INPUT_LOG_LENGTH = 20000
+
+// Max input length for files
+export const MAX_INPUT_FILES_LENGTH = MAX_INPUT_LOG_LENGTH
+
+// Max number of regex patterns
+export const MAX_REGEX_PATTERNS = 10
+
+// WOrd to use to indicate that the content of a file is needed
+export const CONTENT_OF_FILE_NEEDED = 'CONTENT_OF_FILE_NEEDED'

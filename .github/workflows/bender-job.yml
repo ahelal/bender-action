@@ -1,0 +1,81 @@
+name: Bender Job
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  fail:
+    name: Fail
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail
+        run: |
+          exit_code=1
+          exit "${exit_code}"
+        continue-on-error: true
+
+  bender-action:
+    name: Bender job mode
+    needs: [fail]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+      - name: echo needs
+        run: echo "${{needs.fail.result }}"
+
+      - name: Get dir context
+        id: getdir
+        run: |
+          dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
+          echo "dir_context=${dirs}" >> "$GITHUB_ENV"
+
+      - name: echo dir context
+        run: echo ${{env.dir_context}}
+
+      - name: Run Bender
+        uses: ./
+        id: bender
+        with:
+          mode: 'job'
+          gh-job: 'Fail'
+          gh-token: ${{ secrets.GHTOKEN }}
+          az-openai-endpoint: ${{vars.OA_ENDPOINT}}
+          az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
+          az-openai-key: ${{secrets.OA_KEY}}
+          dir-context: ${{ env.dir_context }}
+
+      - name: Print Output
+        id: output
+        run: echo "${{ steps.bender.outputs.usage }}"
+
+  bender-action-failure:
+    runs-on: ubuntu-latest
+    needs: [bender-action]
+    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get dir context
+        id: getdir
+        run:
+          echo "dir_context=$(find . -path ./.git -prune -o -print | base64 | tr
+          '\n' ' ')" >> "$GITHUB_ENV"
+
+      - name: Run Bender (if failure)
+        uses: ./
+        with:
+          mode: 'job'
+          gh-token: ${{ secrets.GH_TOKEB }}
+          az-openai-endpoint: ${{vars.OA_ENDPOINT}}
+          az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
+          az-openai-key: ${{secrets.OA_KEY}}
+          dir-context: ${{ env.dir_context }}

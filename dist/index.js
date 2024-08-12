@@ -34909,7 +34909,7 @@ function wrappy (fn, cb) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.CONTENT_OF_FILE_NEEDED = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34920,6 +34920,16 @@ exports.maxRecursionJob = 3;
 exports.maxRecursionPr = 2;
 // Default max word count for OpenAI PR mode
 exports.maxWordCountPr = 300;
+// Wait time in seconds before starting
+exports.waitTime = '1';
+// Max input length for github action logs
+exports.MAX_INPUT_LOG_LENGTH = 20000;
+// Max input length for files
+exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH;
+// Max number of regex patterns
+exports.MAX_REGEX_PATTERNS = 10;
+// WOrd to use to indicate that the content of a file is needed
+exports.CONTENT_OF_FILE_NEEDED = 'CONTENT_OF_FILE_NEEDED';
 
 
 /***/ }),
@@ -34953,6 +34963,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.doRequest = doRequest;
 exports.getJob = getJob;
 exports.getJobLogs = getJobLogs;
 exports.getActionRuns = getActionRuns;
@@ -35008,7 +35019,7 @@ async function getJobYaml(context) {
 }
 async function getFileContent4Context(response, context) {
     (0, util_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`);
-    const regex = /CONTENT_OF_FILE_NEEDED "(.*?)"/gm;
+    const regex = new RegExp(`${config_1.CONTENT_OF_FILE_NEEDED} "(.*?)"`, 'gm');
     const matches = [...response.matchAll(regex)];
     if (matches.length < 1) {
         core.warning('No file content matched, this can be incorrect response format from OpenAI. try to run again');
@@ -35038,7 +35049,6 @@ async function getComments(context) {
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/pulls/${context.pr}/comments`
     }, context);
-    // path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}/comments`
     return response.data;
 }
 async function postComment(pullRequestNumber, context, body) {
@@ -35048,31 +35058,30 @@ async function postComment(pullRequestNumber, context, body) {
     }, context, body);
     return response.data;
 }
-async function doRequest(params, context, body) {
-    const { baseUrl, method, path, headers } = params;
-    let iBaseUrl = baseUrl;
-    let iPayload = {};
-    if (!iBaseUrl)
-        iBaseUrl = 'https://api.github.com';
-    const config = { baseUrl: iBaseUrl };
-    if (context.ghToken)
-        config['auth'] = context.ghToken;
-    const octokit = new core_1.Octokit(config);
+async function doRequest(params, context, body, requestFetch) {
+    const { baseUrl = 'https://api.github.com', method, path, headers = {} } = params;
+    const { ghToken } = context;
+    const config = { baseUrl };
+    if (ghToken)
+        config['auth'] = ghToken;
+    const requestOctoKit = requestFetch
+        ? { request: { fetch: requestFetch } }
+        : {};
+    const octokit = new core_1.Octokit({ ...config, ...requestOctoKit });
     const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
-    core.startGroup(`doRequest ${iMethodPath}`);
-    core.debug(`doRequest octokit init: { baseURL: ${iBaseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
-    iPayload = (0, util_1.interpolateObject)(body, context);
+    if (core.isDebug())
+        core.startGroup(`doRequest ${iMethodPath}`);
+    core.debug(`doRequest octokit init: { baseURL: ${baseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
+    const iPayload = (0, util_1.interpolateObject)(body, context);
     core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
-    let iHeaders = headers;
-    if (!iHeaders)
-        iHeaders = {};
-    iHeaders['X-GitHub-Api-Version'] = config_1.GithubAPIversion;
+    headers['X-GitHub-Api-Version'] = config_1.GithubAPIversion;
     const response = await octokit.request(iMethodPath, {
-        headers: iHeaders,
+        headers,
         ...iPayload
     });
     core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
-    core.endGroup();
+    if (core.isDebug())
+        core.endGroup();
     if (response.status < 200 || response.status >= 300) {
         core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
     }
@@ -35126,7 +35135,9 @@ function getInputs() {
     inputs['mode'] = core.getInput('mode', { required: true });
     if (!['pr', 'job'].includes(inputs['mode']))
         throw new Error(`Invalid mode: ${inputs['mode']}`);
-    inputs['ghToken'] = core.getInput('gh-token', { required: false });
+    inputs['ghToken'] = core.getInput('gh-token', {
+        required: inputs['mode'] === 'pr'
+    });
     inputs['ghJob'] = core.getInput('gh-job', {
         required: false
     });
@@ -35156,9 +35167,6 @@ function getInputs() {
     inputs['filesSelection'] = core.getInput('files-selection', {
         required: false
     });
-    inputs['delay'] = core.getInput('delay', {
-        required: true
-    });
     return inputs;
 }
 /**
@@ -35172,10 +35180,14 @@ function getContextFromPayload() {
     requiredContext['full_name'] = full_name.join('/');
     requiredContext['owner'] = full_name[0];
     requiredContext['repo'] = full_name[1];
-    requiredContext['runId'] = github_1.context.runId.toString() ?? '';
+    requiredContext['runId'] = github_1.context.runId ? github_1.context.runId.toString() : '';
     requiredContext['ref'] = github_1.context.ref;
-    requiredContext['pr'] = github_1.context.payload.number.toString() ?? '';
-    requiredContext['commitId'] = github_1.context.payload.after.toString() ?? '';
+    requiredContext['pr'] = github_1.context.payload.number
+        ? github_1.context.payload.number.toString()
+        : '';
+    requiredContext['commitId'] = github_1.context.payload.after
+        ? github_1.context.payload.after.toString()
+        : '';
     return requiredContext;
 }
 
@@ -35218,6 +35230,7 @@ const inputs_1 = __nccwpck_require__(7063);
 const mode_job_1 = __nccwpck_require__(8341);
 const mode_pr_1 = __nccwpck_require__(5750);
 const util_1 = __nccwpck_require__(2629);
+const config_1 = __nccwpck_require__(6373);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -35228,7 +35241,7 @@ async function run() {
         const payloadContext = (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
         (0, util_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`);
-        await (0, wait_1.wait)(parseInt(context.delay, 10));
+        await (0, wait_1.wait)(parseInt(config_1.waitTime, 10));
         let usage;
         if (context.mode === 'pr')
             usage = (0, mode_pr_1.runPrMode)(context);
@@ -35293,7 +35306,7 @@ async function runJobMode(context) {
     // Getting GH action job information
     const currentJob = await (0, github_api_1.getJob)(context);
     if (!currentJob) {
-        core.warning('Unable to get job ID, either no failed job or wrong job name provided');
+        core.warning(`Unable to get job ID, either no failed job or wrong job name provided`);
         return '';
     }
     context.jobId = currentJob.id;
@@ -35313,7 +35326,7 @@ async function runJobMode(context) {
             message.push({ role: 'assistant', content });
         }
         const firstChoice = aiResponse.choices[0];
-        if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
+        if (!firstChoice?.message?.content?.includes(config_1.CONTENT_OF_FILE_NEEDED)) {
             core.debug('No more context needed');
             break;
         }
@@ -35368,11 +35381,56 @@ const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+async function processFile(file, context, relevantComments) {
+    core.info(`* Processing file: ${file}`);
+    let reply = '';
+    const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
+    if (!prFileContent) {
+        core.error(`Unable to get file content ${file} ${context.ref}`);
+        return;
+    }
+    const fileComment = relevantComments.find(comment => comment.path === file);
+    if (fileComment) {
+        core.warning(`Skipping file ${file} has been commented on before`);
+        return;
+    }
+    for (let i = 1; i <= config_1.maxRecursionPr; i++) {
+        const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
+        const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
+        if (aiResponse.choices.length > 1) {
+            core.warning('This should not happen: more than one choice in OpenAI response');
+            core.debug(`AI Response choices: JSON.stringify(aiResponse.choices)`);
+            return;
+        }
+        const content = aiResponse.choices[0].message.content;
+        reply = content ?? '';
+        const firstChoice = aiResponse.choices[0];
+        if (!firstChoice?.message?.content?.includes(config_1.CONTENT_OF_FILE_NEEDED)) {
+            core.debug('No more context needed');
+            break;
+        }
+        const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
+        if (!fileContent) {
+            core.warning('Unable to get file content');
+            break;
+        }
+        message.push({ role: 'assistant', content });
+    }
+    await (0, github_api_1.postComment)(context.pr, context, {
+        body: reply,
+        commit_id: context.commitId,
+        path: file,
+        subject_type: 'file'
+    });
+}
 async function runPrMode(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
     const files = filesInPR.map(f => f.filename);
-    if (filesInPR.length < 1)
-        core.warning(`No files found in the PR, that matchs the regEx filter '${context.filesSelection}' `);
+    if (filesInPR.length < 1) {
+        core.warning(`No files found in the PR, that match the regEx filter '${context.filesSelection}'`);
+        return '';
+    }
     const user = await (0, github_api_1.getUserInfo)(context);
     const prComments = await (0, github_api_1.getComments)(context);
     const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
@@ -35380,46 +35438,7 @@ async function runPrMode(context) {
         comment.commit_id === context.commitId &&
         files.includes(comment.path));
     for (const file of files) {
-        core.info(`* Processing file: ${file}`);
-        let reply = '';
-        const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
-        if (!prFileContent) {
-            core.error(`Unable to get file content ${file} ${context.ref}`);
-            continue;
-        }
-        const fileComment = relevantComments.find(comment => comment.path === file);
-        if (fileComment) {
-            core.warning(`Skipping file ${file} has been commented on before `);
-            continue;
-        }
-        for (let i = 1; i <= config_1.maxRecursionPr; i++) {
-            const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
-            const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
-            // assign the response to the usage object
-            if (aiResponse.choices.length > 1) {
-                console.warn('This should not happen more then one choice');
-                console.debug('AI Response choices: ', aiResponse.choices);
-            }
-            const content = aiResponse.choices[0].message.content;
-            reply = content ?? '';
-            const firstChoice = aiResponse.choices[0];
-            if (!firstChoice?.message?.content?.includes('CONTENT_OF_FILE_NEEDED')) {
-                core.debug('No more context needed');
-                break;
-            }
-            const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
-            if (!fileContent) {
-                core.warning('Unable to get file content');
-                break;
-            }
-            message.push({ role: 'assistant', content });
-        }
-        (0, github_api_1.postComment)(context.pr, context, {
-            body: reply,
-            commit_id: context.commitId,
-            path: file,
-            subject_type: 'file'
-        });
+        await processFile(file, context, relevantComments);
     }
     return '';
 }
@@ -35537,13 +35556,13 @@ You'll receive GitHub Action job log that indicate failures. Your response shoul
     - State the cause of the job failure.
     - Provide a solution to fix the error.
 2. Insufficient Information or Unable to Suggest a Solution:
-    - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: 'CONTENT_OF_FILE_NEEDED "<valid unix path>"' (e.g., 'CONTENT_OF_FILE_NEEDED "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
+    - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CONTENT_OF_FILE_NEEDED} "<valid unix path>"' (e.g., '${config_1.CONTENT_OF_FILE_NEEDED} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
     - If there's no way forward, reply with 'Not enough information to provide a solution.'`;
 exports.githubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
 - You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality. 
 - Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${config_1.maxWordCountPr} words ONLY*.
 - Don't provide a title or descriptions.
-- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: CONTENT_OF_FILE_NEEDED "filename" (e.g., CONTENT_OF_FILE_NEEDED "src/index.js").
+- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: '${config_1.CONTENT_OF_FILE_NEEDED} "<valid unix path>/filename"' (e.g., ${config_1.CONTENT_OF_FILE_NEEDED} "src/index.js").
 - If there's no way forward, reply with: Not enough information to provide a suggestion.`;
 
 
@@ -35586,6 +35605,7 @@ exports.interpolateObject = interpolateObject;
 exports.rawPrintIfDebug = rawPrintIfDebug;
 exports.debugGroupedMsg = debugGroupedMsg;
 const core = __importStar(__nccwpck_require__(2186));
+const config_1 = __nccwpck_require__(6373);
 /**
  * Sanitizes a string by replacing all characters except the first and last with asterisks.
  * If the string is empty or null, an empty string is returned.
@@ -35595,9 +35615,7 @@ const core = __importStar(__nccwpck_require__(2186));
 function sanitizeString(str) {
     if (!str)
         return '';
-    return str.length <= 2
-        ? str
-        : str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
+    return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`;
 }
 /**
  * Removes timestamps from log strings.
@@ -35606,6 +35624,9 @@ function sanitizeString(str) {
  * @returns The log string without timestamps.
  */
 function stripTimestampFromLogs(str) {
+    if (str.length > config_1.MAX_INPUT_LOG_LENGTH) {
+        throw new Error('Input string is too long');
+    }
     const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{7}Z\s/gm;
     return str.replaceAll(regex, '');
 }
@@ -35617,28 +35638,46 @@ function stripTimestampFromLogs(str) {
  * @returns An array of filtered commit files.
  */
 function filterCommitFiles(files, regExFilters) {
-    const allowedStatus = ['added', 'modified', 'renamed'];
-    core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
-    if (files.length < 1) {
+    if (!files || files.length < 1) {
         core.warning('No files found in the response to filter.');
         return [];
     }
-    // filter files based on status
-    const filteredFilesStatus = files.filter((f) => allowedStatus.includes(f.status));
+    filterValidateInput(files, regExFilters);
+    const filteredFilesStatus = filterByStatus(files);
     if (filteredFilesStatus.length < 1) {
         core.warning('No files found with status added, modified or renamed.');
         return [];
     }
-    if (regExFilters.length < 1)
-        return filteredFilesStatus;
+    const filteredFiles = regExFilters.length > 0
+        ? filterByRegex(filteredFilesStatus, regExFilters)
+        : filteredFilesStatus;
+    // Remove duplicates
+    const uniqueFiles = [...new Set(filteredFiles)];
+    core.info(`* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`);
+    return uniqueFiles;
+}
+function filterValidateInput(files, regExFilters) {
+    const totalFilenameLength = files
+        .map(f => f.filename.length)
+        .reduce((sum, len) => sum + len, 0);
+    if (totalFilenameLength > config_1.MAX_INPUT_FILES_LENGTH) {
+        throw new Error(`Input filenames array is too long over ${config_1.MAX_INPUT_FILES_LENGTH}`);
+    }
+    if (regExFilters.length > config_1.MAX_REGEX_PATTERNS) {
+        throw new Error(`Too many regex patterns max limit is ${config_1.MAX_REGEX_PATTERNS}`);
+    }
+}
+function filterByStatus(files) {
+    const allowedStatus = ['added', 'modified', 'renamed'];
+    core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
+    return files.filter(f => allowedStatus.includes(f.status));
+}
+function filterByRegex(files, regExFilters) {
     let filteredFiles = [];
     for (const regEx of regExFilters) {
-        filteredFiles = filteredFiles.concat(filteredFilesStatus.filter(f => f.filename && new RegExp(regEx, 'g').test(f.filename)));
+        filteredFiles = filteredFiles.concat(files.filter(f => f.filename && new RegExp(regEx, 'g').test(f.filename)));
     }
-    const unqiueFiles = [...new Set(filteredFiles)];
-    // loop through the files and print names.
-    core.info(`* Filtered file (${unqiueFiles.length}): ${unqiueFiles.map(f => f.filename).join(', ')}`);
-    return unqiueFiles;
+    return filteredFiles;
 }
 /**
  * Replaces placeholders in a string with corresponding values from a context object.
@@ -35746,9 +35785,6 @@ const core = __importStar(__nccwpck_require__(2186));
 async function wait(seconds) {
     core.info(`* Waiting for ${seconds} seconds.`);
     return new Promise(resolve => {
-        if (isNaN(seconds)) {
-            throw new Error('seconds not a number');
-        }
         setTimeout(() => resolve(), seconds * 1000);
     });
 }

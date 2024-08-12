@@ -9,7 +9,9 @@ inputs:
     default: 'job'
 
   gh-token:
-    description: GH personal access token (if using private repos)
+    description:
+      GH personal access token (if using private repos or PR mode for
+      commenting)
     required: false
 
   gh-job:
@@ -41,7 +43,7 @@ inputs:
     default: ''
 
   job-context:
-    description: Should the github action yaml be provided as context
+    description: Should the github action YAML be provided as context
     default: 'false'
 
   user-context:
@@ -51,14 +53,9 @@ inputs:
   files-selection:
     description:
       In PR mode, Filter files to be used for context, comma seperated regex
-      i.e. '/*.ts$;/*.js$'
+      i.e. 'src.*.ts$' '*.ts$;/.*.js$'
     default: ''
-    required: true
-
-  delay:
-    description: Delay in seconds before fetching logs from GH action
-    default: '1'
-    required: true
+    required: false
 
 outputs:
   usage:

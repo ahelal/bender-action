@@ -1,5 +1,10 @@
 import * as core from '@actions/core'
 import { Context } from './types'
+import {
+  MAX_INPUT_LOG_LENGTH,
+  MAX_INPUT_FILES_LENGTH,
+  MAX_REGEX_PATTERNS
+} from './config'
 
 /**
  * Sanitizes a string by replacing all characters except the first and last with asterisks.
@@ -9,9 +14,7 @@ import { Context } from './types'
  */
 export function sanitizeString(str: string): string {
   if (!str) return ''
-  return str.length <= 2
-    ? str
-    : str[0] + '*'.repeat(str.length - 2) + str[str.length - 1]
+  return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`
 }
 
 /**
@@ -21,6 +24,9 @@ export function sanitizeString(str: string): string {
  * @returns The log string without timestamps.
  */
 export function stripTimestampFromLogs(str: string): string {
+  if (str.length > MAX_INPUT_LOG_LENGTH) {
+    throw new Error('Input string is too long')
+  }
   const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{7}Z\s/gm
   return str.replaceAll(regex, '')
 }
@@ -36,39 +42,74 @@ export function filterCommitFiles(
   files: Record<string, string>[],
   regExFilters: string[]
 ): Record<string, string>[] {
-  const allowedStatus = ['added', 'modified', 'renamed']
-  core.info(
-    `* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`
-  )
-
-  if (files.length < 1) {
+  if (!files || files.length < 1) {
     core.warning('No files found in the response to filter.')
     return []
   }
-  // filter files based on status
-  const filteredFilesStatus = files.filter((f: Record<string, string>) =>
-    allowedStatus.includes(f.status)
-  )
+
+  filterValidateInput(files, regExFilters)
+
+  const filteredFilesStatus = filterByStatus(files)
   if (filteredFilesStatus.length < 1) {
     core.warning('No files found with status added, modified or renamed.')
     return []
   }
-  if (regExFilters.length < 1) return filteredFilesStatus
 
+  const filteredFiles =
+    regExFilters.length > 0
+      ? filterByRegex(filteredFilesStatus, regExFilters)
+      : filteredFilesStatus
+
+  // Remove duplicates
+  const uniqueFiles = [...new Set(filteredFiles)]
+
+  core.info(
+    `* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`
+  )
+  return uniqueFiles
+}
+
+function filterValidateInput(
+  files: Record<string, string>[],
+  regExFilters: string[]
+): void {
+  const totalFilenameLength = files
+    .map(f => f.filename.length)
+    .reduce((sum, len) => sum + len, 0)
+  if (totalFilenameLength > MAX_INPUT_FILES_LENGTH) {
+    throw new Error(
+      `Input filenames array is too long over ${MAX_INPUT_FILES_LENGTH}`
+    )
+  }
+
+  if (regExFilters.length > MAX_REGEX_PATTERNS) {
+    throw new Error(
+      `Too many regex patterns max limit is ${MAX_REGEX_PATTERNS}`
+    )
+  }
+}
+
+function filterByStatus(
+  files: Record<string, string>[]
+): Record<string, string>[] {
+  const allowedStatus = ['added', 'modified', 'renamed']
+  core.info(
+    `* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`
+  )
+  return files.filter(f => allowedStatus.includes(f.status))
+}
+
+function filterByRegex(
+  files: Record<string, string>[],
+  regExFilters: string[]
+): Record<string, string>[] {
   let filteredFiles: Record<string, string>[] = []
   for (const regEx of regExFilters) {
     filteredFiles = filteredFiles.concat(
-      filteredFilesStatus.filter(
-        f => f.filename && new RegExp(regEx, 'g').test(f.filename)
-      )
+      files.filter(f => f.filename && new RegExp(regEx, 'g').test(f.filename))
     )
   }
-  const unqiueFiles = [...new Set(filteredFiles)]
-  // loop through the files and print names.
-  core.info(
-    `* Filtered file (${unqiueFiles.length}): ${unqiueFiles.map(f => f.filename).join(', ')}`
-  )
-  return unqiueFiles
+  return filteredFiles
 }
 
 /**
