@@ -1,4 +1,4 @@
-name: Bender Job
+name: local bender Job
 on:
   pull_request:
     branches:
@@ -19,7 +19,7 @@ jobs:
         continue-on-error: true
 
   bender-action:
-    name: Bender job mode
+    name: bender action job mode
     needs: [fail]
     if: always()
     runs-on: ubuntu-latest
