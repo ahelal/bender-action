@@ -41,7 +41,7 @@ jobs:
         run: echo ${{env.dir_context}}
 
       - name: Run Bender
-        uses: .
+        uses: ./
         id: bender
         with:
           mode: 'job'
@@ -71,7 +71,7 @@ jobs:
           '\n' ' ')" >> "$GITHUB_ENV"
 
       - name: Run Bender (if failure)
-        uses: .
+        uses: ./
         with:
           mode: 'job'
           gh-token: ${{ secrets.GH_TOKEB }}

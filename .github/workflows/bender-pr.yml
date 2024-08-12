@@ -28,7 +28,7 @@ jobs:
         run: echo ${{env.dir_context}}
 
       - name: Run Bender
-        uses: .
+        uses: ./
         id: bender
         with:
           mode: 'pr'
