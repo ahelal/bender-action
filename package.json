@@ -71,7 +71,7 @@
     "@octokit/rest": "^21.0.1",
     "@octokit/types": "^13.5.0",
     "fetch-mock": "^11.1.0",
-    "openai": "^4.54.0"
+    "openai": "^4.55.4"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
