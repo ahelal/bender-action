@@ -34909,7 +34909,7 @@ function wrappy (fn, cb) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34933,6 +34933,7 @@ exports.MAX_REGEX_PATTERNS = 10;
 // Word to use to indicate that the content of a file is needed
 exports.CMD_INCLUDE_FILE = '#CMD_INCLUDE_FILE';
 exports.CMD_NO_SUFFICIENT_INFO = '#CMD_NO_SUFFICIENT_INFO';
+exports.CMD_LINE = '#L';
 
 
 /***/ }),
@@ -35569,7 +35570,7 @@ exports.githubActionSecurityPrompt = `As a security specialist focused on identi
 - Your reply should: 
     - Be formatted as text, concise, and to the point.
     - Not exceed ${config_1.maxWordCountPr} words.
-    - Include a hash and line number range then your reply, for each recommendation (e.g., line 5-6 will be '#5-6 Your reply', single line 5 '#5 Your reply').
+    - Include a hash and line number range then your reply, for each recommendation (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 Your reply', single line 5 '${config_1.CMD_LINE}5 Your reply').
 - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
 - If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
 // export const OLdgithubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:

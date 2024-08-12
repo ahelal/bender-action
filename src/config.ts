@@ -34,3 +34,5 @@ export const MAX_REGEX_PATTERNS = 10
 export const CMD_INCLUDE_FILE = '#CMD_INCLUDE_FILE'
 
 export const CMD_NO_SUFFICIENT_INFO = '#CMD_NO_SUFFICIENT_INFO'
+
+export const CMD_LINE = '#L'
