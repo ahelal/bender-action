@@ -34902,6 +34902,36 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 5561:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getRelevantComments = getRelevantComments;
+exports.postReviewComment = postReviewComment;
+const github_api_1 = __nccwpck_require__(1030);
+async function getRelevantComments(files, context) {
+    const user = await (0, github_api_1.getUserInfo)(context);
+    const prComments = await (0, github_api_1.getComments)(context);
+    const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
+        comment.subject_type === 'file' &&
+        comment.commit_id === context.commitId &&
+        files.includes(comment.path));
+    return relevantComments;
+}
+async function postReviewComment(reply, file, context) {
+    await (0, github_api_1.postComment)(context.pr, context, {
+        body: reply,
+        commit_id: context.commitId,
+        path: file,
+        subject_type: 'file'
+    });
+}
+
+
+/***/ }),
+
 /***/ 6373:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -34909,7 +34939,7 @@ function wrappy (fn, cb) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34928,12 +34958,18 @@ exports.waitTime = '1';
 exports.MAX_INPUT_LOG_LENGTH = 20000;
 // Max input length for files
 exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH;
-// Max number of regex patterns
-exports.MAX_REGEX_PATTERNS = 10;
+// Max number of regex patterns that user is allowed to provide
+exports.MAX_REGEX_PATTERNS = 5;
+// Max char of  each regex pattern
+exports.MAX_REGEX_CHARS = 20;
+// The magic symbol used in openai responses
+exports.MAGIC_SYMBOL = '#';
 // Word to use to indicate that the content of a file is needed
-exports.CMD_INCLUDE_FILE = '#CMD_INCLUDE_FILE';
-exports.CMD_NO_SUFFICIENT_INFO = '#CMD_NO_SUFFICIENT_INFO';
-exports.CMD_LINE = '#L';
+exports.CMD_INCLUDE_FILE = `${exports.MAGIC_SYMBOL}CMD_INCLUDE_FILE`;
+// Word to use to indicate that openai is stuck and can't provide a response
+exports.CMD_NO_SUFFICIENT_INFO = `${exports.MAGIC_SYMBOL}CMD_NO_SUFFICIENT_INFO`;
+// Word to use to indicate reference to a line in a file
+exports.CMD_LINE = `${exports.MAGIC_SYMBOL}L`;
 
 
 /***/ }),
@@ -35385,12 +35421,36 @@ const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
+const comments_1 = __nccwpck_require__(5561);
 // core.notice('More context needed')
 // AnnotationProperties
-/* eslint-disable  @typescript-eslint/no-explicit-any */
+async function generateReply(prFileContent, context, file) {
+    let reply = '';
+    for (let i = 1; i <= config_1.maxRecursionPr; i++) {
+        const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
+        const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
+        if (aiResponse.choices.length > 1) {
+            core.warning('This should not happen: more than one choice in OpenAI response');
+            core.debug(JSON.stringify(aiResponse.choices));
+            return '';
+        }
+        const content = aiResponse.choices[0].message.content ?? '';
+        reply = content;
+        if (!content.includes(config_1.CMD_INCLUDE_FILE)) {
+            core.debug('No more context needed');
+            break;
+        }
+        const fileContent = await (0, github_api_1.getFileContent4Context)(content, context);
+        if (!fileContent) {
+            core.warning('Unable to get file content');
+            break;
+        }
+        message.push({ role: 'assistant', content });
+    }
+    return reply;
+}
 async function processFile(file, context, relevantComments) {
     core.info(`* Processing file: ${file}`);
-    let reply = '';
     const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
     if (!prFileContent) {
         core.error(`Unable to fetch file content '${file}' '${context.ref}'`);
@@ -35401,35 +35461,8 @@ async function processFile(file, context, relevantComments) {
         core.warning(`Skipping file ${file} has been commented on before`);
         return;
     }
-    for (let i = 1; i <= config_1.maxRecursionPr; i++) {
-        const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
-        const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
-        if (aiResponse.choices.length > 1) {
-            core.warning('This should not happen: more than one choice in OpenAI response');
-            core.debug(`AI Response choices: JSON.stringify(aiResponse.choices)`);
-            return;
-        }
-        const content = aiResponse.choices[0].message.content;
-        reply = content ?? '';
-        const firstChoice = aiResponse.choices[0];
-        if (!firstChoice?.message?.content?.includes(config_1.CMD_INCLUDE_FILE)) {
-            core.debug('No more context needed');
-            break;
-        }
-        const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
-        if (!fileContent) {
-            core.warning('Unable to get file content');
-            break;
-        }
-        message.push({ role: 'assistant', content });
-    }
-    await (0, github_api_1.postComment)(context.pr, context, {
-        body: reply,
-        commit_id: context.commitId,
-        path: file,
-        subject_type: 'file'
-    });
-    // for debug
+    const reply = await generateReply(prFileContent, context, file);
+    await (0, comments_1.postReviewComment)(reply, file, context);
     console.info(reply);
 }
 async function runPrMode(context) {
@@ -35437,12 +35470,7 @@ async function runPrMode(context) {
     const files = filesInPR.map(f => f.filename);
     if (filesInPR.length < 1)
         return '';
-    const user = await (0, github_api_1.getUserInfo)(context);
-    const prComments = await (0, github_api_1.getComments)(context);
-    const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
-        comment.subject_type === 'file' &&
-        comment.commit_id === context.commitId &&
-        files.includes(comment.path));
+    const relevantComments = await (0, comments_1.getRelevantComments)(files, context);
     for (const file of files) {
         await processFile(file, context, relevantComments);
     }
@@ -35649,22 +35677,22 @@ function stripTimestampFromLogs(str) {
  * Filters an array of commit files based on status and regular expression filters.
  *
  * @param files - An array of commit files.
- * @param regExFilters - An array of regular expression filters.
+ * @param regexFilters - An array of regular expression filters.
  * @returns An array of filtered commit files.
  */
-function filterCommitFiles(files, regExFilters) {
+function filterCommitFiles(files, regexFilters) {
     if (!files || files.length < 1) {
         core.warning('No files found in the response to filter.');
         return [];
     }
-    filterValidateInput(files, regExFilters);
+    filterValidateInput(files, regexFilters);
     const filteredFilesStatus = filterByStatus(files);
     if (filteredFilesStatus.length < 1) {
         core.warning('No files found with status added, modified or renamed.');
         return [];
     }
-    const filteredFiles = regExFilters.length > 0
-        ? filterByRegex(filteredFilesStatus, regExFilters)
+    const filteredFiles = regexFilters.length > 0
+        ? filterByRegex(filteredFilesStatus, regexFilters)
         : filteredFilesStatus;
     // Remove duplicates
     const uniqueFiles = [...new Set(filteredFiles)];
@@ -35676,14 +35704,14 @@ function filterCommitFiles(files, regExFilters) {
     }
     return uniqueFiles;
 }
-function filterValidateInput(files, regExFilters) {
+function filterValidateInput(files, regexFilters) {
     const totalFilenameLength = files
         .map(f => f.filename.length)
         .reduce((sum, len) => sum + len, 0);
     if (totalFilenameLength > config_1.MAX_INPUT_FILES_LENGTH) {
         throw new Error(`Input filenames array is too long over ${config_1.MAX_INPUT_FILES_LENGTH}`);
     }
-    if (regExFilters.length > config_1.MAX_REGEX_PATTERNS) {
+    if (regexFilters.length > config_1.MAX_REGEX_PATTERNS) {
         throw new Error(`Too many regex patterns max limit is ${config_1.MAX_REGEX_PATTERNS}`);
     }
 }
@@ -35692,10 +35720,34 @@ function filterByStatus(files) {
     core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
     return files.filter(f => allowedStatus.includes(f.status));
 }
-function filterByRegex(files, regExFilters) {
+function regTest(regexStr, testString) {
+    if (!testString)
+        return false;
+    if (regexStr.length > config_1.MAX_REGEX_CHARS) {
+        console.warn(`Regex pattern is too long over ${config_1.MAX_REGEX_CHARS}`);
+        return false;
+    }
+    const sanitizedRegex = sanitizeRegex(regexStr);
+    if (sanitizedRegex != regexStr) {
+        console.warn(`Regex pattern has illegal expersion ${sanitizedRegex}`);
+    }
+    return new RegExp(sanitizeRegex(regexStr), 'g').test(testString);
+}
+/**
+ * Sanitizes a string to be used in a regular expression by escaping special characters.
+ * @param input - The string to be sanitized.
+ * @returns The sanitized string.
+ */
+function sanitizeRegex(input) {
+    const sanitized = input
+        .replace(/[+?^${}()|[\]\\.]/g, '\\$&')
+        .replace(/\*/g, '.*');
+    return sanitized;
+}
+function filterByRegex(files, regexFilters) {
     let filteredFiles = [];
-    for (const regEx of regExFilters) {
-        filteredFiles = filteredFiles.concat(files.filter(f => f.filename && new RegExp(regEx, 'g').test(f.filename)));
+    for (const regEx of regexFilters) {
+        filteredFiles = filteredFiles.concat(files.filter(f => regTest(regEx, f.filename)));
     }
     return filteredFiles;
 }
@@ -45346,7 +45398,7 @@ const addFormValue = async (form, key, value) => {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VERSION = void 0;
-exports.VERSION = '4.55.4'; // x-release-please-version
+exports.VERSION = '4.55.5'; // x-release-please-version
 //# sourceMappingURL=version.js.map
 
 /***/ }),

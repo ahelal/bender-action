@@ -83,17 +83,24 @@ describe('filterCommitFiles', () => {
       { filename: 'dist/index.js.map', status: 'modified' },
       { filename: 'src/config.ts', status: 'renamed' },
       { filename: 'src/util.ts', status: 'added' },
-      { filename: 'src/test.py', status: 'added' }
+      { filename: 'src/test.py', status: 'added' },
+      { filename: 'imgs/.file1.jpg', status: 'added' },
+      { filename: 'imgs/.file2.jpg', status: 'added' }
     ]
-    expect(filterCommitFiles(realFiles, ['src.*.ts$'])).toEqual([
+    expect(filterCommitFiles(realFiles, ['src*.ts'])).toEqual([
       { filename: 'src/config.ts', status: 'renamed' },
       { filename: 'src/util.ts', status: 'added' }
     ])
-    expect(filterCommitFiles(realFiles, ['src*', '.*.md'])).toEqual([
+    expect(filterCommitFiles(realFiles, ['src*', '*.md'])).toEqual([
       { filename: 'src/config.ts', status: 'renamed' },
       { filename: 'src/util.ts', status: 'added' },
       { filename: 'src/test.py', status: 'added' },
       { filename: 'README.md', status: 'added' }
+    ])
+
+    expect(filterCommitFiles(realFiles, ['.*file*'])).toEqual([
+      { filename: 'imgs/.file1.jpg', status: 'added' },
+      { filename: 'imgs/.file2.jpg', status: 'added' }
     ])
   })
 })
