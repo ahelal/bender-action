@@ -1,4 +1,4 @@
-name: Lint Codebase
+name: Lint Codebase 2
 
 on:
   pull_request:
