@@ -18,6 +18,7 @@ mode:
   required: true
   default: 'job'
 
+
 gh-token:
   description:
     GH personal access token (if using private repos or PR mode for commenting
