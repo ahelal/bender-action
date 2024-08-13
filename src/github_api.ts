@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
-import { OctokitResponse, Context, requestParams } from './types'
-import { GithubAPIversion, CONTENT_OF_FILE_NEEDED } from './config'
+import { OctokitResponse, Context, requestParams, dataResponse } from './types'
+import { GithubAPIversion, CMD_INCLUDE_FILE } from './config'
 
 import {
   sanitizeString,
@@ -91,7 +91,7 @@ async function getFileContent4Context(
     'getFileContent4Context',
     `Response: ${JSON.stringify(response, null, 2)}`
   )
-  const regex = new RegExp(`${CONTENT_OF_FILE_NEEDED} "(.*?)"`, 'gm')
+  const regex = new RegExp(`${CMD_INCLUDE_FILE} "(.*?)"`, 'gm')
   const matches = [...response.matchAll(regex)]
   if (matches.length < 1) {
     core.warning(
@@ -129,7 +129,7 @@ async function getUserInfo(context: Context): Promise<Record<string, any>> {
   return user.data
 }
 
-async function getComments(context: Context): Promise<Record<string, any>[]> {
+async function getComments(context: Context): Promise<dataResponse[]> {
   const response = await doRequest(
     {
       method: 'GET',

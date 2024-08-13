@@ -1,4 +1,4 @@
-name: bender PR
+name: local bender PR
 
 on:
   pull_request:
@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  bender-action:
-    name: Bender pr mode
+  bender-action-pr:
+    name: bender action pr mode
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +37,7 @@ jobs:
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
-          files-selection: 'src.*.ts$'
+          files-selection: 'src/*.ts'
 
       - name: Print Output
         id: output

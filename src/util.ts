@@ -3,7 +3,8 @@ import { Context } from './types'
 import {
   MAX_INPUT_LOG_LENGTH,
   MAX_INPUT_FILES_LENGTH,
-  MAX_REGEX_PATTERNS
+  MAX_REGEX_PATTERNS,
+  MAX_REGEX_CHARS
 } from './config'
 
 /**
@@ -35,19 +36,19 @@ export function stripTimestampFromLogs(str: string): string {
  * Filters an array of commit files based on status and regular expression filters.
  *
  * @param files - An array of commit files.
- * @param regExFilters - An array of regular expression filters.
+ * @param regexFilters - An array of regular expression filters.
  * @returns An array of filtered commit files.
  */
 export function filterCommitFiles(
   files: Record<string, string>[],
-  regExFilters: string[]
+  regexFilters: string[]
 ): Record<string, string>[] {
   if (!files || files.length < 1) {
     core.warning('No files found in the response to filter.')
     return []
   }
 
-  filterValidateInput(files, regExFilters)
+  filterValidateInput(files, regexFilters)
 
   const filteredFilesStatus = filterByStatus(files)
   if (filteredFilesStatus.length < 1) {
@@ -56,22 +57,28 @@ export function filterCommitFiles(
   }
 
   const filteredFiles =
-    regExFilters.length > 0
-      ? filterByRegex(filteredFilesStatus, regExFilters)
+    regexFilters.length > 0
+      ? filterByRegex(filteredFilesStatus, regexFilters)
       : filteredFilesStatus
 
   // Remove duplicates
   const uniqueFiles = [...new Set(filteredFiles)]
 
-  core.info(
-    `* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`
-  )
+  if (uniqueFiles.length < 1) {
+    core.warning(
+      `No files found in the PR, that match the regEx filter '${uniqueFiles}'`
+    )
+  } else {
+    core.info(
+      `* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`
+    )
+  }
   return uniqueFiles
 }
 
 function filterValidateInput(
   files: Record<string, string>[],
-  regExFilters: string[]
+  regexFilters: string[]
 ): void {
   const totalFilenameLength = files
     .map(f => f.filename.length)
@@ -82,7 +89,7 @@ function filterValidateInput(
     )
   }
 
-  if (regExFilters.length > MAX_REGEX_PATTERNS) {
+  if (regexFilters.length > MAX_REGEX_PATTERNS) {
     throw new Error(
       `Too many regex patterns max limit is ${MAX_REGEX_PATTERNS}`
     )
@@ -99,14 +106,39 @@ function filterByStatus(
   return files.filter(f => allowedStatus.includes(f.status))
 }
 
+function regTest(regexStr: string, testString: string): boolean {
+  if (!testString) return false
+  if (regexStr.length > MAX_REGEX_CHARS) {
+    console.warn(`Regex pattern is too long over ${MAX_REGEX_CHARS}`)
+    return false
+  }
+  const sanitizedRegex = sanitizeRegex(regexStr)
+  if (sanitizedRegex !== regexStr) {
+    console.warn(`Regex pattern has illegal expersion ${sanitizedRegex}`)
+  }
+  return new RegExp(sanitizeRegex(regexStr), 'g').test(testString)
+}
+
+/**
+ * Sanitizes a string to be used in a regular expression by escaping special characters.
+ * @param input - The string to be sanitized.
+ * @returns The sanitized string.
+ */
+function sanitizeRegex(input: string): string {
+  const sanitized = input
+    .replace(/[+?^${}()|[\]\\.]/g, '\\$&')
+    .replace(/\*/g, '.*')
+  return sanitized
+}
+
 function filterByRegex(
   files: Record<string, string>[],
-  regExFilters: string[]
+  regexFilters: string[]
 ): Record<string, string>[] {
   let filteredFiles: Record<string, string>[] = []
-  for (const regEx of regExFilters) {
+  for (const regEx of regexFilters) {
     filteredFiles = filteredFiles.concat(
-      files.filter(f => f.filename && new RegExp(regEx, 'g').test(f.filename))
+      files.filter(f => regTest(regEx, f.filename))
     )
   }
   return filteredFiles

@@ -1,28 +1,63 @@
 import * as core from '@actions/core'
 import {
-  postComment,
-  getComments,
   getCommitFiles,
   getFileContent4Context,
-  getContent,
-  getUserInfo
+  getContent
 } from './github_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
-import { Context } from './types'
-import { maxRecursionPr, CONTENT_OF_FILE_NEEDED } from './config'
+import { Context, dataResponse } from './types'
+import { maxRecursionPr, CMD_INCLUDE_FILE } from './config'
+import { getRelevantComments, postReviewComment } from './comments'
 
-/* eslint-disable  @typescript-eslint/no-explicit-any */
+// core.notice('More context needed')
+// AnnotationProperties
+
+async function generateReply(
+  prFileContent: string,
+  context: Context,
+  file: string
+): Promise<string> {
+  let reply = ''
+  for (let i = 1; i <= maxRecursionPr; i++) {
+    const message = setupInitialMessagePr(context, prFileContent, file)
+    const aiResponse = await openAiRequest(message, context)
+
+    if (aiResponse.choices.length > 1) {
+      core.warning(
+        'This should not happen: more than one choice in OpenAI response'
+      )
+      core.debug(JSON.stringify(aiResponse.choices))
+      return ''
+    }
+
+    const content = aiResponse.choices[0].message.content ?? ''
+    reply = content
+
+    if (!content.includes(CMD_INCLUDE_FILE)) {
+      core.debug('No more context needed')
+      break
+    }
+
+    const fileContent = await getFileContent4Context(content, context)
+    if (!fileContent) {
+      core.warning('Unable to get file content')
+      break
+    }
+    message.push({ role: 'assistant', content })
+  }
+  return reply
+}
+
 async function processFile(
   file: string,
   context: Context,
-  relevantComments: Record<string, any>[]
+  relevantComments: dataResponse[]
 ): Promise<void> {
   core.info(`* Processing file: ${file}`)
 
-  let reply = ''
   const prFileContent = await getContent(file, context.ref, context)
   if (!prFileContent) {
-    core.error(`Unable to get file content ${file} ${context.ref}`)
+    core.error(`Unable to fetch file content '${file}' '${context.ref}'`)
     return
   }
 
@@ -32,67 +67,18 @@ async function processFile(
     return
   }
 
-  for (let i = 1; i <= maxRecursionPr; i++) {
-    const message = setupInitialMessagePr(context, prFileContent, file)
-    const aiResponse = await openAiRequest(message, context)
-
-    if (aiResponse.choices.length > 1) {
-      core.warning(
-        'This should not happen: more than one choice in OpenAI response'
-      )
-      core.debug(`AI Response choices: JSON.stringify(aiResponse.choices)`)
-      return
-    }
-
-    const content = aiResponse.choices[0].message.content
-    reply = content ?? ''
-
-    const firstChoice = aiResponse.choices[0]
-    if (!firstChoice?.message?.content?.includes(CONTENT_OF_FILE_NEEDED)) {
-      core.debug('No more context needed')
-      break
-    }
-
-    const fileContent = await getFileContent4Context(
-      firstChoice.message.content,
-      context
-    )
-    if (!fileContent) {
-      core.warning('Unable to get file content')
-      break
-    }
-    message.push({ role: 'assistant', content })
-  }
-
-  await postComment(context.pr, context, {
-    body: reply,
-    commit_id: context.commitId,
-    path: file,
-    subject_type: 'file'
-  })
+  const reply = await generateReply(prFileContent, context, file)
+  await postReviewComment(reply, file, context)
+  console.info(reply)
 }
 
 export async function runPrMode(context: Context): Promise<string> {
   const filesInPR = await getCommitFiles(context)
   const files = filesInPR.map(f => f.filename)
 
-  if (filesInPR.length < 1) {
-    core.warning(
-      `No files found in the PR, that match the regEx filter '${context.filesSelection}'`
-    )
-    return ''
-  }
+  if (filesInPR.length < 1) return ''
 
-  const user = await getUserInfo(context)
-  const prComments = await getComments(context)
-
-  const relevantComments = prComments.filter(
-    comment =>
-      comment.user.login === user.login &&
-      comment.subject_type === 'file' &&
-      comment.commit_id === context.commitId &&
-      files.includes(comment.path)
-  )
+  const relevantComments = await getRelevantComments(files, context)
 
   for (const file of files) {
     await processFile(file, context, relevantComments)
