@@ -5,7 +5,7 @@ import {
   getContent
 } from './github_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
-import { Context } from './types'
+import { Context, dataResponse } from './types'
 import { maxRecursionPr, CMD_INCLUDE_FILE } from './config'
 import { getRelevantComments, postReviewComment } from './comments'
 
@@ -51,7 +51,7 @@ async function generateReply(
 async function processFile(
   file: string,
   context: Context,
-  relevantComments: Record<string, any>[]
+  relevantComments: dataResponse[]
 ): Promise<void> {
   core.info(`* Processing file: ${file}`)
 

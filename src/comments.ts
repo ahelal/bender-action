@@ -1,10 +1,10 @@
 import { postComment, getComments, getUserInfo } from './github_api'
-import { Context } from './types'
+import { Context, dataResponse } from './types'
 
 export async function getRelevantComments(
   files: string[],
   context: Context
-): Promise<Record<string, any>[]> {
+): Promise<dataResponse[]> {
   const user = await getUserInfo(context)
   const prComments = await getComments(context)
   const relevantComments = prComments.filter(

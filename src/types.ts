@@ -24,3 +24,6 @@ export interface requestParams {
 }
 
 export { OctokitResponse, ChatCompletionMessageParam, ChatCompletion }
+
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+export type dataResponse = Record<string, any>

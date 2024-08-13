@@ -113,7 +113,7 @@ function regTest(regexStr: string, testString: string): boolean {
     return false
   }
   const sanitizedRegex = sanitizeRegex(regexStr)
-  if (sanitizedRegex != regexStr) {
+  if (sanitizedRegex !== regexStr) {
     console.warn(`Regex pattern has illegal expersion ${sanitizedRegex}`)
   }
   return new RegExp(sanitizeRegex(regexStr), 'g').test(testString)

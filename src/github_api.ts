@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
-import { OctokitResponse, Context, requestParams } from './types'
+import { OctokitResponse, Context, requestParams, dataResponse } from './types'
 import { GithubAPIversion, CMD_INCLUDE_FILE } from './config'
 
 import {
@@ -129,7 +129,7 @@ async function getUserInfo(context: Context): Promise<Record<string, any>> {
   return user.data
 }
 
-async function getComments(context: Context): Promise<Record<string, any>[]> {
+async function getComments(context: Context): Promise<dataResponse[]> {
   const response = await doRequest(
     {
       method: 'GET',
