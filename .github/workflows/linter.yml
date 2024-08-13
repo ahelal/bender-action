@@ -1,4 +1,4 @@
-name: Lint Codebase 2
+name: Lint Codebase
 
 on:
   pull_request:
@@ -49,3 +49,7 @@ jobs:
           VALIDATE_JSCPD: false
           VALIDATE_TYPESCRIPT_STANDARD: false
           VALIDATE_CHECKOV: false
+
+
+
+
