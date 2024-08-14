@@ -12,7 +12,8 @@ jobs:
   bender-action:
     name: Bender pr mode
     runs-on: ubuntu-latest
-
+    env:
+      ANNOTATION_1: ${env.ANNOTATION_1}
     steps:
       - name: Checkout
         id: checkout
