@@ -27,17 +27,17 @@ jobs:
       - name: echo dir context
         run: echo ${{env.dir_context}}
 
-      - name: echo annotation1
-        run: |
-          echo "::notice file=.github/workflows/linter.yml,line=30,endLine=33,title='annotation'::HELLO tests"
-      - name: echo annotation2
-        run: |
-          echo "::warning file=linter.yml,line=37,endLine=47,title='bender'::bender stufff stuff"
+#      - name: echo annotation1
+#        run: |
+#          echo "::notice file=.github/workflows/linter.yml,line=30,endLine=33,title='annotation'::HELLO tests"
+#      - name: echo annotation2
+#        run: |
+#          echo "::warning file=linter.yml,line=37,endLine=47,title='bender'::bender stufff stuff"
 
-      - name: echo annotation3
-        run: |
-          echo ".github/workflows/linter.yml"
-          echo "##[warning]   50:55  warning  Some hello test"
+#      - name: echo annotation3
+#        run: |
+#          echo ".github/workflows/linter.yml"
+#          echo "##[warning]   50:55  warning  Some hello test"
 
       - name: Run Bender
         uses: ./
