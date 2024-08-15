@@ -42,7 +42,7 @@ Then you can edit the `openai.solution.bicepparam` to your liking
 
 To deploy the bicep script you can use the helper script and run `./infra.sh deploy` in shell. 
 
-## output
+## Output
 
 Once the deployment is finished you can run `/infra.sh output` to see the _Azure OpenAI Endpoint_ and _OpenAI
 deployment_ and _OpenAI Key_ that you can use in your GitHub Action secrets.
