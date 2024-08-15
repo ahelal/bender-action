@@ -64,7 +64,7 @@ describe('filterCommitFiles', () => {
     ])
   })
 
-  it('should return the filtered files based on regular expression filters', () => {
+  it('should return the filtered files based on filters', () => {
     expect(filterCommitFiles(files, ['file1'])).toEqual([
       { filename: 'file1.txt', status: 'added' }
     ])
@@ -74,7 +74,7 @@ describe('filterCommitFiles', () => {
     ])
   })
 
-  it('should return the filtered files based on advanced regular expression filters', () => {
+  it('should return the filtered files based on advanced filters', () => {
     const realFiles = [
       { filename: '.github/workflows/bender-pr.yml', status: 'added' },
       { filename: 'README.md', status: 'added' },
@@ -99,6 +99,30 @@ describe('filterCommitFiles', () => {
     ])
 
     expect(filterCommitFiles(realFiles, ['.*file*'])).toEqual([
+      { filename: 'imgs/.file1.jpg', status: 'added' },
+      { filename: 'imgs/.file2.jpg', status: 'added' }
+    ])
+  })
+
+  it('should return the filtered files based on multiple expression filters', () => {
+    const realFiles = [
+      { filename: '.github/workflows/bender-pr.yml', status: 'added' },
+      { filename: 'README.md', status: 'added' },
+      { filename: 'action.yml', status: 'added' },
+      { filename: 'dist/index.js', status: 'modified' },
+      { filename: 'dist/index.js.map', status: 'modified' },
+      { filename: 'src/config.ts', status: 'renamed' },
+      { filename: 'src/util.ts', status: 'added' },
+      { filename: 'src/test.py', status: 'added' },
+      { filename: 'imgs/.file1.jpg', status: 'added' },
+      { filename: 'imgs/.file2.jpg', status: 'added' },
+      { filename: 'src/file.java', status: 'added' },
+      { filename: 'src/file.py', status: 'added' }
+    ]
+    // 'src*.ts;*.py;*.jpg'
+    expect(filterCommitFiles(realFiles, ['*.py', '*.jpg'])).toEqual([
+      { filename: 'src/test.py', status: 'added' },
+      { filename: 'src/file.py', status: 'added' },
       { filename: 'imgs/.file1.jpg', status: 'added' },
       { filename: 'imgs/.file2.jpg', status: 'added' }
     ])

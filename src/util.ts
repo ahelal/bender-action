@@ -66,7 +66,7 @@ export function filterCommitFiles(
 
   if (uniqueFiles.length < 1) {
     core.warning(
-      `No files found in the PR, that match the regEx filter '${uniqueFiles}'`
+      `No files found in the PR, that match the regEx filter '${regexFilters}'`
     )
   } else {
     core.info(
@@ -113,10 +113,12 @@ function regTest(regexStr: string, testString: string): boolean {
     return false
   }
   const sanitizedRegex = sanitizeRegex(regexStr)
-  if (sanitizedRegex !== regexStr) {
-    console.warn(`Regex pattern has illegal expersion ${sanitizedRegex}`)
-  }
-  return new RegExp(sanitizeRegex(regexStr), 'g').test(testString)
+  if (sanitizedRegex !== regexStr)
+    console.warn(
+      `Regex pattern has illegal expersion, '${sanitizedRegex}' != '${regexStr}'`
+    )
+  const regResult = new RegExp(sanitizedRegex, 'g').test(testString)
+  return regResult
 }
 
 /**

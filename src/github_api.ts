@@ -115,7 +115,7 @@ async function getCommitFiles(
     },
     context
   )
-  return filterCommitFiles(files.data.files, context.filesSelection.split(','))
+  return filterCommitFiles(files.data.files, context.filesSelection.split(';'))
 }
 
 async function getUserInfo(context: Context): Promise<Record<string, any>> {
