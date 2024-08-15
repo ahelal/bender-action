@@ -35075,7 +35075,7 @@ async function getCommitFiles(context) {
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
     }, context);
-    return (0, util_1.filterCommitFiles)(files.data.files, context.filesSelection.split(','));
+    return (0, util_1.filterCommitFiles)(files.data.files, context.filesSelection.split(';'));
 }
 async function getUserInfo(context) {
     const user = await doRequest({
@@ -35697,7 +35697,7 @@ function filterCommitFiles(files, regexFilters) {
     // Remove duplicates
     const uniqueFiles = [...new Set(filteredFiles)];
     if (uniqueFiles.length < 1) {
-        core.warning(`No files found in the PR, that match the regEx filter '${uniqueFiles}'`);
+        core.warning(`No files found in the PR, that match the regEx filter '${regexFilters}'`);
     }
     else {
         core.info(`* Filtered file (${uniqueFiles.length}): ${uniqueFiles.map(f => f.filename).join(', ')}`);
@@ -35728,10 +35728,10 @@ function regTest(regexStr, testString) {
         return false;
     }
     const sanitizedRegex = sanitizeRegex(regexStr);
-    if (sanitizedRegex !== regexStr) {
-        console.warn(`Regex pattern has illegal expersion ${sanitizedRegex}`);
-    }
-    return new RegExp(sanitizeRegex(regexStr), 'g').test(testString);
+    if (sanitizedRegex !== regexStr)
+        console.warn(`Regex pattern has illegal expersion, '${sanitizedRegex}' != '${regexStr}'`);
+    const regResult = new RegExp(sanitizedRegex, 'g').test(testString);
+    return regResult;
 }
 /**
  * Sanitizes a string to be used in a regular expression by escaping special characters.
