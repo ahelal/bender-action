@@ -8,6 +8,7 @@ import {
 import { setupInitialMessage, openAiRequest } from './openai_api'
 import { CompletionUsage, Context } from './types'
 import { maxRecursionJob, CMD_INCLUDE_FILE } from './config'
+import { printAIResponse } from './util'
 
 export async function runJobMode(context: Context): Promise<string> {
   // Getting GH action job information
@@ -36,7 +37,7 @@ export async function runJobMode(context: Context): Promise<string> {
 
     for (const result of aiResponse.choices) {
       const content = result.message.content
-      core.info(`###### [ Bender Response ] ######\n${content}\n############\n`)
+      printAIResponse('JOB Response', content)
       message.push({ role: 'assistant', content })
     }
 

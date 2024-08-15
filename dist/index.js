@@ -35342,6 +35342,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
+const util_1 = __nccwpck_require__(2629);
 async function runJobMode(context) {
     // Getting GH action job information
     const currentJob = await (0, github_api_1.getJob)(context);
@@ -35362,7 +35363,7 @@ async function runJobMode(context) {
             usage = aiResponse.usage;
         for (const result of aiResponse.choices) {
             const content = result.message.content;
-            core.info(`###### [ Bender Response ] ######\n${content}\n############\n`);
+            (0, util_1.printAIResponse)('JOB Response', content);
             message.push({ role: 'assistant', content });
         }
         const firstChoice = aiResponse.choices[0];
@@ -35422,8 +35423,6 @@ const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 const comments_1 = __nccwpck_require__(5561);
-// core.notice('More context needed')
-// AnnotationProperties
 async function generateReply(prFileContent, context, file) {
     let reply = '';
     for (let i = 1; i <= config_1.maxRecursionPr; i++) {
@@ -35593,20 +35592,15 @@ exports.githubActionFailurePrompt = `As a software engineer assistant, your purp
     - Provide a solution to fix the error.
 - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
 - If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
-exports.githubActionSecurityPrompt = `As a security specialist focused on identifying security risks in source code, follow these guidelines:
+exports.githubActionSecurityPrompt = `As a security focused assistent, your sole task is to identifying security risks in source code, follow these guidelines:
 - You'll receive a source code or file diff.
 - Your reply should: 
-    - Be formatted as text, concise, and to the point.
+    - Be formatted as text, concise, & to the point.
     - Not exceed ${config_1.maxWordCountPr} words.
-    - Include a hash and line number range then your reply, for each recommendation (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 Your reply', single line 5 '${config_1.CMD_LINE}5 Your reply').
+    - Include a hash & line number range then your reply, for each recommendation (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 Your reply', single line 5 '${config_1.CMD_LINE}5 Your reply').
+    - Do not highlight minor issues & nitpicks.
 - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
 - If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
-// export const OLdgithubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
-// - You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality.
-// - Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${maxWordCountPr} words ONLY*.
-// - Don't provide a title or descriptions.
-// - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: '${CMD_INCLUDE_FILE} "<valid unix path>/filename"' (e.g., ${CMD_INCLUDE_FILE} "src/index.js").
-// - If there's no way forward, reply with: Not enough information to provide a suggestion.`
 
 
 /***/ }),
@@ -35647,6 +35641,7 @@ exports.interpolateString = interpolateString;
 exports.interpolateObject = interpolateObject;
 exports.rawPrintIfDebug = rawPrintIfDebug;
 exports.debugGroupedMsg = debugGroupedMsg;
+exports.printAIResponse = printAIResponse;
 const core = __importStar(__nccwpck_require__(2186));
 const config_1 = __nccwpck_require__(6373);
 /**
@@ -35813,6 +35808,9 @@ function debugGroupedMsg(title, message) {
         core.debug(message);
         core.endGroup();
     }
+}
+function printAIResponse(title, message) {
+    core.info(`${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`);
 }
 
 

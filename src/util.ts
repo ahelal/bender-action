@@ -212,3 +212,9 @@ export function debugGroupedMsg(title: string, message: string): void {
     core.endGroup()
   }
 }
+
+export function printAIResponse(title: string, message: string | null): void {
+  core.info(
+    `${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`
+  )
+}

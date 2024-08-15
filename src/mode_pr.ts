@@ -9,9 +9,6 @@ import { Context, dataResponse } from './types'
 import { maxRecursionPr, CMD_INCLUDE_FILE } from './config'
 import { getRelevantComments, postReviewComment } from './comments'
 
-// core.notice('More context needed')
-// AnnotationProperties
-
 async function generateReply(
   prFileContent: string,
   context: Context,

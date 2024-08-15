@@ -83,47 +83,6 @@ describe('getInputs', () => {
       filesSelection: 'filesSelection123'
     })
   })
-  // it('should return the correct inputs if all required inputs are satisified', () => {
-  //   process.env['INPUT_MODE'] = 'pr'
-  //   process.env['INPUT_AZ-OPENAI-ENDPOINT'] = 'endpoint123'
-  //   process.env['INPUT_AZ-OPENAI-DEPLOYMENT'] = 'deployment123'
-  //   process.env['INPUT_AZ-OPENAI-KEY'] = 'key123'
-  //   process.env['INPUT_AZ-OPENAI-APIVERSION'] = 'apiVersion123'
-  //   const inputs = getInputs()
-  //   expect(inputs).toHaveProperty('mode', 'pr')
-  //   expect(inputs).toHaveProperty('azOpenaiEndpoint', 'endpoint123')
-  //   expect(inputs).toHaveProperty('azOpenaiDeployment', 'deployment123')
-  //   expect(inputs).toHaveProperty('azOpenaiKey', 'key123')
-  //   expect(inputs).toHaveProperty('azOpenaiVersion', 'apiVersion123')
-  // })
-
-  // describe('should throw an error for required inputs', () => {
-  //   it('when mode is defined', () => {
-  //     process.env['INPUT_MODE'] = 'pr'
-  //     expect(getInputs).toThrowError('Input required and not supplied')
-  //   })
-
-  //   it('when mode, az-openai-endpoint is defined', () => {
-  //     process.env['INPUT_MODE'] = 'pr'
-  //     process.env['INPUT_AZ-OPENAI-ENDPOINT'] = 'endpoint123'
-  //     expect(getInputs).toThrowError('Input required and not supplied')
-  //   })
-
-  //   it('when mode, az-openai-endpoint, az-openai-deployment is defined', () => {
-  //     process.env['INPUT_MODE'] = 'pr'
-  //     process.env['INPUT_AZ-OPENAI-ENDPOINT'] = 'endpoint123'
-  //     process.env['INPUT_AZ-OPENAI-DEPLOYMENT'] = 'deployment123'
-  //     expect(getInputs).toThrowError('Input required and not supplied')
-  //   })
-
-  //   it('when mode, az-openai-endpoint, az-openai-deployment,az-openai-key is defined', () => {
-  //     process.env['INPUT_MODE'] = 'pr'
-  //     process.env['INPUT_AZ-OPENAI-ENDPOINT'] = 'endpoint123'
-  //     process.env['INPUT_AZ-OPENAI-DEPLOYMENT'] = 'deployment123'
-  //     process.env['INPUT_AZ-OPENAI-KEY'] = 'key123'
-  //     expect(getInputs).toThrowError('Input required and not supplied')
-  //   })
-  // })
 
   describe('should throw an error for required inputs', () => {
     const testCases = [
