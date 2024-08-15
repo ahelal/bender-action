@@ -23,6 +23,10 @@ prerequisites:
   You can install it by following the instructions at
   [Install Bicep CLI](https://docs.microsoft.com/azure/azure-resource-manager/bicep/install).
 
+- **jq**: jq us required to parase output from json.
+  You can install it by following the instructions at
+  [Downloading jq]([https://docs.microsoft.com/azure/azure-resource-manager/bicep/install](https://jqlang.github.io/jq/download/)).
+
 ## Parameters
 
 You can copy the example parameter file
@@ -32,14 +36,24 @@ cd infra/src
 cp openai.solution-example.bicepparam openai.solution.bicepparam
 ```
 
-You can then edit the `openai.solution.bicepparam` to your liking
+Then you can edit the `openai.solution.bicepparam` to your liking
 
 ## Deploy
 
-To deploy run `./infra.sh deploy` Once a deploy is finished you can run
-`/infra.sh output` you will get a the _Azure OpenAI Endpoint_ and _OpenAI
+To deploy the bicep script you can use the helper script and run `./infra.sh deploy` in shell. 
+
+## output
+
+Once the deployment is finished you can run `/infra.sh output` to see the _Azure OpenAI Endpoint_ and _OpenAI
 deployment_ and _OpenAI Key_ that you can use in your GitHub Action secrets.
+
+```shell
+# example output
+Endpoint   : https://dk3cjc2j6bender-oa.openai.azure.com/
+Deployment : bender-codehelper
+Key1       : XXXXXXXXXXXXXXXXXXXXX
+```
 
 ## Cleanup
 
-To deploy clean up `./infra.sh delete`
+To do clean up run the script in delete `./infra.sh delete`. This will delete the resource group, deployment and purge the deployment.
