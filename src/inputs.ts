@@ -67,7 +67,7 @@ export function getInputs(): Record<string, string> {
 export function getContextFromPayload(): Record<string, string> {
   debugGroupedMsg(
     `GH Context event`,
-    `GH Action context event ${JSON.stringify(context.payload, null, 2)}`
+    `GH Action context event ${JSON.stringify(context, null, 2)}`
   )
 
   const requiredContext: Record<string, string> = {}

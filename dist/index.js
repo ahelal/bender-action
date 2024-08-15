@@ -35214,7 +35214,7 @@ function getInputs() {
  * @returns {Record<string, string>} Resolves when the action is complete.
  */
 function getContextFromPayload() {
-    (0, util_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context.payload, null, 2)}`);
+    (0, util_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context, null, 2)}`);
     const requiredContext = {};
     const full_name = github_1.context.payload.repository?.full_name?.split('/') || [];
     requiredContext['full_name'] = full_name.join('/');
