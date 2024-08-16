@@ -8,6 +8,7 @@ import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context, dataResponse } from './types'
 import { maxRecursionPr, CMD_INCLUDE_FILE } from './config'
 import { getRelevantComments, postReviewComment } from './comments'
+import { printAIResponse } from './util'
 
 async function generateReply(
   prFileContent: string,
@@ -64,7 +65,8 @@ async function processFile(
 
   const reply = await generateReply(prFileContent, context, file)
   await postReviewComment(reply, file, context)
-  console.info(reply)
+
+  printAIResponse(`PR response for ${file}@${context.ref}`, reply)
 }
 
 export async function mainPR(context: Context): Promise<string> {

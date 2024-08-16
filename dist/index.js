@@ -34939,7 +34939,7 @@ async function postReviewComment(reply, file, context) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.maxLineLengthPerFile = exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34970,8 +34970,9 @@ exports.CMD_INCLUDE_FILE = `${exports.MAGIC_SYMBOL}CMD_INCLUDE_FILE`;
 exports.CMD_NO_SUFFICIENT_INFO = `${exports.MAGIC_SYMBOL}CMD_NO_SUFFICIENT_INFO`;
 // Word to use to indicate reference to a line in a file
 exports.CMD_LINE = `${exports.MAGIC_SYMBOL}L`;
+// TODO limit the number of files to process
 // Max line length per file
-exports.maxLineLengthPerFile = 5000;
+// export const maxLineLengthPerFile = 5000
 
 
 /***/ }),
@@ -35425,6 +35426,7 @@ const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 const comments_1 = __nccwpck_require__(5561);
+const util_1 = __nccwpck_require__(2629);
 async function generateReply(prFileContent, context, file) {
     let reply = '';
     for (let i = 1; i <= config_1.maxRecursionPr; i++) {
@@ -35463,7 +35465,7 @@ async function processFile(file, context, relevantComments) {
     }
     const reply = await generateReply(prFileContent, context, file);
     await (0, comments_1.postReviewComment)(reply, file, context);
-    console.info(reply);
+    (0, util_1.printAIResponse)(`PR response for ${file}@${context.ref}`, reply);
 }
 async function mainPR(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
