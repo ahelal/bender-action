@@ -27,20 +27,18 @@ async function generateReply(
       return ''
     }
 
-    const content = aiResponse.choices[0].message.content ?? ''
-    reply = content
-
-    if (!content.includes(CMD_INCLUDE_FILE)) {
+    reply = aiResponse.choices[0].message.content ?? ''
+    if (!reply.includes(CMD_INCLUDE_FILE)) {
       core.debug('No more context needed')
       break
     }
 
-    const fileContent = await getFileContent4Context(content, context)
+    const fileContent = await getFileContent4Context(reply, context)
     if (!fileContent) {
       core.warning('Unable to get file content')
       break
     }
-    message.push({ role: 'assistant', content })
+    message.push({ role: 'assistant', content: reply })
   }
   return reply
 }
@@ -69,7 +67,7 @@ async function processFile(
   console.info(reply)
 }
 
-export async function runPrMode(context: Context): Promise<string> {
+export async function mainPR(context: Context): Promise<string> {
   const filesInPR = await getCommitFiles(context)
   const files = filesInPR.map(f => f.filename)
 

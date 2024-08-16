@@ -34939,7 +34939,7 @@ async function postReviewComment(reply, file, context) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.maxLineLengthPerFile = exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34970,6 +34970,8 @@ exports.CMD_INCLUDE_FILE = `${exports.MAGIC_SYMBOL}CMD_INCLUDE_FILE`;
 exports.CMD_NO_SUFFICIENT_INFO = `${exports.MAGIC_SYMBOL}CMD_NO_SUFFICIENT_INFO`;
 // Word to use to indicate reference to a line in a file
 exports.CMD_LINE = `${exports.MAGIC_SYMBOL}L`;
+// Max line length per file
+exports.maxLineLengthPerFile = 5000;
 
 
 /***/ }),
@@ -35284,9 +35286,9 @@ async function run() {
         await (0, wait_1.wait)(parseInt(config_1.waitTime, 10));
         let usage;
         if (context.mode === 'pr')
-            usage = (0, mode_pr_1.runPrMode)(context);
+            usage = (0, mode_pr_1.mainPR)(context);
         else if (context.mode === 'job')
-            usage = (0, mode_job_1.runJobMode)(context);
+            usage = (0, mode_job_1.mainJob)(context);
         else
             throw new Error(`Invalid mode: ${context.mode}`);
         core.setOutput('usage', usage);
@@ -35337,13 +35339,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runJobMode = runJobMode;
+exports.mainJob = mainJob;
 const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 const util_1 = __nccwpck_require__(2629);
-async function runJobMode(context) {
+async function mainJob(context) {
     // Getting GH action job information
     const currentJob = await (0, github_api_1.getJob)(context);
     if (!currentJob) {
@@ -35417,7 +35419,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runPrMode = runPrMode;
+exports.mainPR = mainPR;
 const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
@@ -35433,18 +35435,17 @@ async function generateReply(prFileContent, context, file) {
             core.debug(JSON.stringify(aiResponse.choices));
             return '';
         }
-        const content = aiResponse.choices[0].message.content ?? '';
-        reply = content;
-        if (!content.includes(config_1.CMD_INCLUDE_FILE)) {
+        reply = aiResponse.choices[0].message.content ?? '';
+        if (!reply.includes(config_1.CMD_INCLUDE_FILE)) {
             core.debug('No more context needed');
             break;
         }
-        const fileContent = await (0, github_api_1.getFileContent4Context)(content, context);
+        const fileContent = await (0, github_api_1.getFileContent4Context)(reply, context);
         if (!fileContent) {
             core.warning('Unable to get file content');
             break;
         }
-        message.push({ role: 'assistant', content });
+        message.push({ role: 'assistant', content: reply });
     }
     return reply;
 }
@@ -35464,7 +35465,7 @@ async function processFile(file, context, relevantComments) {
     await (0, comments_1.postReviewComment)(reply, file, context);
     console.info(reply);
 }
-async function runPrMode(context) {
+async function mainPR(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
     const files = filesInPR.map(f => f.filename);
     if (filesInPR.length < 1)
@@ -35592,14 +35593,15 @@ exports.githubActionFailurePrompt = `As a software engineer assistant, your purp
     - Provide a solution to fix the error.
 - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
 - If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
-exports.githubActionSecurityPrompt = `As a security focused assistent, your sole task is to identifying security risks in source code, follow these guidelines:
+exports.githubActionSecurityPrompt = `As a software security assistent, your sole task is to identifying security risks in source code, follow these guidelines:
 - You'll receive a source code or file diff.
 - Your reply should: 
-    - Be formatted as text, concise, & to the point.
+    - Be formatted as text, concise, & to the point. Do not highlight minor issues.
     - Not exceed ${config_1.maxWordCountPr} words.
-    - Include a hash & line number range then your reply, for each recommendation (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 Your reply', single line 5 '${config_1.CMD_LINE}5 Your reply').
-    - Do not highlight minor issues & nitpicks.
-- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
+    - Include a ${config_1.CMD_LINE} & line number or line range, before any reply, (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 <your reply>', single line 5 '${config_1.CMD_LINE}5 <your reply>').
+- If insufficient information is provided (e.g., the diff is less than 3 lines or need to inspect a function in import), follow the guideline:
+   - You can only inspect files that are included in the provided directory structure.
+   - You must request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"').
 - If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
 
 

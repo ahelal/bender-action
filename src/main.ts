@@ -1,8 +1,8 @@
 import * as core from '@actions/core'
 import { wait } from './wait'
 import { getInputs, getContextFromPayload } from './inputs'
-import { runJobMode } from './mode_job'
-import { runPrMode } from './mode_pr'
+import { mainJob } from './mode_job'
+import { mainPR } from './mode_pr'
 import { debugGroupedMsg } from './util'
 import { waitTime } from './config'
 
@@ -20,8 +20,8 @@ export async function run(): Promise<void> {
     await wait(parseInt(waitTime, 10))
 
     let usage: Promise<string>
-    if (context.mode === 'pr') usage = runPrMode(context)
-    else if (context.mode === 'job') usage = runJobMode(context)
+    if (context.mode === 'pr') usage = mainPR(context)
+    else if (context.mode === 'job') usage = mainJob(context)
     else throw new Error(`Invalid mode: ${context.mode}`)
     core.setOutput('usage', usage)
   } catch (error) {

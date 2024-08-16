@@ -44,3 +44,7 @@ export const CMD_NO_SUFFICIENT_INFO = `${MAGIC_SYMBOL}CMD_NO_SUFFICIENT_INFO`
 
 // Word to use to indicate reference to a line in a file
 export const CMD_LINE = `${MAGIC_SYMBOL}L`
+
+// TODO limit the number of files to process
+// Max line length per file
+// export const maxLineLengthPerFile = 5000
