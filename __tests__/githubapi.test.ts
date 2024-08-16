@@ -1,11 +1,12 @@
 import { doRequest } from '../src/github_api'
 import fetchMock from 'fetch-mock'
 import { GithubAPIversion } from '../src/config'
+import { Context } from '../src/types'
 // import { request } from '@octokit/request'
 // import { RequestInterface } from '@octokit/types'
 
 describe('doRequest no context', () => {
-  const context = {}
+  const context = {} as Context
   const fetchMockFunc = fetchMock.sandbox().getOnce(
     'https://api.github.com/',
     { ok: true },
@@ -37,7 +38,7 @@ describe('doRequest no context', () => {
 describe('doRequest more context', () => {
   const context = {
     ghToken: 'test-token'
-  }
+  } as Context
   const fetchMockFunc = fetchMock.sandbox().postOnce(
     'https://test.github.com/test/test',
     { ok: true },

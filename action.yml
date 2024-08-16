@@ -42,18 +42,24 @@ inputs:
     description: Provide the directory structure as base64 extra context
     default: ''
 
+  project-context:
+    description:
+      Provide the github project metadata as extra context (true|false)
+    default: 'false'
+
   job-context:
-    description: Should the github action YAML be provided as context
+    description:
+      Should the github action YAML be provided as context (true|false)
     default: 'false'
 
   user-context:
     description: Extra OpenAI user context
     default: ''
 
-  files-selection:
+  include:
     description:
-      In PR mode, Filter files to be used for context, comma seperated regex
-      i.e. 'src/*.ts' '*.ts;*.js'
+      In PR mode, include files to be used, comma seperated regex i.e.
+      'src/*.ts' '*.ts;*.js'
     default: ''
     required: false
 

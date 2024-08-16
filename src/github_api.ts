@@ -7,8 +7,8 @@ import {
   sanitizeString,
   stripTimestampFromLogs,
   filterCommitFiles,
-  interpolateString,
-  interpolateObject,
+  // interpolateString,
+  // interpolateObject,
   debugGroupedMsg
 } from './util'
 
@@ -23,6 +23,30 @@ async function getActionRuns(context: Context): Promise<any> {
   )
   return response.data
 }
+
+// async function getRepoMetaInfo(context: Context): Promise<String> {
+//   let info = ''
+//   const repoMeta = await doRequest(
+//     {
+//       method: 'GET',
+//       path: `/repos/${context.owner}/${context.repo}`
+//     },
+//     context
+//   )
+//   if (repoMeta.data.full_name) info = `Repo: ${repoMeta.data.full_name}`
+//   if (repoMeta.data.description)
+//     info += `, Description: ${repoMeta.data.description}`
+
+//   const repoLanguages = await doRequest(
+//     {
+//       method: 'GET',
+//       path: `/repos/${context.owner}/${context.repo}/languages`
+//     },
+//     context
+//   )
+//   info += `, Languages (with line count): ${Object.keys(repoLanguages.data).join(', ')}`
+//   return info
+// }
 
 async function getJob(context: Context): Promise<any> {
   const response = await doRequest(
@@ -115,7 +139,7 @@ async function getCommitFiles(
     },
     context
   )
-  return filterCommitFiles(files.data.files, context.filesSelection.split(';'))
+  return filterCommitFiles(files.data.files, context.include)
 }
 
 async function getUserInfo(context: Context): Promise<Record<string, any>> {
@@ -178,20 +202,21 @@ export async function doRequest(
     : {}
   const octokit = new Octokit({ ...config, ...requestOctoKit })
 
-  const iMethodPath = interpolateString(`${method} ${path}`, context)
+  // const iMethodPath = interpolateString(`${method} ${path}`, context)
+  const iMethodPath = `${method} ${path}`
 
   if (core.isDebug()) core.startGroup(`doRequest ${iMethodPath}`)
   core.debug(
     `doRequest octokit init: { baseURL: ${baseUrl} auth: ${sanitizeString(context.ghToken)} }`
   )
-  const iPayload = interpolateObject(body, context)
-  core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`)
+  // const iPayload = interpolateObject(body, context)
+  core.debug(`doRequest payload: ${JSON.stringify(body, null, 2)}`)
 
   headers['X-GitHub-Api-Version'] = GithubAPIversion
 
   const response = await octokit.request(iMethodPath, {
     headers,
-    ...iPayload
+    ...body
   })
   core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
   if (core.isDebug()) core.endGroup()

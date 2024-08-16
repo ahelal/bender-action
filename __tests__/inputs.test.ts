@@ -1,6 +1,6 @@
 // import * as core from '@actions/core'
 // import { context } from '@actions/github'
-import { getInputs } from '../src/inputs'
+import { getInputs, validateInputAsBoolean } from '../src/inputs'
 // getContextFromPayload
 
 // jest.mock('@actions/core')
@@ -17,9 +17,9 @@ function setInputEnvironmentVariables(
   process.env['INPUT_AZ-OPENAI-KEY'] = 'key123'
   process.env['INPUT_AZ-OPENAI-APIVERSION'] = 'apiVersion123'
   process.env['INPUT_DIR-CONTEXT'] = 'aGVsbG8='
-  process.env['INPUT_JOB-CONTEXT'] = 'jobContext123'
+  process.env['INPUT_JOB-CONTEXT'] = 'true'
   process.env['INPUT_USER-CONTEXT'] = 'userContext123'
-  process.env['INPUT_FILES-SELECTION'] = 'filesSelection123'
+  process.env['INPUT_INCLUDE'] = 'include123'
   for (const key in override) {
     process.env[`INPUT_${key.toUpperCase()}`] = override[key]
   }
@@ -44,8 +44,8 @@ describe('getInputs', () => {
 
   it('should throw an error for invalid mode', () => {
     // set environment variables for the test
-    process.env['INPUT_MODE'] = 'invalid'
-    expect(getInputs).toThrow('Invalid mode: invalid')
+    process.env['INPUT_MODE'] = 'no-mode'
+    expect(getInputs).toThrow("Invalid input for input 'mode'")
   })
 
   it('should return the correct inputs for pr mode', () => {
@@ -60,9 +60,9 @@ describe('getInputs', () => {
       azOpenaiKey: 'key123',
       azOpenaiVersion: 'apiVersion123',
       dirContext: 'hello',
-      jobContext: 'jobContext123',
+      jobContext: true,
       userContext: 'userContext123',
-      filesSelection: 'filesSelection123'
+      include: ['include123']
     })
   })
 
@@ -78,9 +78,9 @@ describe('getInputs', () => {
       azOpenaiKey: 'key123',
       azOpenaiVersion: 'apiVersion123',
       dirContext: 'hello',
-      jobContext: 'jobContext123',
+      jobContext: true,
       userContext: 'userContext123',
-      filesSelection: 'filesSelection123'
+      include: ['include123']
     })
   })
 
@@ -108,5 +108,25 @@ describe('getInputs', () => {
         expect(getInputs).toThrow('Input required and not supplied')
       })
     }
+
+    describe('validateInputAsBoolean', () => {
+      it('should return true for valid input "true"', () => {
+        const result = validateInputAsBoolean('testKey', 'true')
+        expect(result).toBe(true)
+      })
+
+      it('should return false for valid input "false"', () => {
+        const result = validateInputAsBoolean('testKey', 'false')
+        expect(result).toBe(false)
+      })
+
+      it('should throw an error for invalid input', () => {
+        expect(() => {
+          validateInputAsBoolean('testKey', 'invalid')
+        }).toThrow(
+          "Invalid input for input 'testKey': invalid is not a boolean value"
+        )
+      })
+    })
   })
 })

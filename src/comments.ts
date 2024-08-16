@@ -1,6 +1,13 @@
 import { postComment, getComments, getUserInfo } from './github_api'
 import { Context, dataResponse } from './types'
 
+// const relevantComments = prComments.filter(
+//   comment =>
+//     comment.user.login === user.login &&
+//     comment.subject_type === 'file' &&
+//     comment.commit_id === context.commitId &&
+//     files.includes(comment.path)
+
 export async function getRelevantComments(
   files: string[],
   context: Context
@@ -10,7 +17,6 @@ export async function getRelevantComments(
   const relevantComments = prComments.filter(
     comment =>
       comment.user.login === user.login &&
-      comment.subject_type === 'file' &&
       comment.commit_id === context.commitId &&
       files.includes(comment.path)
   )

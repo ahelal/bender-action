@@ -34911,11 +34911,16 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getRelevantComments = getRelevantComments;
 exports.postReviewComment = postReviewComment;
 const github_api_1 = __nccwpck_require__(1030);
+// const relevantComments = prComments.filter(
+//   comment =>
+//     comment.user.login === user.login &&
+//     comment.subject_type === 'file' &&
+//     comment.commit_id === context.commitId &&
+//     files.includes(comment.path)
 async function getRelevantComments(files, context) {
     const user = await (0, github_api_1.getUserInfo)(context);
     const prComments = await (0, github_api_1.getComments)(context);
     const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
-        comment.subject_type === 'file' &&
         comment.commit_id === context.commitId &&
         files.includes(comment.path));
     return relevantComments;
@@ -35029,6 +35034,28 @@ async function getActionRuns(context) {
     }, context);
     return response.data;
 }
+// async function getRepoMetaInfo(context: Context): Promise<String> {
+//   let info = ''
+//   const repoMeta = await doRequest(
+//     {
+//       method: 'GET',
+//       path: `/repos/${context.owner}/${context.repo}`
+//     },
+//     context
+//   )
+//   if (repoMeta.data.full_name) info = `Repo: ${repoMeta.data.full_name}`
+//   if (repoMeta.data.description)
+//     info += `, Description: ${repoMeta.data.description}`
+//   const repoLanguages = await doRequest(
+//     {
+//       method: 'GET',
+//       path: `/repos/${context.owner}/${context.repo}/languages`
+//     },
+//     context
+//   )
+//   info += `, Languages (with line count): ${Object.keys(repoLanguages.data).join(', ')}`
+//   return info
+// }
 async function getJob(context) {
     const response = await doRequest({
         method: 'GET',
@@ -35078,7 +35105,7 @@ async function getCommitFiles(context) {
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
     }, context);
-    return (0, util_1.filterCommitFiles)(files.data.files, context.filesSelection.split(';'));
+    return (0, util_1.filterCommitFiles)(files.data.files, context.include);
 }
 async function getUserInfo(context) {
     const user = await doRequest({
@@ -35111,16 +35138,17 @@ async function doRequest(params, context, body, requestFetch) {
         ? { request: { fetch: requestFetch } }
         : {};
     const octokit = new core_1.Octokit({ ...config, ...requestOctoKit });
-    const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
+    // const iMethodPath = interpolateString(`${method} ${path}`, context)
+    const iMethodPath = `${method} ${path}`;
     if (core.isDebug())
         core.startGroup(`doRequest ${iMethodPath}`);
     core.debug(`doRequest octokit init: { baseURL: ${baseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
-    const iPayload = (0, util_1.interpolateObject)(body, context);
-    core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
+    // const iPayload = interpolateObject(body, context)
+    core.debug(`doRequest payload: ${JSON.stringify(body, null, 2)}`);
     headers['X-GitHub-Api-Version'] = config_1.GithubAPIversion;
     const response = await octokit.request(iMethodPath, {
         headers,
-        ...iPayload
+        ...body
     });
     core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
     if (core.isDebug())
@@ -35163,31 +35191,43 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.validateInputAsBoolean = validateInputAsBoolean;
+exports.validateInputWithSelection = validateInputWithSelection;
 exports.getInputs = getInputs;
 exports.getContextFromPayload = getContextFromPayload;
 const core = __importStar(__nccwpck_require__(2186));
 // import * as github from '@actions/github'
 const github_1 = __nccwpck_require__(5438);
 const util_1 = __nccwpck_require__(2629);
+function validateInputAsBoolean(nameOfKey, userInput) {
+    if (userInput.toLowerCase() === 'true')
+        return true;
+    if (userInput.toLowerCase() === 'false')
+        return false;
+    throw new Error(`Invalid input for input '${nameOfKey}': ${userInput} is not a boolean value`);
+}
+function validateInputWithSelection(nameOfKey, userInput, validValues) {
+    if (validValues.includes(userInput))
+        return userInput;
+    throw new Error(`Invalid input for input '${nameOfKey}': ${userInput} is not a valid value`);
+}
 /**
  * Get predfined action inputs for actions.
- * @returns {Record<string, string>} Resolves when the action is complete.
+ * @returns {Context} Resolves when the action is complete.
  */
 function getInputs() {
     const inputs = {};
-    inputs['mode'] = core.getInput('mode', { required: true });
-    if (!['pr', 'job'].includes(inputs['mode']))
-        throw new Error(`Invalid mode: ${inputs['mode']}`);
-    inputs['ghToken'] = core.getInput('gh-token', {
-        required: inputs['mode'] === 'pr'
+    inputs.mode = validateInputWithSelection('mode', core.getInput('mode', { required: true }), ['pr', 'job']);
+    inputs.ghToken = core.getInput('gh-token', {
+        required: inputs.mode === 'pr'
     });
-    inputs['ghJob'] = core.getInput('gh-job', {
+    inputs.ghJob = core.getInput('gh-job', {
         required: false
     });
-    inputs['azOpenaiEndpoint'] = core.getInput('az-openai-endpoint', {
+    inputs.azOpenaiEndpoint = core.getInput('az-openai-endpoint', {
         required: true
     });
-    inputs['azOpenaiDeployment'] = core.getInput('az-openai-deployment', {
+    inputs.azOpenaiDeployment = core.getInput('az-openai-deployment', {
         required: true
     });
     inputs['azOpenaiKey'] = core.getInput('az-openai-key', {
@@ -35201,20 +35241,22 @@ function getInputs() {
     });
     if (inputs['dirContext'].length > 0)
         inputs['dirContext'] = atob(inputs['dirContext']);
-    inputs['jobContext'] = core.getInput('job-context', {
+    inputs['jobContext'] = validateInputAsBoolean('jobContext', core.getInput('job-context', {
         required: false
-    });
+    }));
     inputs['userContext'] = core.getInput('user-context', {
         required: false
     });
-    inputs['filesSelection'] = core.getInput('files-selection', {
+    inputs['include'] = core
+        .getInput('include', {
         required: false
-    });
+    })
+        .split(';');
     return inputs;
 }
 /**
  * Get context from githubaction payload and return required context.
- * @returns {Record<string, string>} Resolves when the action is complete.
+ * @returns {Context} Resolves when the action is complete.
  */
 function getContextFromPayload() {
     (0, util_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context, null, 2)}`);
@@ -35354,9 +35396,9 @@ async function mainJob(context) {
         return '';
     }
     context.jobId = currentJob.id;
-    core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`);
+    core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Get Job yaml context: ${context.jobContext}`);
     if (context.jobContext)
-        context.jobContext = await (0, github_api_1.getJobYaml)(context);
+        context.jobContextFile = await (0, github_api_1.getJobYaml)(context);
     const jobLog = await (0, github_api_1.getJobLogs)(context);
     const message = (0, openai_api_1.setupInitialMessage)(context, jobLog);
     let usage = {};
@@ -35526,7 +35568,7 @@ function setupInitialMessage(context, jobLog) {
     };
     let userMessageStr = `Github Action log that failed:\n---\n${jobLog}\n`;
     if (context.jobContext) {
-        userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContext}\n`;
+        userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContextFile}\n`;
     }
     if (context.dirContext) {
         userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`;
@@ -35600,11 +35642,12 @@ exports.githubActionSecurityPrompt = `As a software security assistent, your sol
 - Your reply should: 
     - Be formatted as text, concise, & to the point. Do not highlight minor issues.
     - Not exceed ${config_1.maxWordCountPr} words.
-    - Include a ${config_1.CMD_LINE} & line number or line range, before any reply, (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 <your reply>', single line 5 '${config_1.CMD_LINE}5 <your reply>').
-- If insufficient information is provided (e.g., the diff is less than 3 lines or need to inspect a function in import), follow the guideline:
+    - Include a ${config_1.CMD_LINE} & line number or line range, before each reply, (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 <your reply>', single line 5-5 '${config_1.CMD_LINE}5-5 <your reply>').
+    - Don't include a title or description, only the line number and the reply.
+- If insufficient information is provided (e.g., the diff litte or you need to inspect a function in import), and you need the content of files, follow the guideline:
    - You can only inspect files that are included in the provided directory structure.
    - You must request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"').
-- If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
+- If you are unable to reply with any recommendation. Then you should reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
 
 
 /***/ }),
@@ -35641,8 +35684,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sanitizeString = sanitizeString;
 exports.stripTimestampFromLogs = stripTimestampFromLogs;
 exports.filterCommitFiles = filterCommitFiles;
-exports.interpolateString = interpolateString;
-exports.interpolateObject = interpolateObject;
 exports.rawPrintIfDebug = rawPrintIfDebug;
 exports.debugGroupedMsg = debugGroupedMsg;
 exports.printAIResponse = printAIResponse;
@@ -35750,16 +35791,19 @@ function filterByRegex(files, regexFilters) {
     }
     return filteredFiles;
 }
-/**
- * Replaces placeholders in a string with corresponding values from a context object.
- *
- * @param str - The string containing placeholders to be replaced.
- * @param context - The context object containing key-value pairs for replacement.
- * @returns The string with placeholders replaced by their corresponding values.
- */
-function interpolateString(str, context) {
-    return str.replace(/\${(.*?)}/g, (match, key) => context[key] || match);
-}
+// /**
+//  * Replaces placeholders in a string with corresponding values from a context object.
+//  *
+//  * @param str - The string containing placeholders to be replaced.
+//  * @param context - The context object containing key-value pairs for replacement.
+//  * @returns The string with placeholders replaced by their corresponding values.
+//  */
+// export function interpolateString(str: string, context: Context): string {
+//   return str.replace(
+//     /\${(.*?)}/g,
+//     (match: string, key: string) => context[key] || match
+//   )
+// }
 /**
  * Interpolates values from the given `context` object into the `target` object.
  * If a key in `target` exists in `context`, the corresponding value from `context` is used.
@@ -35769,27 +35813,27 @@ function interpolateString(str, context) {
  * @param context - The context object containing the values to interpolate.
  * @returns A new object with interpolated values.
  */
-function interpolateObject(target, context) {
-    if (!target)
-        return {};
-    const newDic = {};
-    let targetObj = {};
-    if (typeof target === 'string') {
-        targetObj = JSON.parse(target);
-    }
-    else {
-        targetObj = target;
-    }
-    for (const [key, value] of Object.entries(targetObj)) {
-        if (key in context) {
-            newDic[key] = context[key];
-        }
-        else {
-            newDic[key] = value;
-        }
-    }
-    return newDic;
-}
+// export function interpolateObject(
+//   target: Record<string, string> | string | undefined,
+//   context: Context
+// ): Record<string, string> {
+//   if (!target) return {}
+//   const newDic: Record<string, string> = {}
+//   let targetObj: Record<string, string> = {}
+//   if (typeof target === 'string') {
+//     targetObj = JSON.parse(target)
+//   } else {
+//     targetObj = target
+//   }
+//   for (const [key, value] of Object.entries(targetObj)) {
+//     if (key in context) {
+//       newDic[key] = context[key]
+//     } else {
+//       newDic[key] = value
+//     }
+//   }
+//   return newDic
+// }
 /**
  * Prints the given message if the debug mode is enabled.
  *

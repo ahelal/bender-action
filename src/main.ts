@@ -5,6 +5,7 @@ import { mainJob } from './mode_job'
 import { mainPR } from './mode_pr'
 import { debugGroupedMsg } from './util'
 import { waitTime } from './config'
+import { Context } from './types'
 
 /**
  * The main function for the action.
@@ -12,7 +13,7 @@ import { waitTime } from './config'
  */
 export async function run(): Promise<void> {
   try {
-    let context: Record<string, string> = getInputs()
+    let context: Context = getInputs()
     const payloadContext = getContextFromPayload()
     context = Object.assign({}, context, payloadContext)
     debugGroupedMsg('Context', `Context: ${JSON.stringify(context, null, 2)}`)

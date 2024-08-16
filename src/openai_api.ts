@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import { ChatCompletionMessageParam, ChatCompletion } from './types'
+import { ChatCompletionMessageParam, ChatCompletion, Context } from './types'
 import { AzureOpenAI } from 'openai'
 import {
   githubActionFailurePrompt,
@@ -9,7 +9,7 @@ import { maxTokens } from './config'
 import { debugGroupedMsg } from './util'
 
 function setupInitialMessage(
-  context: Record<string, string>,
+  context: Context,
   jobLog: string
 ): ChatCompletionMessageParam[] {
   const systemMessage: ChatCompletionMessageParam = {
@@ -20,7 +20,7 @@ function setupInitialMessage(
   let userMessageStr = `Github Action log that failed:\n---\n${jobLog}\n`
 
   if (context.jobContext) {
-    userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContext}\n`
+    userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContextFile}\n`
   }
 
   if (context.dirContext) {
@@ -43,7 +43,7 @@ function setupInitialMessage(
 }
 
 function setupInitialMessagePr(
-  context: Record<string, string>,
+  context: Context,
   diffText: string,
   filePath: string
 ): ChatCompletionMessageParam[] {
@@ -75,7 +75,7 @@ function setupInitialMessagePr(
 
 async function openAiRequest(
   message: ChatCompletionMessageParam[],
-  context: Record<string, string>
+  context: Context
 ): Promise<ChatCompletion> {
   const {
     azOpenaiDeployment: deployment,

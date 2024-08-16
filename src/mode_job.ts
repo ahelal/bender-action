@@ -22,10 +22,10 @@ export async function mainJob(context: Context): Promise<string> {
   context.jobId = currentJob.id
 
   core.info(
-    `* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`
+    `* Job Name/ID: ${currentJob.name}/${context.jobId} Get Job yaml context: ${context.jobContext}`
   )
 
-  if (context.jobContext) context.jobContext = await getJobYaml(context)
+  if (context.jobContext) context.jobContextFile = await getJobYaml(context)
 
   const jobLog = await getJobLogs(context)
   const message = setupInitialMessage(context, jobLog)

@@ -1,5 +1,4 @@
 import * as core from '@actions/core'
-import { Context } from './types'
 import {
   MAX_INPUT_LOG_LENGTH,
   MAX_INPUT_FILES_LENGTH,
@@ -146,16 +145,19 @@ function filterByRegex(
   return filteredFiles
 }
 
-/**
- * Replaces placeholders in a string with corresponding values from a context object.
- *
- * @param str - The string containing placeholders to be replaced.
- * @param context - The context object containing key-value pairs for replacement.
- * @returns The string with placeholders replaced by their corresponding values.
- */
-export function interpolateString(str: string, context: Context): string {
-  return str.replace(/\${(.*?)}/g, (match, key) => context[key] || match)
-}
+// /**
+//  * Replaces placeholders in a string with corresponding values from a context object.
+//  *
+//  * @param str - The string containing placeholders to be replaced.
+//  * @param context - The context object containing key-value pairs for replacement.
+//  * @returns The string with placeholders replaced by their corresponding values.
+//  */
+// export function interpolateString(str: string, context: Context): string {
+//   return str.replace(
+//     /\${(.*?)}/g,
+//     (match: string, key: string) => context[key] || match
+//   )
+// }
 
 /**
  * Interpolates values from the given `context` object into the `target` object.
@@ -166,28 +168,28 @@ export function interpolateString(str: string, context: Context): string {
  * @param context - The context object containing the values to interpolate.
  * @returns A new object with interpolated values.
  */
-export function interpolateObject(
-  target: Record<string, string> | string | undefined,
-  context: Context
-): Record<string, string> {
-  if (!target) return {}
-  const newDic: Record<string, string> = {}
-  let targetObj: Record<string, string> = {}
-  if (typeof target === 'string') {
-    targetObj = JSON.parse(target)
-  } else {
-    targetObj = target
-  }
+// export function interpolateObject(
+//   target: Record<string, string> | string | undefined,
+//   context: Context
+// ): Record<string, string> {
+//   if (!target) return {}
+//   const newDic: Record<string, string> = {}
+//   let targetObj: Record<string, string> = {}
+//   if (typeof target === 'string') {
+//     targetObj = JSON.parse(target)
+//   } else {
+//     targetObj = target
+//   }
 
-  for (const [key, value] of Object.entries(targetObj)) {
-    if (key in context) {
-      newDic[key] = context[key]
-    } else {
-      newDic[key] = value
-    }
-  }
-  return newDic
-}
+//   for (const [key, value] of Object.entries(targetObj)) {
+//     if (key in context) {
+//       newDic[key] = context[key]
+//     } else {
+//       newDic[key] = value
+//     }
+//   }
+//   return newDic
+// }
 
 /**
  * Prints the given message if the debug mode is enabled.
