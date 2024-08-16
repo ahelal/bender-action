@@ -34908,6 +34908,7 @@ function wrappy (fn, cb) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.filterComments = filterComments;
 exports.getRelevantComments = getRelevantComments;
 exports.postReviewComment = postReviewComment;
 const github_api_1 = __nccwpck_require__(1030);
@@ -34917,12 +34918,26 @@ const github_api_1 = __nccwpck_require__(1030);
 //     comment.subject_type === 'file' &&
 //     comment.commit_id === context.commitId &&
 //     files.includes(comment.path)
-async function getRelevantComments(files, context) {
-    const user = await (0, github_api_1.getUserInfo)(context);
-    const prComments = await (0, github_api_1.getComments)(context);
-    const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
+async function filterComments(comment, files, context) {
+    if (
+    // filter out comments that are not from the user, not on the commit, or not on the files, or not on the line
+    !(comment.user.login === context.login &&
         comment.commit_id === context.commitId &&
-        files.includes(comment.path));
+        comment.subject_type === 'line' &&
+        files.includes(comment.path)))
+        return false;
+    // filter out comments that are outdated
+    if (comment.line == null)
+        return false;
+    return true;
+}
+async function getRelevantComments(files, context) {
+    const prComments = await (0, github_api_1.getComments)(context);
+    const relevantComments = prComments.filter(comment => filterComments(comment, files, context)
+    //     comment.user.login === user.login &&
+    //     comment.commit_id === context.commitId &&
+    //     files.includes(comment.path)
+    );
     return relevantComments;
 }
 async function postReviewComment(reply, file, context) {
@@ -35514,6 +35529,9 @@ async function mainPR(context) {
     const files = filesInPR.map(f => f.filename);
     if (filesInPR.length < 1)
         return '';
+    // Whoami
+    const user = await (0, github_api_1.getUserInfo)(context);
+    context.login = user.login;
     const relevantComments = await (0, comments_1.getRelevantComments)(files, context);
     for (const file of files) {
         await processFile(file, context, relevantComments);

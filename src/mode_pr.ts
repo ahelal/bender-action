@@ -2,7 +2,8 @@ import * as core from '@actions/core'
 import {
   getCommitFiles,
   getFileContent4Context,
-  getContent
+  getContent,
+  getUserInfo
 } from './github_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context, dataResponse } from './types'
@@ -74,6 +75,10 @@ export async function mainPR(context: Context): Promise<string> {
   const files = filesInPR.map(f => f.filename)
 
   if (filesInPR.length < 1) return ''
+
+  // Whoami
+  const user = await getUserInfo(context)
+  context.login = user.login
 
   const relevantComments = await getRelevantComments(files, context)
 

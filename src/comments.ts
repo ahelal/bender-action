@@ -8,17 +8,36 @@ import { Context, dataResponse } from './types'
 //     comment.commit_id === context.commitId &&
 //     files.includes(comment.path)
 
+export async function filterComments(
+  comment: dataResponse,
+  files: string[],
+  context: Context
+): Promise<boolean> {
+  if (
+    // filter out comments that are not from the user, not on the commit, or not on the files, or not on the line
+    !(
+      comment.user.login === context.login &&
+      comment.commit_id === context.commitId &&
+      comment.subject_type === 'line' &&
+      files.includes(comment.path)
+    )
+  )
+    return false
+  // filter out comments that are outdated
+  if (comment.line == null) return false
+  return true
+}
+
 export async function getRelevantComments(
   files: string[],
   context: Context
 ): Promise<dataResponse[]> {
-  const user = await getUserInfo(context)
   const prComments = await getComments(context)
   const relevantComments = prComments.filter(
-    comment =>
-      comment.user.login === user.login &&
-      comment.commit_id === context.commitId &&
-      files.includes(comment.path)
+    comment => filterComments(comment, files, context)
+    //     comment.user.login === user.login &&
+    //     comment.commit_id === context.commitId &&
+    //     files.includes(comment.path)
   )
   return relevantComments
 }

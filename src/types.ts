@@ -40,6 +40,7 @@ export interface Context {
   commitId: string
   // run time
   jobId?: string
+  login?: string
 }
 
 export interface requestParams {
