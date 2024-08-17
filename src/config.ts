@@ -48,3 +48,6 @@ export const CMD_LINE = `${MAGIC_SYMBOL}L`
 // TODO limit the number of files to process
 // Max line length per file
 // export const maxLineLengthPerFile = 5000
+
+export const stripWords = [':debug::', ':notice::', ':info::']
+export const stripLinesStartingWith = ['::group::', '::endgroup::']

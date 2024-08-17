@@ -1,4 +1,5 @@
-import { splitComment } from '../src/comments'
+import { splitComment, filterCommentsInline } from '../src/comments'
+import { Context } from '../src/types'
 
 describe('splitComment', () => {
   it('should split comment with line range', () => {
@@ -40,4 +41,65 @@ describe('splitComment', () => {
       comment: ''
     })
   })
+})
+
+describe('filterCommentsInline', () => {})
+it('should return true for relevant comment', () => {
+  const comment = {
+    user: { login: 'testUser' },
+    subject_type: 'line',
+    path: 'testFile',
+    commit_id: 'testCommitId',
+    line: 10
+  }
+  const files = ['testFile']
+  const commitOnly = true
+  const context = { login: 'testUser', commitId: 'testCommitId' } as Context
+  const result = filterCommentsInline(comment, files, commitOnly, context)
+  expect(result).toBe(true)
+})
+
+it('should return false for irrelevant comment', () => {
+  const comment = {
+    user: { login: 'testUser' },
+    subject_type: 'line',
+    path: 'testFile',
+    commit_id: 'testCommitId',
+    line: 10
+  }
+  const files = ['otherFile']
+  const commitOnly = true
+  const context = { login: 'testUser', commitId: 'testCommitId' } as Context
+  const result = filterCommentsInline(comment, files, commitOnly, context)
+  expect(result).toBe(false)
+})
+
+it('should return false for outdated comment', () => {
+  const comment = {
+    user: { login: 'testUser' },
+    subject_type: 'line',
+    path: 'testFile',
+    commit_id: 'testCommitId',
+    line: null
+  }
+  const files = ['testFile']
+  const commitOnly = true
+  const context = { login: 'testUser', commitId: 'testCommitId' } as Context
+  const result = filterCommentsInline(comment, files, commitOnly, context)
+  expect(result).toBe(false)
+})
+
+it('should return false for comment with different commit ID', () => {
+  const comment = {
+    user: { login: 'testUser' },
+    subject_type: 'line',
+    path: 'testFile',
+    commit_id: 'otherCommitId',
+    line: 10
+  }
+  const files = ['testFile']
+  const commitOnly = true
+  const context = { login: 'testUser', commitId: 'testCommitId' } as Context
+  const result = filterCommentsInline(comment, files, commitOnly, context)
+  expect(result).toBe(false)
 })

@@ -1,5 +1,7 @@
+import * as core from '@actions/core'
 import { postComment, getComments } from './github_api'
 import { Context, dataResponse } from './types'
+import { printAIResponse } from './util'
 
 // const relevantComments = prComments.filter(
 //   comment =>
@@ -8,35 +10,70 @@ import { Context, dataResponse } from './types'
 //     comment.commit_id === context.commitId &&
 //     files.includes(comment.path)
 
-export function filterComments(
+/**
+ * Filters comments based on specified criteria.
+ *
+ * @param comment - The comment to be filtered.
+ * @param files - The list of files to filter comments for.
+ * @param commitOnly - Indicates whether to filter comments based on commit ID only.
+ * @param context - The context object containing login and commit ID information.
+ * @returns A boolean value indicating whether the comment passes the filter.
+ */
+export function filterCommentsInline(
   comment: dataResponse,
   files: string[],
+  commitOnly: boolean,
   context: Context
 ): boolean {
   if (
-    // filter out comments that are not from the user, not on the commit, or not on the files, or not on the line
     !(
       comment.user.login === context.login &&
-      comment.commit_id === context.commitId &&
       comment.subject_type === 'line' &&
       files.includes(comment.path)
     )
   )
     return false
+  if (commitOnly && comment.commit_id !== context.commitId) return false
+
   // filter out comments that are outdated
   if (comment.line == null) return false
   return true
 }
 
+export function filterCommentsFiles(
+  comment: dataResponse,
+  files: string[],
+  context: Context
+): boolean {
+  return (
+    comment.user.login === context.login &&
+    comment.subject_type === 'file' &&
+    comment.commit_id === context.commitId &&
+    files.includes(comment.path)
+  )
+}
+/**
+ * Retrieves relevant comments based on the provided files and context.
+ *
+ * @param files - An array of file paths.
+ * @param context - The context object containing additional information.
+ * @returns A promise that resolves to an array of relevant comments.
+ */
 export async function getRelevantComments(
   files: string[],
   context: Context
 ): Promise<dataResponse[]> {
   const prComments = await getComments(context)
-  const relevantComments = prComments.filter(comment =>
-    filterComments(comment, files, context)
+  // inline comments
+  if (context.inlineComment) {
+    return prComments.filter(comment =>
+      filterCommentsInline(comment, files, true, context)
+    )
+  }
+
+  return prComments.filter(comment =>
+    filterCommentsFiles(comment, files, context)
   )
-  return relevantComments
 }
 
 export function splitComment(comment: string): {
@@ -65,7 +102,6 @@ export async function postReviewComment(
   context: Context
 ): Promise<void> {
   // loop through each line in rely
-  console.log('YYYYYYY ', reply.split('\n'))
   // for (const line of reply.split('\n')) {
   //   const lineComment = splitComment(line)
   //   console.log(`YYYYYY Posting comment on ${file} ${line}`, lineComment)
@@ -76,4 +112,20 @@ export async function postReviewComment(
   //   path: file,
   //   subject_type: 'file'
   // })
+  if (context.inlineComment) {
+    core.warning('Inline comment not supported yet')
+  } else {
+    await postComment(context.pr, context, {
+      body: reply,
+      commit_id: context.commitId,
+      path: file,
+      subject_type: 'file'
+    })
+  }
+
+  if (reply)
+    printAIResponse(
+      `PR response for ${file}@${context.ref}`,
+      JSON.stringify(reply.split('\n'), null, 2)
+    )
 }

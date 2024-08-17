@@ -34903,50 +34903,131 @@ function wrappy (fn, cb) {
 /***/ }),
 
 /***/ 5561:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.filterComments = filterComments;
+exports.filterCommentsInline = filterCommentsInline;
+exports.filterCommentsFiles = filterCommentsFiles;
 exports.getRelevantComments = getRelevantComments;
+exports.splitComment = splitComment;
 exports.postReviewComment = postReviewComment;
+const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
+const util_1 = __nccwpck_require__(2629);
 // const relevantComments = prComments.filter(
 //   comment =>
 //     comment.user.login === user.login &&
 //     comment.subject_type === 'file' &&
 //     comment.commit_id === context.commitId &&
 //     files.includes(comment.path)
-async function filterComments(comment, files, context) {
-    if (
-    // filter out comments that are not from the user, not on the commit, or not on the files, or not on the line
-    !(comment.user.login === context.login &&
-        comment.commit_id === context.commitId &&
+/**
+ * Filters comments based on specified criteria.
+ *
+ * @param comment - The comment to be filtered.
+ * @param files - The list of files to filter comments for.
+ * @param commitOnly - Indicates whether to filter comments based on commit ID only.
+ * @param context - The context object containing login and commit ID information.
+ * @returns A boolean value indicating whether the comment passes the filter.
+ */
+function filterCommentsInline(comment, files, commitOnly, context) {
+    if (!(comment.user.login === context.login &&
         comment.subject_type === 'line' &&
         files.includes(comment.path)))
+        return false;
+    if (commitOnly && comment.commit_id !== context.commitId)
         return false;
     // filter out comments that are outdated
     if (comment.line == null)
         return false;
     return true;
 }
+function filterCommentsFiles(comment, files, context) {
+    return (comment.user.login === context.login &&
+        comment.subject_type === 'file' &&
+        comment.commit_id === context.commitId &&
+        files.includes(comment.path));
+}
+/**
+ * Retrieves relevant comments based on the provided files and context.
+ *
+ * @param files - An array of file paths.
+ * @param context - The context object containing additional information.
+ * @returns A promise that resolves to an array of relevant comments.
+ */
 async function getRelevantComments(files, context) {
     const prComments = await (0, github_api_1.getComments)(context);
-    const relevantComments = prComments.filter(comment => filterComments(comment, files, context)
-    //     comment.user.login === user.login &&
-    //     comment.commit_id === context.commitId &&
-    //     files.includes(comment.path)
-    );
-    return relevantComments;
+    // inline comments
+    if (context.inlineComment) {
+        return prComments.filter(comment => filterCommentsInline(comment, files, true, context));
+    }
+    return prComments.filter(comment => filterCommentsFiles(comment, files, context));
+}
+function splitComment(comment) {
+    if (comment.trim().length === 0) {
+        return { start_line: 0, end_line: 0, comment: '' };
+    }
+    const regex = /#L(\d+)(?:-(\d+))?\s(.+)/;
+    const matches = comment.match(regex);
+    if (matches) {
+        const startLine = parseInt(matches[1]);
+        const endLine = matches[2] ? parseInt(matches[2]) : startLine;
+        const commentText = matches[3];
+        return { start_line: startLine, end_line: endLine, comment: commentText };
+    }
+    else {
+        return { start_line: -1, end_line: 0, comment: '' };
+    }
 }
 async function postReviewComment(reply, file, context) {
-    await (0, github_api_1.postComment)(context.pr, context, {
-        body: reply,
-        commit_id: context.commitId,
-        path: file,
-        subject_type: 'file'
-    });
+    // loop through each line in rely
+    // for (const line of reply.split('\n')) {
+    //   const lineComment = splitComment(line)
+    //   console.log(`YYYYYY Posting comment on ${file} ${line}`, lineComment)
+    // }
+    // await postComment(context.pr, context, {
+    //   body: reply,
+    //   commit_id: context.commitId,
+    //   path: file,
+    //   subject_type: 'file'
+    // })
+    if (context.inlineComment) {
+        core.warning('Inline comment not supported yet');
+    }
+    else {
+        await (0, github_api_1.postComment)(context.pr, context, {
+            body: reply,
+            commit_id: context.commitId,
+            path: file,
+            subject_type: 'file'
+        });
+    }
+    if (reply)
+        (0, util_1.printAIResponse)(`PR response for ${file}@${context.ref}`, JSON.stringify(reply.split('\n'), null, 2));
 }
 
 
@@ -34959,7 +35040,7 @@ async function postReviewComment(reply, file, context) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
+exports.stripLinesStartingWith = exports.stripWords = exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
 // Default Github API version
 exports.GithubAPIversion = '2022-11-28';
 // Default max tokens for OpenAI
@@ -34993,6 +35074,8 @@ exports.CMD_LINE = `${exports.MAGIC_SYMBOL}L`;
 // TODO limit the number of files to process
 // Max line length per file
 // export const maxLineLengthPerFile = 5000
+exports.stripWords = [':debug::', ':notice::', ':info::'];
+exports.stripLinesStartingWith = ['::group::', '::endgroup::'];
 
 
 /***/ }),
@@ -35026,13 +35109,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getJobYaml = getJobYaml;
+exports.getContentByRef = getContentByRef;
+exports.getFileContent4Context = getFileContent4Context;
 exports.doRequest = doRequest;
 exports.getJob = getJob;
 exports.getJobLogs = getJobLogs;
 exports.getActionRuns = getActionRuns;
-exports.getContent = getContent;
-exports.getJobYaml = getJobYaml;
-exports.getFileContent4Context = getFileContent4Context;
 exports.getUserInfo = getUserInfo;
 exports.getCommitFiles = getCommitFiles;
 exports.getComments = getComments;
@@ -35041,6 +35124,11 @@ const core = __importStar(__nccwpck_require__(2186));
 const core_1 = __nccwpck_require__(6762);
 const config_1 = __nccwpck_require__(6373);
 const util_1 = __nccwpck_require__(2629);
+async function getJobYaml(context) {
+    const jobAction = await getActionRuns(context);
+    const jobYaml = await getContentByRef(jobAction.path, jobAction.head_branch, context);
+    return jobYaml;
+}
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function getActionRuns(context) {
     const response = await doRequest({
@@ -35083,13 +35171,6 @@ async function getJob(context) {
     const failedJob = response.data.jobs.find((job) => job.status === 'completed' && job.conclusion === 'failure');
     return failedJob || null;
 }
-async function getContent(filepath, ref, context) {
-    const response = await doRequest({
-        method: 'GET',
-        path: `/repos/${context.owner}/${context.repo}/contents/${filepath}?ref=${ref}`
-    }, context);
-    return atob(response.data.content);
-}
 async function getJobLogs(context) {
     const response = await doRequest({
         method: 'GET',
@@ -35097,10 +35178,33 @@ async function getJobLogs(context) {
     }, context);
     return (0, util_1.stripTimestampFromLogs)(response.data);
 }
-async function getJobYaml(context) {
-    const jobAction = await getActionRuns(context);
-    const jobYaml = await getContent(jobAction.path, jobAction.head_branch, context);
-    return jobYaml;
+// async function getFileContent4Context(
+//   response: string,
+//   context: Context
+// ): Promise<{ filename: string; content: string } | false> {
+//   debugGroupedMsg(
+//     'getFileContent4Context',
+//     `Response: ${JSON.stringify(response, null, 2)}`
+//   )
+//   const regex = new RegExp(`${CMD_INCLUDE_FILE} "(.*?)"`, 'gm')
+//   const matches = [...response.matchAll(regex)]
+//   if (matches.length < 1) {
+//     core.warning(
+//       'No file content matched, this can be incorrect response format from OpenAI. try to run again'
+//     )
+//     return false
+//   }
+//   const found = matches.map(match => match[1])
+//   core.info(`Fetching more context from repo: ${found[0]}@${context.ref}`)
+//   const fileContent = await getContent(found[0], context.ref, context)
+//   return { filename: found[0], content: fileContent }
+// }
+async function getContentByRef(filepath, ref, context) {
+    const response = await doRequest({
+        method: 'GET',
+        path: `/repos/${context.owner}/${context.repo}/contents/${filepath}?ref=${ref}`
+    }, context);
+    return (0, util_1.decode64)(response.data.content, `${filepath}@${ref}`);
 }
 async function getFileContent4Context(response, context) {
     (0, util_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`);
@@ -35111,8 +35215,8 @@ async function getFileContent4Context(response, context) {
         return false;
     }
     const found = matches.map(match => match[1]);
-    core.info(`Fetching more context from repo: ${found[0]}:${context.ref}`);
-    const fileContent = await getContent(found[0], context.ref, context);
+    core.info(`Fetching more context from repo: ${found[0]}@${context.ref}`);
+    const fileContent = await getContentByRef(found[0], context.ref, context);
     return { filename: found[0], content: fileContent };
 }
 async function getCommitFiles(context) {
@@ -35211,13 +35315,14 @@ exports.validateInputWithSelection = validateInputWithSelection;
 exports.getInputs = getInputs;
 exports.getContextFromPayload = getContextFromPayload;
 const core = __importStar(__nccwpck_require__(2186));
-// import * as github from '@actions/github'
 const github_1 = __nccwpck_require__(5438);
 const util_1 = __nccwpck_require__(2629);
 function validateInputAsBoolean(nameOfKey, userInput) {
     if (userInput.toLowerCase() === 'true')
         return true;
     if (userInput.toLowerCase() === 'false')
+        return false;
+    if (userInput.trim() === '')
         return false;
     throw new Error(`Invalid input for input '${nameOfKey}': ${userInput} is not a boolean value`);
 }
@@ -35255,13 +35360,16 @@ function getInputs() {
         required: false
     });
     if (inputs['dirContext'].length > 0)
-        inputs['dirContext'] = atob(inputs['dirContext']);
-    inputs['jobContext'] = validateInputAsBoolean('jobContext', core.getInput('job-context', {
+        inputs['dirContext'] = (0, util_1.decode64)(inputs['dirContext'], "GH action input 'dirContext'");
+    inputs.jobContext = validateInputAsBoolean('jobContext', core.getInput('job-context', {
         required: false
     }));
-    inputs['userContext'] = core.getInput('user-context', {
+    inputs.userContext = core.getInput('user-context', {
         required: false
     });
+    inputs.inlineComment = validateInputAsBoolean('inline-comment', core.getInput('inline-comment', {
+        required: false
+    }));
     inputs['include'] = core
         .getInput('include', {
         required: false
@@ -35277,17 +35385,13 @@ function getContextFromPayload() {
     (0, util_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context, null, 2)}`);
     const requiredContext = {};
     const full_name = github_1.context.payload.repository?.full_name?.split('/') || [];
-    requiredContext['full_name'] = full_name.join('/');
-    requiredContext['owner'] = full_name[0];
-    requiredContext['repo'] = full_name[1];
-    requiredContext['runId'] = github_1.context.runId ? github_1.context.runId.toString() : '';
-    requiredContext['ref'] = github_1.context.ref;
-    requiredContext['pr'] = github_1.context.payload.number
-        ? github_1.context.payload.number.toString()
-        : '';
-    requiredContext['commitId'] = github_1.context.payload.after
-        ? github_1.context.payload.after.toString()
-        : '';
+    requiredContext.full_name = full_name.join('/');
+    requiredContext.owner = full_name[0];
+    requiredContext.repo = full_name[1];
+    requiredContext.runId = github_1.context.runId ? github_1.context.runId.toString() : '';
+    requiredContext.pr = github_1.context.payload.number?.toString() || '';
+    requiredContext.commitId = github_1.context.payload.after?.toString() || '';
+    requiredContext.ref = github_1.context.ref || requiredContext.commitId;
     return requiredContext;
 }
 
@@ -35483,7 +35587,6 @@ const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 const comments_1 = __nccwpck_require__(5561);
-const util_1 = __nccwpck_require__(2629);
 async function generateReply(prFileContent, context, file) {
     let reply = '';
     for (let i = 1; i <= config_1.maxRecursionPr; i++) {
@@ -35506,13 +35609,21 @@ async function generateReply(prFileContent, context, file) {
         }
         message.push({ role: 'assistant', content: reply });
     }
+    if (reply.includes(config_1.CMD_NO_SUFFICIENT_INFO)) {
+        core.warning(`No sufficient info for OpenAI to provide reply for content of '${file}'.\n${reply}\n`);
+        return '';
+    }
     return reply;
 }
 async function processFile(file, context, relevantComments) {
     core.info(`* Processing file: ${file}`);
-    const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
+    const prFileContent = await (0, github_api_1.getContentByRef)(file, context.ref, context);
     if (!prFileContent) {
         core.error(`Unable to fetch file content '${file}' '${context.ref}'`);
+        return;
+    }
+    if (prFileContent.trim().length < 1) {
+        core.warning(`File ${file} is empty skipping`);
         return;
     }
     const fileComment = relevantComments.find(comment => comment.path === file);
@@ -35521,8 +35632,9 @@ async function processFile(file, context, relevantComments) {
         return;
     }
     const reply = await generateReply(prFileContent, context, file);
+    if (reply.trim().length < 1)
+        return;
     await (0, comments_1.postReviewComment)(reply, file, context);
-    (0, util_1.printAIResponse)(`PR response for ${file}@${context.ref}`, reply);
 }
 async function mainPR(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
@@ -35622,7 +35734,7 @@ function setupInitialMessagePr(context, diffText, filePath) {
 }
 async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
-    core.info('* Request response from Azure OpenAI');
+    core.info(`* Request response from Azure OpenAI`);
     (0, util_1.debugGroupedMsg)('Azure OpenAI Message', `Message: ${JSON.stringify(message, null, 2)}`);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({
@@ -35661,11 +35773,11 @@ exports.githubActionSecurityPrompt = `As a software security assistent, your sol
     - Be formatted as text, concise, & to the point. Do not highlight minor issues.
     - Not exceed ${config_1.maxWordCountPr} words.
     - Include a ${config_1.CMD_LINE} & line number or line range, before each reply, (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 <your reply>', single line 5-5 '${config_1.CMD_LINE}5-5 <your reply>').
-    - Don't include a title or description, only the line number and the reply.
+    - Don't include a reply, title, summary or description, only the line number and the reply.
 - If insufficient information is provided (e.g., the diff litte or you need to inspect a function in import), and you need the content of files, follow the guideline:
    - You can only inspect files that are included in the provided directory structure.
    - You must request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"').
-- If you are unable to reply with any recommendation. Then you should reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
+   - If all the above methods fail and you cannot provide a single line of recommendation, then respond with '${config_1.CMD_NO_SUFFICIENT_INFO}'`;
 
 
 /***/ }),
@@ -35705,6 +35817,7 @@ exports.filterCommitFiles = filterCommitFiles;
 exports.rawPrintIfDebug = rawPrintIfDebug;
 exports.debugGroupedMsg = debugGroupedMsg;
 exports.printAIResponse = printAIResponse;
+exports.decode64 = decode64;
 const core = __importStar(__nccwpck_require__(2186));
 const config_1 = __nccwpck_require__(6373);
 /**
@@ -35878,6 +35991,25 @@ function debugGroupedMsg(title, message) {
 function printAIResponse(title, message) {
     core.info(`${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`);
 }
+/**
+ * Decodes a base64 string.
+ *
+ * @param str - The base64 string to decode.
+ * @param fileRef - The reference to the file being decoded.
+ * @returns The decoded string.
+ * @throws An error if there is an issue decoding the base64 string.
+ */
+function decode64(str, fileRef) {
+    if (!str || str.length === 0)
+        return ' ';
+    try {
+        return atob(str);
+    }
+    catch (e) {
+        throw new Error(`error while decoding base64 string when attempting to decode ${fileRef}. ${e}`);
+    }
+}
+// export function convertToStringAndCountChar()
 
 
 /***/ }),

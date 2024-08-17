@@ -16,7 +16,8 @@ if [ "${1}" == "install" ]; then
 elif [ "${1}" == "job" ]; then
 	npx @github/local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env"
 elif [ "${1}" == "pr" ]; then
-	npx @github/local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env_pr.sh"
+	# npx @github/local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env_pr.sh"
+	local-action run "${ROOT_DIR}" src/index.ts "${LOCAL_ACTION_DIR}/.env_pr.sh"
 else
 	echo "Invalid argument, supported arrguments: install, job, pr"
 	exit 0

@@ -84,7 +84,7 @@ async function openAiRequest(
     azOpenaiEndpoint: endpoint
   } = context
 
-  core.info('* Request response from Azure OpenAI')
+  core.info(`* Request response from Azure OpenAI`)
   debugGroupedMsg(
     'Azure OpenAI Message',
     `Message: ${JSON.stringify(message, null, 2)}`

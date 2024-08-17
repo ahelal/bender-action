@@ -9,6 +9,7 @@ export function validateInputAsBoolean(
 ): boolean {
   if (userInput.toLowerCase() === 'true') return true
   if (userInput.toLowerCase() === 'false') return false
+  if (userInput.trim() === '') return false
   throw new Error(
     `Invalid input for input '${nameOfKey}': ${userInput} is not a boolean value`
   )
@@ -72,16 +73,23 @@ export function getInputs(): Context {
       "GH action input 'dirContext'"
     )
 
-  inputs['jobContext'] = validateInputAsBoolean(
+  inputs.jobContext = validateInputAsBoolean(
     'jobContext',
     core.getInput('job-context', {
       required: false
     })
   )
 
-  inputs['userContext'] = core.getInput('user-context', {
+  inputs.userContext = core.getInput('user-context', {
     required: false
   })
+
+  inputs.inlineComment = validateInputAsBoolean(
+    'inline-comment',
+    core.getInput('inline-comment', {
+      required: false
+    })
+  )
 
   inputs['include'] = core
     .getInput('include', {

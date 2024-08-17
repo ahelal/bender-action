@@ -6,8 +6,8 @@ param resourceGroupLocation = 'swedencentral'
 param openAiServiceName = 'bender-oa'
 param openAiDeploymentName = 'bender-codehelper'
 
-// *** GPT 4o example ***
-param openAiDeploymentModelName = 'gpt-4o'
+// *** GPT 4 example ***
+param openAiDeploymentModelName = 'gpt-4'
 param openAiDeploymentModelVersion = '2024-05-13'
 param deployment = {
     name: openAiDeploymentName
@@ -17,6 +17,18 @@ param deployment = {
       version: openAiDeploymentModelVersion
     }
   }
+
+
+// *** GPT 4o example ***
+param openAiDeploymentModelName = 'gpt-4'
+param openAiDeploymentModelVersion = '2024-05-13'
+param deployment = {
+    name: openAiDeploymentName
+    model: {
+      format: 'OpenAI'
+      name: openAiDeploymentModelName
+      version: openAiDeploymentModelVersion
+    }
 
 // *** GPT 3.5 Turbo example ***
 // param openAiDeploymentModelName = 'gpt-35-turbo'

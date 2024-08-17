@@ -41,6 +41,8 @@ export interface Context {
   // run time
   jobId?: string
   login?: string
+  //what type of comment
+  inlineComment: boolean
 }
 
 export interface requestParams {

@@ -62,7 +62,8 @@ describe('getInputs', () => {
       dirContext: 'hello',
       jobContext: true,
       userContext: 'userContext123',
-      include: ['include123']
+      include: ['include123'],
+      inlineComment: false
     })
   })
 
@@ -80,7 +81,8 @@ describe('getInputs', () => {
       dirContext: 'hello',
       jobContext: true,
       userContext: 'userContext123',
-      include: ['include123']
+      include: ['include123'],
+      inlineComment: false
     })
   })
 

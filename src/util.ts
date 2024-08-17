@@ -239,3 +239,5 @@ export function decode64(str: string, fileRef: string): string {
     )
   }
 }
+
+// export function convertToStringAndCountChar()

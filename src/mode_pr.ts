@@ -1,8 +1,8 @@
 import * as core from '@actions/core'
 import {
   getCommitFiles,
+  getContentByRef,
   getFileContent4Context,
-  getContent,
   getUserInfo
 } from './github_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
@@ -13,7 +13,6 @@ import {
   CMD_NO_SUFFICIENT_INFO
 } from './config'
 import { getRelevantComments, postReviewComment } from './comments'
-import { printAIResponse } from './util'
 
 async function generateReply(
   prFileContent: string,
@@ -62,9 +61,13 @@ async function processFile(
 ): Promise<void> {
   core.info(`* Processing file: ${file}`)
 
-  const prFileContent = await getContent(file, context.ref, context)
+  const prFileContent = await getContentByRef(file, context.ref, context)
   if (!prFileContent) {
     core.error(`Unable to fetch file content '${file}' '${context.ref}'`)
+    return
+  }
+  if (prFileContent.trim().length < 1) {
+    core.warning(`File ${file} is empty skipping`)
     return
   }
 
@@ -75,9 +78,9 @@ async function processFile(
   }
 
   const reply = await generateReply(prFileContent, context, file)
-  await postReviewComment(reply, file, context)
+  if (reply.trim().length < 1) return
 
-  if (reply) printAIResponse(`PR response for ${file}@${context.ref}`, reply)
+  await postReviewComment(reply, file, context)
 }
 
 export async function mainPR(context: Context): Promise<string> {
