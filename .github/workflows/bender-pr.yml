@@ -1,4 +1,4 @@
-name: local bender PR
+name: Integeration Test Bender PR
 
 on:
   pull_request:

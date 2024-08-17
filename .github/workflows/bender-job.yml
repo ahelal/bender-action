@@ -1,4 +1,5 @@
-name: local bender Job
+name: Integeration Test Bender Job
+
 on:
   pull_request:
     branches:
