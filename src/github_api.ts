@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
 import { OctokitResponse, Context, requestParams, dataResponse } from './types'
-import { GithubAPIversion, CMD_INCLUDE_FILE } from './config'
+import { GITHUB_API_VERSION, CMD_INCLUDE_FILE } from './config'
 
 import {
   decode64,
@@ -22,7 +22,7 @@ export async function getJobYaml(context: Context): Promise<string> {
 }
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-async function getActionRuns(context: Context): Promise<any> {
+export async function getActionRuns(context: Context): Promise<any> {
   const response = await doRequest(
     {
       method: 'GET',
@@ -57,7 +57,7 @@ async function getActionRuns(context: Context): Promise<any> {
 //   return info
 // }
 
-async function getJob(context: Context): Promise<any> {
+export async function getJob(context: Context): Promise<any> {
   const response = await doRequest(
     {
       method: 'GET',
@@ -80,7 +80,7 @@ async function getJob(context: Context): Promise<any> {
   return failedJob || null
 }
 
-async function getJobLogs(context: Context): Promise<string> {
+export async function getJobLogs(context: Context): Promise<string> {
   const response = await doRequest(
     {
       method: 'GET',
@@ -90,28 +90,6 @@ async function getJobLogs(context: Context): Promise<string> {
   )
   return stripTimestampFromLogs(response.data)
 }
-
-// async function getFileContent4Context(
-//   response: string,
-//   context: Context
-// ): Promise<{ filename: string; content: string } | false> {
-//   debugGroupedMsg(
-//     'getFileContent4Context',
-//     `Response: ${JSON.stringify(response, null, 2)}`
-//   )
-//   const regex = new RegExp(`${CMD_INCLUDE_FILE} "(.*?)"`, 'gm')
-//   const matches = [...response.matchAll(regex)]
-//   if (matches.length < 1) {
-//     core.warning(
-//       'No file content matched, this can be incorrect response format from OpenAI. try to run again'
-//     )
-//     return false
-//   }
-//   const found = matches.map(match => match[1])
-//   core.info(`Fetching more context from repo: ${found[0]}@${context.ref}`)
-//   const fileContent = await getContent(found[0], context.ref, context)
-//   return { filename: found[0], content: fileContent }
-// }
 
 export async function getContentByRef(
   filepath: string,
@@ -150,7 +128,7 @@ export async function getFileContent4Context(
   return { filename: found[0], content: fileContent }
 }
 
-async function getCommitFiles(
+export async function getCommitFiles(
   context: Context
 ): Promise<Record<string, string>[]> {
   const files = await doRequest(
@@ -163,7 +141,9 @@ async function getCommitFiles(
   return filterCommitFiles(files.data.files, context.include)
 }
 
-async function getUserInfo(context: Context): Promise<Record<string, any>> {
+export async function getUserInfo(
+  context: Context
+): Promise<Record<string, any>> {
   const user = await doRequest(
     {
       method: 'GET',
@@ -174,7 +154,7 @@ async function getUserInfo(context: Context): Promise<Record<string, any>> {
   return user.data
 }
 
-async function getComments(context: Context): Promise<dataResponse[]> {
+export async function getComments(context: Context): Promise<dataResponse[]> {
   const response = await doRequest(
     {
       method: 'GET',
@@ -185,7 +165,7 @@ async function getComments(context: Context): Promise<dataResponse[]> {
   return response.data
 }
 
-async function postComment(
+export async function postComment(
   pullRequestNumber: string,
   context: Context,
   body: Record<string, string>
@@ -233,7 +213,7 @@ export async function doRequest(
   // const iPayload = interpolateObject(body, context)
   core.debug(`doRequest payload: ${JSON.stringify(body, null, 2)}`)
 
-  headers['X-GitHub-Api-Version'] = GithubAPIversion
+  headers['X-GitHub-Api-Version'] = GITHUB_API_VERSION
 
   const response = await octokit.request(iMethodPath, {
     headers,
@@ -247,19 +227,5 @@ export async function doRequest(
       `Github API request failed with status code ${response.status}. ${response.data.message}`
     )
   }
-
   return response
-}
-
-export {
-  getJob,
-  getJobLogs,
-  getActionRuns,
-  // getContent,
-  // getJobYaml,
-  // getFileContent4Context,
-  getUserInfo,
-  getCommitFiles,
-  getComments,
-  postComment
 }

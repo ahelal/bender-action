@@ -34939,14 +34939,8 @@ exports.postReviewComment = postReviewComment;
 const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const util_1 = __nccwpck_require__(2629);
-// const relevantComments = prComments.filter(
-//   comment =>
-//     comment.user.login === user.login &&
-//     comment.subject_type === 'file' &&
-//     comment.commit_id === context.commitId &&
-//     files.includes(comment.path)
 /**
- * Filters comments based on specified criteria.
+ * Filters comments based on specified criteria for inline comments.
  *
  * @param comment - The comment to be filtered.
  * @param files - The list of files to filter comments for.
@@ -34966,6 +34960,14 @@ function filterCommentsInline(comment, files, commitOnly, context) {
         return false;
     return true;
 }
+/**
+ * Filters the comments based on the provided criteria for file comments.
+ *
+ * @param comment - The comment to be filtered.
+ * @param files - The list of files to compare against.
+ * @param context - The context object containing login and commitId.
+ * @returns A boolean indicating whether the comment meets the filtering criteria.
+ */
 function filterCommentsFiles(comment, files, context) {
     return (comment.user.login === context.login &&
         comment.subject_type === 'file' &&
@@ -34987,6 +34989,12 @@ async function getRelevantComments(files, context) {
     }
     return prComments.filter(comment => filterCommentsFiles(comment, files, context));
 }
+/**
+ * Splits a comment from OpenAI into its start line, end line, and comment text.
+ *
+ * @param comment - The comment to split.
+ * @returns An object containing the start line, end line, and comment text.
+ */
 function splitComment(comment) {
     if (comment.trim().length === 0) {
         return { start_line: 0, end_line: 0, comment: '' };
@@ -35040,27 +35048,31 @@ async function postReviewComment(reply, file, context) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.stripLinesStartingWith = exports.stripWords = exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
-// Default Github API version
-exports.GithubAPIversion = '2022-11-28';
+exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.STRIP_LINES_FROM_JOB = exports.STRIP_WORDS_FROM_JOB = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.WAIT_TIME = exports.MAX_WORD_COUNT_REPLY_JOB = exports.MAX_WORD_COUNT_REPLY_PR = exports.MAX_RECURSION_OPENAI_REQUEST_PR = exports.MAX_RECURSION_OPENAI_REQUEST_JOB = exports.MAX_TOKENS = exports.GITHUB_API_VERSION = void 0;
+// Default Public Github API version
+exports.GITHUB_API_VERSION = '2022-11-28';
 // Default max tokens for OpenAI
-exports.maxTokens = 384;
+exports.MAX_TOKENS = 384;
 // Default max recursion for OpenAI Job mode
-exports.maxRecursionJob = 3;
+exports.MAX_RECURSION_OPENAI_REQUEST_JOB = 2;
 // Default max recursion for OpenAI PR mode
-exports.maxRecursionPr = 2;
+exports.MAX_RECURSION_OPENAI_REQUEST_PR = 2;
 // Default max word count for OpenAI PR mode
-exports.maxWordCountPr = 300;
+exports.MAX_WORD_COUNT_REPLY_PR = 300;
 // Default max word count for OpenAI JOB mode
-exports.maxWordCountJob = 500;
+exports.MAX_WORD_COUNT_REPLY_JOB = 500;
 // Wait time in seconds before starting
-exports.waitTime = '1';
+exports.WAIT_TIME = '1';
 // Max input length for github action logs
-exports.MAX_INPUT_LOG_LENGTH = 20000;
+exports.MAX_INPUT_LOG_LENGTH = 2000;
 // Max input length for files
 exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH;
 // Max number of regex patterns that user is allowed to provide
 exports.MAX_REGEX_PATTERNS = 5;
+// Words to strip from the job output
+exports.STRIP_WORDS_FROM_JOB = [':debug::', ':notice::', ':info::'];
+// Lines to strip from the job output
+exports.STRIP_LINES_FROM_JOB = ['::group::', '::endgroup::'];
 // Max char of  each regex pattern
 exports.MAX_REGEX_CHARS = 20;
 // The magic symbol used in openai responses
@@ -35071,11 +35083,6 @@ exports.CMD_INCLUDE_FILE = `${exports.MAGIC_SYMBOL}CMD_INCLUDE_FILE`;
 exports.CMD_NO_SUFFICIENT_INFO = `${exports.MAGIC_SYMBOL}CMD_NO_SUFFICIENT_INFO`;
 // Word to use to indicate reference to a line in a file
 exports.CMD_LINE = `${exports.MAGIC_SYMBOL}L`;
-// TODO limit the number of files to process
-// Max line length per file
-// export const maxLineLengthPerFile = 5000
-exports.stripWords = [':debug::', ':notice::', ':info::'];
-exports.stripLinesStartingWith = ['::group::', '::endgroup::'];
 
 
 /***/ }),
@@ -35110,16 +35117,16 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getJobYaml = getJobYaml;
-exports.getContentByRef = getContentByRef;
-exports.getFileContent4Context = getFileContent4Context;
-exports.doRequest = doRequest;
+exports.getActionRuns = getActionRuns;
 exports.getJob = getJob;
 exports.getJobLogs = getJobLogs;
-exports.getActionRuns = getActionRuns;
-exports.getUserInfo = getUserInfo;
+exports.getContentByRef = getContentByRef;
+exports.getFileContent4Context = getFileContent4Context;
 exports.getCommitFiles = getCommitFiles;
+exports.getUserInfo = getUserInfo;
 exports.getComments = getComments;
 exports.postComment = postComment;
+exports.doRequest = doRequest;
 const core = __importStar(__nccwpck_require__(2186));
 const core_1 = __nccwpck_require__(6762);
 const config_1 = __nccwpck_require__(6373);
@@ -35178,27 +35185,6 @@ async function getJobLogs(context) {
     }, context);
     return (0, util_1.stripTimestampFromLogs)(response.data);
 }
-// async function getFileContent4Context(
-//   response: string,
-//   context: Context
-// ): Promise<{ filename: string; content: string } | false> {
-//   debugGroupedMsg(
-//     'getFileContent4Context',
-//     `Response: ${JSON.stringify(response, null, 2)}`
-//   )
-//   const regex = new RegExp(`${CMD_INCLUDE_FILE} "(.*?)"`, 'gm')
-//   const matches = [...response.matchAll(regex)]
-//   if (matches.length < 1) {
-//     core.warning(
-//       'No file content matched, this can be incorrect response format from OpenAI. try to run again'
-//     )
-//     return false
-//   }
-//   const found = matches.map(match => match[1])
-//   core.info(`Fetching more context from repo: ${found[0]}@${context.ref}`)
-//   const fileContent = await getContent(found[0], context.ref, context)
-//   return { filename: found[0], content: fileContent }
-// }
 async function getContentByRef(filepath, ref, context) {
     const response = await doRequest({
         method: 'GET',
@@ -35264,7 +35250,7 @@ async function doRequest(params, context, body, requestFetch) {
     core.debug(`doRequest octokit init: { baseURL: ${baseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
     // const iPayload = interpolateObject(body, context)
     core.debug(`doRequest payload: ${JSON.stringify(body, null, 2)}`);
-    headers['X-GitHub-Api-Version'] = config_1.GithubAPIversion;
+    headers['X-GitHub-Api-Version'] = config_1.GITHUB_API_VERSION;
     const response = await octokit.request(iMethodPath, {
         headers,
         ...body
@@ -35337,6 +35323,9 @@ function validateInputWithSelection(nameOfKey, userInput, validValues) {
  */
 function getInputs() {
     const inputs = {};
+    // value selectopm for mode
+    // dynamic required based on mode
+    // input decode for dirContext
     inputs.mode = validateInputWithSelection('mode', core.getInput('mode', { required: true }), ['pr', 'job']);
     inputs.ghToken = core.getInput('gh-token', {
         required: inputs.mode === 'pr'
@@ -35350,17 +35339,17 @@ function getInputs() {
     inputs.azOpenaiDeployment = core.getInput('az-openai-deployment', {
         required: true
     });
-    inputs['azOpenaiKey'] = core.getInput('az-openai-key', {
+    inputs.azOpenaiKey = core.getInput('az-openai-key', {
         required: true
     });
-    inputs['azOpenaiVersion'] = core.getInput('az-openai-apiVersion', {
+    inputs.azOpenaiVersion = core.getInput('az-openai-apiVersion', {
         required: true
     });
-    inputs['dirContext'] = core.getInput('dir-context', {
+    inputs.dirContext = core.getInput('dir-context', {
         required: false
     });
-    if (inputs['dirContext'].length > 0)
-        inputs['dirContext'] = (0, util_1.decode64)(inputs['dirContext'], "GH action input 'dirContext'");
+    if (inputs.dirContext.length > 0)
+        inputs.dirContext = (0, util_1.decode64)(inputs.dirContext, "GH action input 'dirContext'");
     inputs.jobContext = validateInputAsBoolean('jobContext', core.getInput('job-context', {
         required: false
     }));
@@ -35370,7 +35359,7 @@ function getInputs() {
     inputs.inlineComment = validateInputAsBoolean('inline-comment', core.getInput('inline-comment', {
         required: false
     }));
-    inputs['include'] = core
+    inputs.include = core
         .getInput('include', {
         required: false
     })
@@ -35445,7 +35434,7 @@ async function run() {
         const payloadContext = (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
         (0, util_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`);
-        await (0, wait_1.wait)(parseInt(config_1.waitTime, 10));
+        await (0, wait_1.wait)(parseInt(config_1.WAIT_TIME, 10));
         let usage;
         if (context.mode === 'pr')
             usage = (0, mode_pr_1.mainPR)(context);
@@ -35516,12 +35505,14 @@ async function mainJob(context) {
     }
     context.jobId = currentJob.id;
     core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Get Job yaml context: ${context.jobContext}`);
-    if (context.jobContext)
+    if (context.jobContext) {
         context.jobContextFile = await (0, github_api_1.getJobYaml)(context);
+        context.jobContextFile = (0, util_1.stripWordsFromContent)(context.jobContextFile, config_1.STRIP_WORDS_FROM_JOB, config_1.STRIP_LINES_FROM_JOB);
+    }
     const jobLog = await (0, github_api_1.getJobLogs)(context);
     const message = (0, openai_api_1.setupInitialMessage)(context, jobLog);
     let usage = {};
-    for (let i = 1; i <= config_1.maxRecursionJob; i++) {
+    for (let i = 1; i <= config_1.MAX_RECURSION_OPENAI_REQUEST_JOB; i++) {
         const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
         if (aiResponse.usage !== undefined)
             usage = aiResponse.usage;
@@ -35589,7 +35580,7 @@ const config_1 = __nccwpck_require__(6373);
 const comments_1 = __nccwpck_require__(5561);
 async function generateReply(prFileContent, context, file) {
     let reply = '';
-    for (let i = 1; i <= config_1.maxRecursionPr; i++) {
+    for (let i = 1; i <= config_1.MAX_RECURSION_OPENAI_REQUEST_PR; i++) {
         const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
         const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
         if (aiResponse.choices.length > 1) {
@@ -35741,7 +35732,7 @@ async function openAiRequest(message, context) {
     const response = await client.chat.completions.create({
         messages: message,
         model: '',
-        max_tokens: config_1.maxTokens,
+        max_tokens: config_1.MAX_TOKENS,
         stream: false
     });
     (0, util_1.debugGroupedMsg)('Azure OpenAI response', `HTTP Response: ${JSON.stringify(response, null, 2)}`);
@@ -35763,7 +35754,7 @@ exports.githubActionFailurePrompt = `As a software engineer assistant, your purp
 - You'll receive GitHub Action job log that has a failures. 
 - Your reply should:
     - Be formatted as text, concise, and to the point.
-    - Not exceed ${config_1.maxWordCountJob} words.
+    - Not exceed ${config_1.MAX_WORD_COUNT_REPLY_JOB} words.
     - State the cause of the job failure.
     - Provide a solution to fix the error.
 - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
@@ -35772,7 +35763,7 @@ exports.githubActionSecurityPrompt = `As a software security assistent, your sol
 - You'll receive a source code or file diff.
 - Your reply should: 
     - Be formatted as text, concise, & to the point. Do not highlight minor issues.
-    - Not exceed ${config_1.maxWordCountPr} words.
+    - Not exceed ${config_1.MAX_WORD_COUNT_REPLY_PR} words.
     - Include a ${config_1.CMD_LINE} & line number or line range, before each reply, (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 <your reply>', single line 5-5 '${config_1.CMD_LINE}5-5 <your reply>').
     - Don't include a reply, title, summary or description, only the line number and the reply.
 - If insufficient information is provided (e.g., the diff litte or you need to inspect a function in import), and you need the content of files, follow the guideline:
@@ -35813,6 +35804,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sanitizeString = sanitizeString;
+exports.stripWordsFromContent = stripWordsFromContent;
 exports.stripTimestampFromLogs = stripTimestampFromLogs;
 exports.filterCommitFiles = filterCommitFiles;
 exports.rawPrintIfDebug = rawPrintIfDebug;
@@ -35831,6 +35823,18 @@ function sanitizeString(str) {
     if (!str)
         return '';
     return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`;
+}
+// strip words or lines from job logs
+function stripWordsFromContent(str, words = [], linesStartWithWord = []) {
+    let result = str;
+    for (const word of words) {
+        result = result.replaceAll(word, '');
+    }
+    for (const lineStartWithWord of linesStartWithWord) {
+        const regex = new RegExp(`^${lineStartWithWord}.*\n`, 'gm');
+        result = result.replaceAll(regex, '');
+    }
+    return result;
 }
 /**
  * Removes timestamps from log strings.

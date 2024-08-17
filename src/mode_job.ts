@@ -5,10 +5,16 @@ import {
   getJobLogs,
   getFileContent4Context
 } from './github_api'
+
 import { setupInitialMessage, openAiRequest } from './openai_api'
 import { CompletionUsage, Context } from './types'
-import { maxRecursionJob, CMD_INCLUDE_FILE } from './config'
-import { printAIResponse } from './util'
+import {
+  MAX_RECURSION_OPENAI_REQUEST_JOB,
+  CMD_INCLUDE_FILE,
+  STRIP_LINES_FROM_JOB,
+  STRIP_WORDS_FROM_JOB
+} from './config'
+import { printAIResponse, stripWordsFromContent } from './util'
 
 export async function mainJob(context: Context): Promise<string> {
   // Getting GH action job information
@@ -25,13 +31,20 @@ export async function mainJob(context: Context): Promise<string> {
     `* Job Name/ID: ${currentJob.name}/${context.jobId} Get Job yaml context: ${context.jobContext}`
   )
 
-  if (context.jobContext) context.jobContextFile = await getJobYaml(context)
+  if (context.jobContext) {
+    context.jobContextFile = await getJobYaml(context)
+    context.jobContextFile = stripWordsFromContent(
+      context.jobContextFile,
+      STRIP_WORDS_FROM_JOB,
+      STRIP_LINES_FROM_JOB
+    )
+  }
 
   const jobLog = await getJobLogs(context)
   const message = setupInitialMessage(context, jobLog)
 
   let usage: CompletionUsage = {} as CompletionUsage
-  for (let i = 1; i <= maxRecursionJob; i++) {
+  for (let i = 1; i <= MAX_RECURSION_OPENAI_REQUEST_JOB; i++) {
     const aiResponse = await openAiRequest(message, context)
     if (aiResponse.usage !== undefined) usage = aiResponse.usage
 

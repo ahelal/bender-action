@@ -5,7 +5,7 @@ import {
   githubActionFailurePrompt,
   githubActionSecurityPrompt
 } from './openai_prompts'
-import { maxTokens } from './config'
+import { MAX_TOKENS } from './config'
 import { debugGroupedMsg } from './util'
 
 function setupInitialMessage(
@@ -98,7 +98,7 @@ async function openAiRequest(
   const response = await client.chat.completions.create({
     messages: message,
     model: '',
-    max_tokens: maxTokens,
+    max_tokens: MAX_TOKENS,
     stream: false
   })
 

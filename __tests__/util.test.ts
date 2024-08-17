@@ -2,8 +2,47 @@ import {
   sanitizeString,
   stripTimestampFromLogs,
   filterCommitFiles,
-  decode64
+  decode64,
+  stripWordsFromContent
 } from '../src/util'
+
+describe('stripWordsFromContent', () => {
+  it('should remove specified words from the content', () => {
+    const content = 'This is a test string with some words to remove.'
+    const words = ['test', 'remove']
+    const result = stripWordsFromContent(content, words)
+    expect(result).toBe('This is a  string with some words to .')
+  })
+
+  it('should remove lines that start with specified words', () => {
+    const content = `This is a test string.
+Remove this line.
+Keep this line.`
+    const linesStartWithWord = ['Remove']
+    const result = stripWordsFromContent(content, [], linesStartWithWord)
+    expect(result).toBe(`This is a test string.
+Keep this line.`)
+  })
+
+  it('should handle empty strings and arrays', () => {
+    const content = ''
+    const words: string[] = []
+    const linesStartWithWord: string[] = []
+    const result = stripWordsFromContent(content, words, linesStartWithWord)
+    expect(result).toBe('')
+  })
+
+  it('should combine word removal and line removal', () => {
+    const content = `This is a test string.
+Remove this line.
+Keep this line with test word.`
+    const words = ['test']
+    const linesStartWithWord = ['Remove']
+    const result = stripWordsFromContent(content, words, linesStartWithWord)
+    expect(result).toBe(`This is a  string.
+Keep this line with  word.`)
+  })
+})
 
 describe('sanitizeString', () => {
   it('should return an empty string for empty input', () => {

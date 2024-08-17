@@ -1,34 +1,40 @@
 // **** static application configuration ****
 
-// Default Github API version
-export const GithubAPIversion = '2022-11-28'
+// Default Public Github API version
+export const GITHUB_API_VERSION = '2022-11-28'
 
 // Default max tokens for OpenAI
-export const maxTokens = 384
+export const MAX_TOKENS = 384
 
 // Default max recursion for OpenAI Job mode
-export const maxRecursionJob = 3
+export const MAX_RECURSION_OPENAI_REQUEST_JOB = 2
 
 // Default max recursion for OpenAI PR mode
-export const maxRecursionPr = 2
+export const MAX_RECURSION_OPENAI_REQUEST_PR = 2
 
 // Default max word count for OpenAI PR mode
-export const maxWordCountPr = 300
+export const MAX_WORD_COUNT_REPLY_PR = 300
 
 // Default max word count for OpenAI JOB mode
-export const maxWordCountJob = 500
+export const MAX_WORD_COUNT_REPLY_JOB = 500
 
 // Wait time in seconds before starting
-export const waitTime = '1'
+export const WAIT_TIME = '1'
 
 // Max input length for github action logs
-export const MAX_INPUT_LOG_LENGTH = 20000
+export const MAX_INPUT_LOG_LENGTH = 2000
 
 // Max input length for files
 export const MAX_INPUT_FILES_LENGTH = MAX_INPUT_LOG_LENGTH
 
 // Max number of regex patterns that user is allowed to provide
 export const MAX_REGEX_PATTERNS = 5
+
+// Words to strip from the job output
+export const STRIP_WORDS_FROM_JOB = [':debug::', ':notice::', ':info::']
+
+// Lines to strip from the job output
+export const STRIP_LINES_FROM_JOB = ['::group::', '::endgroup::']
 
 // Max char of  each regex pattern
 export const MAX_REGEX_CHARS = 20
@@ -44,10 +50,3 @@ export const CMD_NO_SUFFICIENT_INFO = `${MAGIC_SYMBOL}CMD_NO_SUFFICIENT_INFO`
 
 // Word to use to indicate reference to a line in a file
 export const CMD_LINE = `${MAGIC_SYMBOL}L`
-
-// TODO limit the number of files to process
-// Max line length per file
-// export const maxLineLengthPerFile = 5000
-
-export const stripWords = [':debug::', ':notice::', ':info::']
-export const stripLinesStartingWith = ['::group::', '::endgroup::']

@@ -3,15 +3,8 @@ import { postComment, getComments } from './github_api'
 import { Context, dataResponse } from './types'
 import { printAIResponse } from './util'
 
-// const relevantComments = prComments.filter(
-//   comment =>
-//     comment.user.login === user.login &&
-//     comment.subject_type === 'file' &&
-//     comment.commit_id === context.commitId &&
-//     files.includes(comment.path)
-
 /**
- * Filters comments based on specified criteria.
+ * Filters comments based on specified criteria for inline comments.
  *
  * @param comment - The comment to be filtered.
  * @param files - The list of files to filter comments for.
@@ -40,6 +33,14 @@ export function filterCommentsInline(
   return true
 }
 
+/**
+ * Filters the comments based on the provided criteria for file comments.
+ *
+ * @param comment - The comment to be filtered.
+ * @param files - The list of files to compare against.
+ * @param context - The context object containing login and commitId.
+ * @returns A boolean indicating whether the comment meets the filtering criteria.
+ */
 export function filterCommentsFiles(
   comment: dataResponse,
   files: string[],
@@ -52,6 +53,7 @@ export function filterCommentsFiles(
     files.includes(comment.path)
   )
 }
+
 /**
  * Retrieves relevant comments based on the provided files and context.
  *
@@ -76,6 +78,12 @@ export async function getRelevantComments(
   )
 }
 
+/**
+ * Splits a comment from OpenAI into its start line, end line, and comment text.
+ *
+ * @param comment - The comment to split.
+ * @returns An object containing the start line, end line, and comment text.
+ */
 export function splitComment(comment: string): {
   start_line: number
   end_line: number

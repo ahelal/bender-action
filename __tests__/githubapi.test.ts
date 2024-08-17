@@ -1,6 +1,6 @@
 import { doRequest } from '../src/github_api'
 import fetchMock from 'fetch-mock'
-import { GithubAPIversion } from '../src/config'
+import { GITHUB_API_VERSION } from '../src/config'
 import { Context } from '../src/types'
 // import { request } from '@octokit/request'
 // import { RequestInterface } from '@octokit/types'
@@ -13,7 +13,7 @@ describe('doRequest no context', () => {
     {
       headers: {
         accept: 'application/vnd.github.v3+json',
-        'x-github-api-version': GithubAPIversion
+        'x-github-api-version': GITHUB_API_VERSION
       }
     }
   )
@@ -48,7 +48,7 @@ describe('doRequest more context', () => {
         authorization: 'token test-token',
         'test1-header': 'test1-value',
         'test2-header': 'test2-value',
-        'x-github-api-version': GithubAPIversion
+        'x-github-api-version': GITHUB_API_VERSION
       },
       body: { test1: 'test1', test2: 'test2' }
     }

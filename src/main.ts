@@ -4,7 +4,7 @@ import { getInputs, getContextFromPayload } from './inputs'
 import { mainJob } from './mode_job'
 import { mainPR } from './mode_pr'
 import { debugGroupedMsg } from './util'
-import { waitTime } from './config'
+import { WAIT_TIME } from './config'
 import { Context } from './types'
 
 /**
@@ -18,7 +18,7 @@ export async function run(): Promise<void> {
     context = Object.assign({}, context, payloadContext)
     debugGroupedMsg('Context', `Context: ${JSON.stringify(context, null, 2)}`)
 
-    await wait(parseInt(waitTime, 10))
+    await wait(parseInt(WAIT_TIME, 10))
 
     let usage: Promise<string>
     if (context.mode === 'pr') usage = mainPR(context)

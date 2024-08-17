@@ -32,6 +32,10 @@ export function validateInputWithSelection(
  */
 export function getInputs(): Context {
   const inputs: Context = {} as Context
+  // value selectopm for mode
+  // dynamic required based on mode
+
+  // input decode for dirContext
 
   inputs.mode = validateInputWithSelection(
     'mode',
@@ -55,21 +59,21 @@ export function getInputs(): Context {
     required: true
   })
 
-  inputs['azOpenaiKey'] = core.getInput('az-openai-key', {
+  inputs.azOpenaiKey = core.getInput('az-openai-key', {
     required: true
   })
 
-  inputs['azOpenaiVersion'] = core.getInput('az-openai-apiVersion', {
+  inputs.azOpenaiVersion = core.getInput('az-openai-apiVersion', {
     required: true
   })
 
-  inputs['dirContext'] = core.getInput('dir-context', {
+  inputs.dirContext = core.getInput('dir-context', {
     required: false
   })
 
-  if (inputs['dirContext'].length > 0)
-    inputs['dirContext'] = decode64(
-      inputs['dirContext'],
+  if (inputs.dirContext.length > 0)
+    inputs.dirContext = decode64(
+      inputs.dirContext,
       "GH action input 'dirContext'"
     )
 
@@ -91,7 +95,7 @@ export function getInputs(): Context {
     })
   )
 
-  inputs['include'] = core
+  inputs.include = core
     .getInput('include', {
       required: false
     })

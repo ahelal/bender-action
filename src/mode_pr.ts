@@ -8,7 +8,7 @@ import {
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context, dataResponse } from './types'
 import {
-  maxRecursionPr,
+  MAX_RECURSION_OPENAI_REQUEST_PR,
   CMD_INCLUDE_FILE,
   CMD_NO_SUFFICIENT_INFO
 } from './config'
@@ -20,7 +20,7 @@ async function generateReply(
   file: string
 ): Promise<string> {
   let reply = ''
-  for (let i = 1; i <= maxRecursionPr; i++) {
+  for (let i = 1; i <= MAX_RECURSION_OPENAI_REQUEST_PR; i++) {
     const message = setupInitialMessagePr(context, prFileContent, file)
     const aiResponse = await openAiRequest(message, context)
 

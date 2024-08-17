@@ -17,6 +17,23 @@ export function sanitizeString(str: string): string {
   return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`
 }
 
+// strip words or lines from job logs
+export function stripWordsFromContent(
+  str: string,
+  words: string[] = [],
+  linesStartWithWord: string[] = []
+): string {
+  let result = str
+  for (const word of words) {
+    result = result.replaceAll(word, '')
+  }
+  for (const lineStartWithWord of linesStartWithWord) {
+    const regex = new RegExp(`^${lineStartWithWord}.*\n`, 'gm')
+    result = result.replaceAll(regex, '')
+  }
+  return result
+}
+
 /**
  * Removes timestamps from log strings.
  *
