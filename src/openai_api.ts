@@ -84,7 +84,11 @@ async function openAiRequest(
     azOpenaiEndpoint: endpoint
   } = context
 
-  core.info(`* Request response from Azure OpenAI`)
+  const payloadStr = JSON.stringify(message)
+
+  core.info(
+    `* Request response from Azure OpenAI [Chars: '${payloadStr.length}' Lines: '${payloadStr.split('\n').length}' ~Tokens: '${payloadStr.length / 4}']`
+  )
   debugGroupedMsg(
     'Azure OpenAI Message',
     `Message: ${JSON.stringify(message, null, 2)}`

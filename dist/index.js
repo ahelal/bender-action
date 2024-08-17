@@ -35734,7 +35734,8 @@ function setupInitialMessagePr(context, diffText, filePath) {
 }
 async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
-    core.info(`* Request response from Azure OpenAI`);
+    const payloadStr = JSON.stringify(message);
+    core.info(`* Request response from Azure OpenAI [Chars: '${payloadStr.length}' Lines: '${payloadStr.split('\n').length}' ~Tokens: '${payloadStr.length / 4}']`);
     (0, util_1.debugGroupedMsg)('Azure OpenAI Message', `Message: ${JSON.stringify(message, null, 2)}`);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({
