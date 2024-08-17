@@ -32,7 +32,7 @@ jobs:
             -o -print)
           echo "${dirs}"
           dirs_base64=$(echo "${dirs}" | base64 | tr '\n' ' ')
-          echo "dir_context=${dirs}" >> "$GITHUB_ENV"
+          echo "dir_context=${dirs_base64}" >> "$GITHUB_ENV"
 
       - name: Run Bender
         uses: ./
