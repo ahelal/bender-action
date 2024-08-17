@@ -1,7 +1,6 @@
 import * as core from '@actions/core'
-// import * as github from '@actions/github'
 import { context } from '@actions/github'
-import { debugGroupedMsg } from './util'
+import { debugGroupedMsg, decode64 } from './util'
 import { Context } from './types'
 
 export function validateInputAsBoolean(
@@ -68,7 +67,10 @@ export function getInputs(): Context {
   })
 
   if (inputs['dirContext'].length > 0)
-    inputs['dirContext'] = atob(inputs['dirContext'])
+    inputs['dirContext'] = decode64(
+      inputs['dirContext'],
+      "GH action input 'dirContext'"
+    )
 
   inputs['jobContext'] = validateInputAsBoolean(
     'jobContext',
@@ -102,17 +104,13 @@ export function getContextFromPayload(): Context {
 
   const requiredContext: Context = {} as Context
   const full_name = context.payload.repository?.full_name?.split('/') || []
-  requiredContext['full_name'] = full_name.join('/')
-  requiredContext['owner'] = full_name[0]
-  requiredContext['repo'] = full_name[1]
-  requiredContext['runId'] = context.runId ? context.runId.toString() : ''
-  requiredContext['ref'] = context.ref
-  requiredContext['pr'] = context.payload.number
-    ? context.payload.number.toString()
-    : ''
-  requiredContext['commitId'] = context.payload.after
-    ? context.payload.after.toString()
-    : ''
+  requiredContext.full_name = full_name.join('/')
+  requiredContext.owner = full_name[0]
+  requiredContext.repo = full_name[1]
+  requiredContext.runId = context.runId ? context.runId.toString() : ''
+  requiredContext.pr = context.payload.number?.toString() || ''
+  requiredContext.commitId = context.payload.after?.toString() || ''
+  requiredContext.ref = context.ref || requiredContext.commitId
 
   return requiredContext
 }

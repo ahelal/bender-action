@@ -22,8 +22,8 @@ export const githubActionSecurityPrompt = `As a software security assistent, you
     - Be formatted as text, concise, & to the point. Do not highlight minor issues.
     - Not exceed ${maxWordCountPr} words.
     - Include a ${CMD_LINE} & line number or line range, before each reply, (e.g., line 5-6 will be '${CMD_LINE}5-6 <your reply>', single line 5-5 '${CMD_LINE}5-5 <your reply>').
-    - Don't include a title or description, only the line number and the reply.
+    - Don't include a reply, title, summary or description, only the line number and the reply.
 - If insufficient information is provided (e.g., the diff litte or you need to inspect a function in import), and you need the content of files, follow the guideline:
    - You can only inspect files that are included in the provided directory structure.
    - You must request the content of the file with a single-line reply: '${CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${CMD_INCLUDE_FILE} "src/index.js"').
-- If you are unable to reply with any recommendation. Then you should reply with '${CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`
+   - If all the above methods fail and you cannot provide a single line of recommendation, then respond with '${CMD_NO_SUFFICIENT_INFO}'`

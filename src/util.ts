@@ -220,3 +220,22 @@ export function printAIResponse(title: string, message: string | null): void {
     `${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`
   )
 }
+
+/**
+ * Decodes a base64 string.
+ *
+ * @param str - The base64 string to decode.
+ * @param fileRef - The reference to the file being decoded.
+ * @returns The decoded string.
+ * @throws An error if there is an issue decoding the base64 string.
+ */
+export function decode64(str: string, fileRef: string): string {
+  if (!str || str.length === 0) return ' '
+  try {
+    return atob(str)
+  } catch (e) {
+    throw new Error(
+      `error while decoding base64 string when attempting to decode ${fileRef}. ${e}`
+    )
+  }
+}

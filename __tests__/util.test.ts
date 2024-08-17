@@ -1,9 +1,8 @@
 import {
   sanitizeString,
   stripTimestampFromLogs,
-  filterCommitFiles
-  // interpolateString,
-  // interpolateObject
+  filterCommitFiles,
+  decode64
 } from '../src/util'
 
 describe('sanitizeString', () => {
@@ -128,56 +127,23 @@ describe('filterCommitFiles', () => {
   })
 })
 
-// describe('interpolateString', () => {
-//   const context: Context = {
-//     key1: 'value1',
-//     key2: 'value2'
-//   }
+describe('decode64', () => {
+  it('should decode the base64 string and return the decoded string', () => {
+    const base64String = 'SGVsbG8gd29ybGQ='
+    const decodedString = 'Hello world'
+    expect(decode64(base64String, 'file.txt')).toBe(decodedString)
+  })
 
-//   it('should replace placeholders with corresponding values from the context', () => {
-//     const str = 'This is ${key1} and ${key2}'
-//     expect(interpolateString(str, context)).toBe('This is value1 and value2')
-//   })
+  it('should return a space character if the base64 string is empty', () => {
+    const base64String = ''
+    expect(decode64(base64String, 'file.txt')).toBe(' ')
+  })
 
-//   it('should leave placeholders unchanged if corresponding values are not found in the context', () => {
-//     const str = 'This is ${key1} and ${key3}'
-//     expect(interpolateString(str, context)).toBe('This is value1 and ${key3}')
-//   })
-// })
-
-// describe('interpolateObject', () => {
-//   const context: Context = {
-//     key1: 'value1',
-//     key2: 'value2'
-//   }
-
-//   it('should return an empty object if the target is undefined', () => {
-//     expect(interpolateObject(undefined, context)).toEqual({})
-//   })
-
-//   it('should interpolate values from the context into the target object', () => {
-//     const target = {
-//       key1: '${key1}',
-//       key2: '${key2}',
-//       key3: 'value3'
-//     }
-//     expect(interpolateObject(target, context)).toEqual({
-//       key1: 'value1',
-//       key2: 'value2',
-//       key3: 'value3'
-//     })
-//   })
-
-//   it('should leave values unchanged if corresponding keys are not found in the context', () => {
-//     const target = {
-//       key1: '${key1}',
-//       key2: '${key3}',
-//       key3: 'value3'
-//     }
-//     expect(interpolateObject(target, context)).toEqual({
-//       key1: 'value1',
-//       key2: 'value2',
-//       key3: 'value3'
-//     })
-//   })
-// })
+  it('should throw an error if there is an issue decoding the base64 string', () => {
+    const base64String = 'adasd'
+    const fileRef = 'file.txt'
+    expect(() => {
+      decode64(base64String, fileRef)
+    }).toThrow('error while decoding base64 string')
+  })
+})

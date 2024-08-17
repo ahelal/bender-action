@@ -7,7 +7,11 @@ import {
 } from './github_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context, dataResponse } from './types'
-import { maxRecursionPr, CMD_INCLUDE_FILE } from './config'
+import {
+  maxRecursionPr,
+  CMD_INCLUDE_FILE,
+  CMD_NO_SUFFICIENT_INFO
+} from './config'
 import { getRelevantComments, postReviewComment } from './comments'
 import { printAIResponse } from './util'
 
@@ -42,6 +46,12 @@ async function generateReply(
     }
     message.push({ role: 'assistant', content: reply })
   }
+  if (reply.includes(CMD_NO_SUFFICIENT_INFO)) {
+    core.warning(
+      `No sufficient info for OpenAI to provide reply for content of '${file}'.\n${reply}\n`
+    )
+    return ''
+  }
   return reply
 }
 
@@ -67,7 +77,7 @@ async function processFile(
   const reply = await generateReply(prFileContent, context, file)
   await postReviewComment(reply, file, context)
 
-  printAIResponse(`PR response for ${file}@${context.ref}`, reply)
+  if (reply) printAIResponse(`PR response for ${file}@${context.ref}`, reply)
 }
 
 export async function mainPR(context: Context): Promise<string> {
