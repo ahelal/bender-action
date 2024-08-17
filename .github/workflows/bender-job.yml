@@ -76,6 +76,7 @@ jobs:
       - name: encode project dir as base64 to pass to bender as dir_context
         id: getdir
         run: |
+          set -x 
           dirs=$(find . -path ./.git -prune \
             -o -path ./node_modules -prune \
             -o -path ./.pnpm-store -prune \
@@ -87,7 +88,7 @@ jobs:
             -o -print)
           echo "${dirs}"
           dirs_base64=$(echo "${dirs}" | base64 | tr '\n' ' ')
-          echo "dir_context=${dirs}" >> "$GITHUB_ENV"
+          echo "dir_context=${dirs_base64}" >> "$GITHUB_ENV"
 
       - name: Run Bender (if failure)
         uses: ./
