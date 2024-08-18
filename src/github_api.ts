@@ -3,13 +3,9 @@ import { Octokit } from '@octokit/core'
 import { OctokitResponse, Context, requestParams, dataResponse } from './types'
 import { GITHUB_API_VERSION, CMD_INCLUDE_FILE } from './config'
 
-import {
-  decode64,
-  debugGroupedMsg,
-  sanitizeString,
-  stripTimestampFromLogs,
-  filterCommitFiles
-} from './util'
+import { decode64, stripTimestampFromLogs, filterCommitFiles } from './util'
+
+import { outSantized, debugGroupedMsg } from './output'
 
 export async function getJobYaml(context: Context): Promise<string> {
   const jobAction = await getActionRuns(context)
@@ -112,7 +108,8 @@ export async function getFileContent4Context(
 ): Promise<{ filename: string; content: string } | false> {
   debugGroupedMsg(
     'getFileContent4Context',
-    `Response: ${JSON.stringify(response, null, 2)}`
+    `Response: ${JSON.stringify(response, null, 2)}`,
+    context
   )
   const regex = new RegExp(`${CMD_INCLUDE_FILE} "(.*?)"`, 'gm')
   const matches = [...response.matchAll(regex)]
@@ -203,15 +200,18 @@ export async function doRequest(
     : {}
   const octokit = new Octokit({ ...config, ...requestOctoKit })
 
-  // const iMethodPath = interpolateString(`${method} ${path}`, context)
   const iMethodPath = `${method} ${path}`
 
   if (core.isDebug()) core.startGroup(`doRequest ${iMethodPath}`)
   core.debug(
-    `doRequest octokit init: { baseURL: ${baseUrl} auth: ${sanitizeString(context.ghToken)} }`
+    `doRequest octokit init: { baseURL: ${baseUrl} auth: ${context?.ghToken?.length > 0} }`
   )
-  // const iPayload = interpolateObject(body, context)
-  core.debug(`doRequest payload: ${JSON.stringify(body, null, 2)}`)
+
+  outSantized(
+    'debug',
+    `doRequest payload: ${JSON.stringify(body, null, 2)}`,
+    context
+  )
 
   headers['X-GitHub-Api-Version'] = GITHUB_API_VERSION
 
@@ -219,13 +219,22 @@ export async function doRequest(
     headers,
     ...body
   })
-  core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
+
+  outSantized(
+    'debug',
+    `doRequest response: ${JSON.stringify(response, null, 2)}`,
+    context
+  )
   if (core.isDebug()) core.endGroup()
 
   if (response.status < 200 || response.status >= 300) {
-    core.setFailed(
-      `Github API request failed with status code ${response.status}. ${response.data.message}`
+    outSantized(
+      'debug',
+      `Github API request failed with status code ${response.status}. ${response.data.message}`,
+      context
     )
+
+    core.setFailed('Request to Github API failed')
   }
   return response
 }

@@ -1,7 +1,8 @@
 import * as core from '@actions/core'
 import { context } from '@actions/github'
-import { debugGroupedMsg, decode64 } from './util'
+import { decode64 } from './util'
 import { Context } from './types'
+import { debugGroupedMsg } from './output'
 
 export function validateInputAsBoolean(
   nameOfKey: string,
@@ -111,7 +112,8 @@ export function getInputs(): Context {
 export function getContextFromPayload(): Context {
   debugGroupedMsg(
     `GH Context event`,
-    `GH Action context event ${JSON.stringify(context, null, 2)}`
+    `GH Action context event ${JSON.stringify(context, null, 2)}`,
+    {} as Context
   )
 
   const requiredContext: Context = {} as Context

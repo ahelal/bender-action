@@ -7,17 +7,13 @@ import {
 } from './config'
 
 /**
- * Sanitizes a string by replacing all characters except the first and last with asterisks.
- * If the string is empty or null, an empty string is returned.
- * @param str - The string to sanitize.
- * @returns The sanitized string.
+ * Removes specified words from a given string and removes lines that start with specified words.
+ *
+ * @param str - The input string.
+ * @param words - An array of words to be removed from the string. Default is an empty array.
+ * @param linesStartWithWord - An array of words that indicate the start of lines to be removed from the string. Default is an empty array.
+ * @returns The modified string after removing the specified words and lines.
  */
-export function sanitizeString(str: string): string {
-  if (!str) return ''
-  return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`
-}
-
-// strip words or lines from job logs
 export function stripWordsFromContent(
   str: string,
   words: string[] = [],
@@ -92,6 +88,14 @@ export function filterCommitFiles(
   return uniqueFiles
 }
 
+/**
+ * Validates the input files and regex filters.
+ *
+ * @param files - An array of objects representing the files to be validated.
+ * @param regexFilters - An array of regex patterns to be applied for filtering.
+ * @throws {Error} If the total length of filenames exceeds the maximum limit.
+ * @throws {Error} If the number of regex patterns exceeds the maximum limit.
+ */
 function filterValidateInput(
   files: Record<string, string>[],
   regexFilters: string[]
@@ -112,6 +116,12 @@ function filterValidateInput(
   }
 }
 
+/**
+ * Filters an array of files based on allowed diff status only added, modified and renamed.
+ *
+ * @param files - The array of files to filter.
+ * @returns The filtered array of files.
+ */
 function filterByStatus(
   files: Record<string, string>[]
 ): Record<string, string>[] {
@@ -122,6 +132,13 @@ function filterByStatus(
   return files.filter(f => allowedStatus.includes(f.status))
 }
 
+/**
+ * Tests if a given string matches a regular expression pattern.
+ *
+ * @param regexStr - The regular expression pattern to test.
+ * @param testString - The string to test against the regular expression pattern.
+ * @returns A boolean indicating whether the test string matches the regular expression pattern.
+ */
 function regTest(regexStr: string, testString: string): boolean {
   if (!testString) return false
   if (regexStr.length > MAX_REGEX_CHARS) {
@@ -149,6 +166,13 @@ function sanitizeRegex(input: string): string {
   return sanitized
 }
 
+/**
+ * Filters an array of files based on an array of regular expressions.
+ *
+ * @param files - The array of files to be filtered.
+ * @param regexFilters - The array of regular expressions to filter the files.
+ * @returns The filtered array of files.
+ */
 function filterByRegex(
   files: Record<string, string>[],
   regexFilters: string[]
@@ -160,82 +184,6 @@ function filterByRegex(
     )
   }
   return filteredFiles
-}
-
-// /**
-//  * Replaces placeholders in a string with corresponding values from a context object.
-//  *
-//  * @param str - The string containing placeholders to be replaced.
-//  * @param context - The context object containing key-value pairs for replacement.
-//  * @returns The string with placeholders replaced by their corresponding values.
-//  */
-// export function interpolateString(str: string, context: Context): string {
-//   return str.replace(
-//     /\${(.*?)}/g,
-//     (match: string, key: string) => context[key] || match
-//   )
-// }
-
-/**
- * Interpolates values from the given `context` object into the `target` object.
- * If a key in `target` exists in `context`, the corresponding value from `context` is used.
- * Otherwise, the original value from `target` is used.
- *
- * @param target - The target object to interpolate values into.
- * @param context - The context object containing the values to interpolate.
- * @returns A new object with interpolated values.
- */
-// export function interpolateObject(
-//   target: Record<string, string> | string | undefined,
-//   context: Context
-// ): Record<string, string> {
-//   if (!target) return {}
-//   const newDic: Record<string, string> = {}
-//   let targetObj: Record<string, string> = {}
-//   if (typeof target === 'string') {
-//     targetObj = JSON.parse(target)
-//   } else {
-//     targetObj = target
-//   }
-
-//   for (const [key, value] of Object.entries(targetObj)) {
-//     if (key in context) {
-//       newDic[key] = context[key]
-//     } else {
-//       newDic[key] = value
-//     }
-//   }
-//   return newDic
-// }
-
-/**
- * Prints the given message if the debug mode is enabled.
- *
- * @param message - The message to be printed.
- * @returns void
- */
-export function rawPrintIfDebug(message: string): void {
-  if (core.isDebug()) core.info(message)
-}
-
-/**
- * Logs a grouped debug message with a specified title and message.
- *
- * @param title - The title of the debug group.
- * @param message - The message to be logged.
- */
-export function debugGroupedMsg(title: string, message: string): void {
-  if (core.isDebug()) {
-    core.startGroup(title)
-    core.debug(message)
-    core.endGroup()
-  }
-}
-
-export function printAIResponse(title: string, message: string | null): void {
-  core.info(
-    `${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`
-  )
 }
 
 /**
@@ -256,5 +204,3 @@ export function decode64(str: string, fileRef: string): string {
     )
   }
 }
-
-// export function convertToStringAndCountChar()

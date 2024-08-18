@@ -35035,7 +35035,7 @@ async function postReviewComment(reply, file, context) {
         });
     }
     if (reply)
-        (0, util_1.printAIResponse)(`PR response for ${file}@${context.ref}`, JSON.stringify(reply.split('\n'), null, 2));
+        (0, util_1.outAIReply)(`PR response for ${file}@${context.ref}`, JSON.stringify(reply.split('\n'), null, 2));
 }
 
 
@@ -35518,7 +35518,7 @@ async function mainJob(context) {
             usage = aiResponse.usage;
         for (const result of aiResponse.choices) {
             const content = result.message.content;
-            (0, util_1.printAIResponse)('JOB Response', content);
+            (0, util_1.outAIReply)('JOB Response', content);
             message.push({ role: 'assistant', content });
         }
         const firstChoice = aiResponse.choices[0];
@@ -35809,7 +35809,7 @@ exports.stripTimestampFromLogs = stripTimestampFromLogs;
 exports.filterCommitFiles = filterCommitFiles;
 exports.rawPrintIfDebug = rawPrintIfDebug;
 exports.debugGroupedMsg = debugGroupedMsg;
-exports.printAIResponse = printAIResponse;
+exports.outAIReply = outAIReply;
 exports.decode64 = decode64;
 const core = __importStar(__nccwpck_require__(2186));
 const config_1 = __nccwpck_require__(6373);
@@ -35993,7 +35993,7 @@ function debugGroupedMsg(title, message) {
         core.endGroup();
     }
 }
-function printAIResponse(title, message) {
+function outAIReply(title, message) {
     core.info(`${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`);
 }
 /**

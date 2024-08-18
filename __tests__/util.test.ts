@@ -1,5 +1,4 @@
 import {
-  sanitizeString,
   stripTimestampFromLogs,
   filterCommitFiles,
   decode64,
@@ -41,22 +40,6 @@ Keep this line with test word.`
     const result = stripWordsFromContent(content, words, linesStartWithWord)
     expect(result).toBe(`This is a  string.
 Keep this line with  word.`)
-  })
-})
-
-describe('sanitizeString', () => {
-  it('should return an empty string for empty input', () => {
-    expect(sanitizeString('')).toBe('')
-  })
-
-  it('should return the ****** string for input with length <= 6', () => {
-    expect(sanitizeString('a')).toBe('******')
-    expect(sanitizeString('abcde')).toBe('******')
-    expect(sanitizeString('abcdef')).toBe('******')
-  })
-
-  it('should replace characters in the middle with asterisks with length >6', () => {
-    expect(sanitizeString('hello world')).toBe('h******d')
   })
 })
 

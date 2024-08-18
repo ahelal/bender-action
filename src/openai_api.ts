@@ -6,7 +6,7 @@ import {
   githubActionSecurityPrompt
 } from './openai_prompts'
 import { MAX_TOKENS } from './config'
-import { debugGroupedMsg } from './util'
+import { debugGroupedMsg } from './output'
 
 function setupInitialMessage(
   context: Context,
@@ -65,6 +65,7 @@ function setupInitialMessagePr(
   core.debug(
     `Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`
   )
+
   const userMessage: ChatCompletionMessageParam = {
     role: 'user',
     content: userMessageStr
@@ -91,7 +92,8 @@ async function openAiRequest(
   )
   debugGroupedMsg(
     'Azure OpenAI Message',
-    `Message: ${JSON.stringify(message, null, 2)}`
+    `Message: ${JSON.stringify(message, null, 2)}`,
+    context
   )
 
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
@@ -104,7 +106,8 @@ async function openAiRequest(
 
   debugGroupedMsg(
     'Azure OpenAI response',
-    `HTTP Response: ${JSON.stringify(response, null, 2)}`
+    `HTTP Response: ${JSON.stringify(response, null, 2)}`,
+    context
   )
 
   return response

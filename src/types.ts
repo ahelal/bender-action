@@ -17,6 +17,7 @@ export interface CompletionUsage {
 // }
 
 export interface Context {
+  // [key: string]: string | boolean | string[] | undefined
   // Inputs
   mode: string
   ghToken: string

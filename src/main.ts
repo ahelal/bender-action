@@ -3,7 +3,7 @@ import { wait } from './wait'
 import { getInputs, getContextFromPayload } from './inputs'
 import { mainJob } from './mode_job'
 import { mainPR } from './mode_pr'
-import { debugGroupedMsg } from './util'
+import { debugGroupedMsg } from './output'
 import { WAIT_TIME } from './config'
 import { Context } from './types'
 
@@ -16,7 +16,11 @@ export async function run(): Promise<void> {
     let context: Context = getInputs()
     const payloadContext = getContextFromPayload()
     context = Object.assign({}, context, payloadContext)
-    debugGroupedMsg('Context', `Context: ${JSON.stringify(context, null, 2)}`)
+    debugGroupedMsg(
+      'Context',
+      `Context: ${JSON.stringify(context, null, 2)}`,
+      context
+    )
 
     await wait(parseInt(WAIT_TIME, 10))
 

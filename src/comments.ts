@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import { postComment, getComments } from './github_api'
 import { Context, dataResponse } from './types'
-import { printAIResponse } from './util'
+import { outAIReply } from './output'
 
 /**
  * Filters comments based on specified criteria for inline comments.
@@ -132,7 +132,7 @@ export async function postReviewComment(
   }
 
   if (reply)
-    printAIResponse(
+    outAIReply(
       `PR response for ${file}@${context.ref}`,
       JSON.stringify(reply.split('\n'), null, 2)
     )

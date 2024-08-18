@@ -36,6 +36,13 @@ export const STRIP_WORDS_FROM_JOB = [':debug::', ':notice::', ':info::']
 // Lines to strip from the job output
 export const STRIP_LINES_FROM_JOB = ['::group::', '::endgroup::']
 
+// Secerts to mask in the job output
+export const MASK_CONTEXT_SECRETS = [
+  'ghToken',
+  'azOpenaiDeployment',
+  'azOpenaiKey'
+]
+
 // Max char of  each regex pattern
 export const MAX_REGEX_CHARS = 20
 

@@ -14,7 +14,8 @@ import {
   STRIP_LINES_FROM_JOB,
   STRIP_WORDS_FROM_JOB
 } from './config'
-import { printAIResponse, stripWordsFromContent } from './util'
+import { stripWordsFromContent } from './util'
+import { outAIReply } from './output'
 
 export async function mainJob(context: Context): Promise<string> {
   // Getting GH action job information
@@ -50,7 +51,7 @@ export async function mainJob(context: Context): Promise<string> {
 
     for (const result of aiResponse.choices) {
       const content = result.message.content
-      printAIResponse('JOB Response', content)
+      outAIReply('JOB Response', content)
       message.push({ role: 'assistant', content })
     }
 
