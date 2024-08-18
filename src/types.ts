@@ -32,6 +32,7 @@ export interface Context {
   userContext: string
   include: string[]
   // PayloadContext
+  action: string
   full_name: string
   owner: string
   repo: string

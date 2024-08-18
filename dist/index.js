@@ -34938,7 +34938,7 @@ exports.splitComment = splitComment;
 exports.postReviewComment = postReviewComment;
 const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
-const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
 /**
  * Filters comments based on specified criteria for inline comments.
  *
@@ -35035,7 +35035,7 @@ async function postReviewComment(reply, file, context) {
         });
     }
     if (reply)
-        (0, util_1.outAIReply)(`PR response for ${file}@${context.ref}`, JSON.stringify(reply.split('\n'), null, 2));
+        (0, output_1.outAIReply)(`PR response for ${file}@${context.ref}`, JSON.stringify(reply.split('\n'), null, 2));
 }
 
 
@@ -35048,7 +35048,7 @@ async function postReviewComment(reply, file, context) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.STRIP_LINES_FROM_JOB = exports.STRIP_WORDS_FROM_JOB = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.WAIT_TIME = exports.MAX_WORD_COUNT_REPLY_JOB = exports.MAX_WORD_COUNT_REPLY_PR = exports.MAX_RECURSION_OPENAI_REQUEST_PR = exports.MAX_RECURSION_OPENAI_REQUEST_JOB = exports.MAX_TOKENS = exports.GITHUB_API_VERSION = void 0;
+exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MASK_CONTEXT_SECRETS = exports.STRIP_LINES_FROM_JOB = exports.STRIP_WORDS_FROM_JOB = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.WAIT_TIME = exports.MAX_WORD_COUNT_REPLY_JOB = exports.MAX_WORD_COUNT_REPLY_PR = exports.MAX_RECURSION_OPENAI_REQUEST_PR = exports.MAX_RECURSION_OPENAI_REQUEST_JOB = exports.MAX_TOKENS = exports.GITHUB_API_VERSION = void 0;
 // Default Public Github API version
 exports.GITHUB_API_VERSION = '2022-11-28';
 // Default max tokens for OpenAI
@@ -35073,6 +35073,12 @@ exports.MAX_REGEX_PATTERNS = 5;
 exports.STRIP_WORDS_FROM_JOB = [':debug::', ':notice::', ':info::'];
 // Lines to strip from the job output
 exports.STRIP_LINES_FROM_JOB = ['::group::', '::endgroup::'];
+// Secerts to mask in the job output
+exports.MASK_CONTEXT_SECRETS = [
+    'ghToken',
+    'azOpenaiDeployment',
+    'azOpenaiKey'
+];
 // Max char of  each regex pattern
 exports.MAX_REGEX_CHARS = 20;
 // The magic symbol used in openai responses
@@ -35131,6 +35137,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const core_1 = __nccwpck_require__(6762);
 const config_1 = __nccwpck_require__(6373);
 const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
 async function getJobYaml(context) {
     const jobAction = await getActionRuns(context);
     const jobYaml = await getContentByRef(jobAction.path, jobAction.head_branch, context);
@@ -35193,7 +35200,7 @@ async function getContentByRef(filepath, ref, context) {
     return (0, util_1.decode64)(response.data.content, `${filepath}@${ref}`);
 }
 async function getFileContent4Context(response, context) {
-    (0, util_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`);
+    (0, output_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`, context);
     const regex = new RegExp(`${config_1.CMD_INCLUDE_FILE} "(.*?)"`, 'gm');
     const matches = [...response.matchAll(regex)];
     if (matches.length < 1) {
@@ -35243,23 +35250,22 @@ async function doRequest(params, context, body, requestFetch) {
         ? { request: { fetch: requestFetch } }
         : {};
     const octokit = new core_1.Octokit({ ...config, ...requestOctoKit });
-    // const iMethodPath = interpolateString(`${method} ${path}`, context)
     const iMethodPath = `${method} ${path}`;
     if (core.isDebug())
         core.startGroup(`doRequest ${iMethodPath}`);
-    core.debug(`doRequest octokit init: { baseURL: ${baseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
-    // const iPayload = interpolateObject(body, context)
-    core.debug(`doRequest payload: ${JSON.stringify(body, null, 2)}`);
+    core.debug(`doRequest octokit init: { baseURL: ${baseUrl} auth: ${context?.ghToken?.length > 0} }`);
+    (0, output_1.outSantized)('debug', `doRequest payload: ${JSON.stringify(body, null, 2)}`, context);
     headers['X-GitHub-Api-Version'] = config_1.GITHUB_API_VERSION;
     const response = await octokit.request(iMethodPath, {
         headers,
         ...body
     });
-    core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
+    (0, output_1.outSantized)('debug', `doRequest response: ${JSON.stringify(response, null, 2)}`, context);
     if (core.isDebug())
         core.endGroup();
     if (response.status < 200 || response.status >= 300) {
-        core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
+        (0, output_1.outSantized)('debug', `Github API request failed with status code ${response.status}. ${response.data.message}`, context);
+        core.setFailed('Request to Github API failed');
     }
     return response;
 }
@@ -35303,6 +35309,7 @@ exports.getContextFromPayload = getContextFromPayload;
 const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
 const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
 function validateInputAsBoolean(nameOfKey, userInput) {
     if (userInput.toLowerCase() === 'true')
         return true;
@@ -35371,17 +35378,24 @@ function getInputs() {
  * @returns {Context} Resolves when the action is complete.
  */
 function getContextFromPayload() {
-    (0, util_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context, null, 2)}`);
-    const requiredContext = {};
+    (0, output_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context, null, 2)}`, {});
+    const payloadContext = {};
     const full_name = github_1.context.payload.repository?.full_name?.split('/') || [];
-    requiredContext.full_name = full_name.join('/');
-    requiredContext.owner = full_name[0];
-    requiredContext.repo = full_name[1];
-    requiredContext.runId = github_1.context.runId ? github_1.context.runId.toString() : '';
-    requiredContext.pr = github_1.context.payload.number?.toString() || '';
-    requiredContext.commitId = github_1.context.payload.after?.toString() || '';
-    requiredContext.ref = github_1.context.ref || requiredContext.commitId;
-    return requiredContext;
+    payloadContext.full_name = full_name.join('/');
+    payloadContext.owner = full_name[0];
+    payloadContext.repo = full_name[1];
+    payloadContext.runId = github_1.context.runId ? github_1.context.runId.toString() : '';
+    payloadContext.pr = github_1.context.payload.number?.toString() || '';
+    payloadContext.action = github_1.context.payload.action || '';
+    if (payloadContext.action === 'synchronize' ||
+        payloadContext.action === 'opened') {
+        payloadContext.commitId = github_1.context.payload.pull_request?.head.sha || '';
+    }
+    else {
+        payloadContext.commitId = github_1.context.payload.after?.toString() || '';
+    }
+    payloadContext.ref = github_1.context.ref || payloadContext.commitId;
+    return payloadContext;
 }
 
 
@@ -35422,7 +35436,7 @@ const wait_1 = __nccwpck_require__(5259);
 const inputs_1 = __nccwpck_require__(7063);
 const mode_job_1 = __nccwpck_require__(8341);
 const mode_pr_1 = __nccwpck_require__(5750);
-const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
 const config_1 = __nccwpck_require__(6373);
 /**
  * The main function for the action.
@@ -35433,7 +35447,7 @@ async function run() {
         let context = (0, inputs_1.getInputs)();
         const payloadContext = (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
-        (0, util_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`);
+        (0, output_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`, context);
         await (0, wait_1.wait)(parseInt(config_1.WAIT_TIME, 10));
         let usage;
         if (context.mode === 'pr')
@@ -35496,6 +35510,7 @@ const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
 async function mainJob(context) {
     // Getting GH action job information
     const currentJob = await (0, github_api_1.getJob)(context);
@@ -35518,7 +35533,7 @@ async function mainJob(context) {
             usage = aiResponse.usage;
         for (const result of aiResponse.choices) {
             const content = result.message.content;
-            (0, util_1.outAIReply)('JOB Response', content);
+            (0, output_1.outAIReply)('JOB Response', content);
             message.push({ role: 'assistant', content });
         }
         const firstChoice = aiResponse.choices[0];
@@ -35681,7 +35696,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const openai_1 = __nccwpck_require__(47);
 const openai_prompts_1 = __nccwpck_require__(8903);
 const config_1 = __nccwpck_require__(6373);
-const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
 function setupInitialMessage(context, jobLog) {
     const systemMessage = {
         role: 'system',
@@ -35727,7 +35742,7 @@ async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
     const payloadStr = JSON.stringify(message);
     core.info(`* Request response from Azure OpenAI [Chars: '${payloadStr.length}' Lines: '${payloadStr.split('\n').length}' ~Tokens: '${payloadStr.length / 4}']`);
-    (0, util_1.debugGroupedMsg)('Azure OpenAI Message', `Message: ${JSON.stringify(message, null, 2)}`);
+    (0, output_1.debugGroupedMsg)('Azure OpenAI Message', `Message: ${JSON.stringify(message, null, 2)}`, context);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({
         messages: message,
@@ -35735,7 +35750,7 @@ async function openAiRequest(message, context) {
         max_tokens: config_1.MAX_TOKENS,
         stream: false
     });
-    (0, util_1.debugGroupedMsg)('Azure OpenAI response', `HTTP Response: ${JSON.stringify(response, null, 2)}`);
+    (0, output_1.debugGroupedMsg)('Azure OpenAI response', `HTTP Response: ${JSON.stringify(response, null, 2)}`, context);
     return response;
 }
 
@@ -35774,6 +35789,101 @@ exports.githubActionSecurityPrompt = `As a software security assistent, your sol
 
 /***/ }),
 
+/***/ 5768:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.outAIReply = outAIReply;
+exports.sanitizeString = sanitizeString;
+exports.outSantized = outSantized;
+exports.rawPrintIfDebug = rawPrintIfDebug;
+exports.debugGroupedMsg = debugGroupedMsg;
+const core = __importStar(__nccwpck_require__(2186));
+const config_1 = __nccwpck_require__(6373);
+/**
+ * Prints the AI response with a formatted title and message.
+ *
+ * @param title - The title of the AI response.
+ * @param message - The message of the AI response. Can be null.
+ */
+function outAIReply(title, message) {
+    core.info(`${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`);
+}
+/**
+ * Sanitizes a string by replacing all characters except the first and last with asterisks.
+ * If the string is empty or null, an empty string is returned.
+ * @param str - The string to sanitize.
+ * @returns The sanitized string.
+ */
+function sanitizeString(str, context) {
+    if (!str)
+        return '';
+    let result = str;
+    for (const secret of config_1.MASK_CONTEXT_SECRETS) {
+        const valueOfSecret = context[secret];
+        if (!valueOfSecret)
+            continue;
+        if (result.includes(valueOfSecret))
+            result = result.replaceAll(valueOfSecret, '*x*x**+x');
+    }
+    return result;
+}
+function outSantized(level, message, context) {
+    const sanitizeMessage = sanitizeString(message, context);
+    core[level](sanitizeMessage);
+}
+/**
+ * Prints the given message if the debug mode is enabled.
+ *
+ * @param message - The message to be printed.
+ * @returns void
+ */
+function rawPrintIfDebug(message) {
+    if (core.isDebug())
+        core.info(message);
+}
+/**
+ * Logs a grouped debug message with a specified title and message.
+ *
+ * @param title - The title of the debug group.
+ * @param message - The message to be logged.
+ */
+function debugGroupedMsg(title, message, context) {
+    if (core.isDebug()) {
+        core.startGroup(title);
+        outSantized('debug', message, context);
+        core.endGroup();
+    }
+}
+
+
+/***/ }),
+
 /***/ 2629:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -35803,28 +35913,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.sanitizeString = sanitizeString;
 exports.stripWordsFromContent = stripWordsFromContent;
 exports.stripTimestampFromLogs = stripTimestampFromLogs;
 exports.filterCommitFiles = filterCommitFiles;
-exports.rawPrintIfDebug = rawPrintIfDebug;
-exports.debugGroupedMsg = debugGroupedMsg;
-exports.outAIReply = outAIReply;
 exports.decode64 = decode64;
 const core = __importStar(__nccwpck_require__(2186));
 const config_1 = __nccwpck_require__(6373);
 /**
- * Sanitizes a string by replacing all characters except the first and last with asterisks.
- * If the string is empty or null, an empty string is returned.
- * @param str - The string to sanitize.
- * @returns The sanitized string.
+ * Removes specified words from a given string and removes lines that start with specified words.
+ *
+ * @param str - The input string.
+ * @param words - An array of words to be removed from the string. Default is an empty array.
+ * @param linesStartWithWord - An array of words that indicate the start of lines to be removed from the string. Default is an empty array.
+ * @returns The modified string after removing the specified words and lines.
  */
-function sanitizeString(str) {
-    if (!str)
-        return '';
-    return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`;
-}
-// strip words or lines from job logs
 function stripWordsFromContent(str, words = [], linesStartWithWord = []) {
     let result = str;
     for (const word of words) {
@@ -35880,6 +35982,14 @@ function filterCommitFiles(files, regexFilters) {
     }
     return uniqueFiles;
 }
+/**
+ * Validates the input files and regex filters.
+ *
+ * @param files - An array of objects representing the files to be validated.
+ * @param regexFilters - An array of regex patterns to be applied for filtering.
+ * @throws {Error} If the total length of filenames exceeds the maximum limit.
+ * @throws {Error} If the number of regex patterns exceeds the maximum limit.
+ */
 function filterValidateInput(files, regexFilters) {
     const totalFilenameLength = files
         .map(f => f.filename.length)
@@ -35891,11 +36001,24 @@ function filterValidateInput(files, regexFilters) {
         throw new Error(`Too many regex patterns max limit is ${config_1.MAX_REGEX_PATTERNS}`);
     }
 }
+/**
+ * Filters an array of files based on allowed diff status only added, modified and renamed.
+ *
+ * @param files - The array of files to filter.
+ * @returns The filtered array of files.
+ */
 function filterByStatus(files) {
     const allowedStatus = ['added', 'modified', 'renamed'];
     core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
     return files.filter(f => allowedStatus.includes(f.status));
 }
+/**
+ * Tests if a given string matches a regular expression pattern.
+ *
+ * @param regexStr - The regular expression pattern to test.
+ * @param testString - The string to test against the regular expression pattern.
+ * @returns A boolean indicating whether the test string matches the regular expression pattern.
+ */
 function regTest(regexStr, testString) {
     if (!testString)
         return false;
@@ -35920,81 +36043,19 @@ function sanitizeRegex(input) {
         .replace(/\*/g, '.*');
     return sanitized;
 }
+/**
+ * Filters an array of files based on an array of regular expressions.
+ *
+ * @param files - The array of files to be filtered.
+ * @param regexFilters - The array of regular expressions to filter the files.
+ * @returns The filtered array of files.
+ */
 function filterByRegex(files, regexFilters) {
     let filteredFiles = [];
     for (const regEx of regexFilters) {
         filteredFiles = filteredFiles.concat(files.filter(f => regTest(regEx, f.filename)));
     }
     return filteredFiles;
-}
-// /**
-//  * Replaces placeholders in a string with corresponding values from a context object.
-//  *
-//  * @param str - The string containing placeholders to be replaced.
-//  * @param context - The context object containing key-value pairs for replacement.
-//  * @returns The string with placeholders replaced by their corresponding values.
-//  */
-// export function interpolateString(str: string, context: Context): string {
-//   return str.replace(
-//     /\${(.*?)}/g,
-//     (match: string, key: string) => context[key] || match
-//   )
-// }
-/**
- * Interpolates values from the given `context` object into the `target` object.
- * If a key in `target` exists in `context`, the corresponding value from `context` is used.
- * Otherwise, the original value from `target` is used.
- *
- * @param target - The target object to interpolate values into.
- * @param context - The context object containing the values to interpolate.
- * @returns A new object with interpolated values.
- */
-// export function interpolateObject(
-//   target: Record<string, string> | string | undefined,
-//   context: Context
-// ): Record<string, string> {
-//   if (!target) return {}
-//   const newDic: Record<string, string> = {}
-//   let targetObj: Record<string, string> = {}
-//   if (typeof target === 'string') {
-//     targetObj = JSON.parse(target)
-//   } else {
-//     targetObj = target
-//   }
-//   for (const [key, value] of Object.entries(targetObj)) {
-//     if (key in context) {
-//       newDic[key] = context[key]
-//     } else {
-//       newDic[key] = value
-//     }
-//   }
-//   return newDic
-// }
-/**
- * Prints the given message if the debug mode is enabled.
- *
- * @param message - The message to be printed.
- * @returns void
- */
-function rawPrintIfDebug(message) {
-    if (core.isDebug())
-        core.info(message);
-}
-/**
- * Logs a grouped debug message with a specified title and message.
- *
- * @param title - The title of the debug group.
- * @param message - The message to be logged.
- */
-function debugGroupedMsg(title, message) {
-    if (core.isDebug()) {
-        core.startGroup(title);
-        core.debug(message);
-        core.endGroup();
-    }
-}
-function outAIReply(title, message) {
-    core.info(`${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`);
 }
 /**
  * Decodes a base64 string.
@@ -36014,7 +36075,6 @@ function decode64(str, fileRef) {
         throw new Error(`error while decoding base64 string when attempting to decode ${fileRef}. ${e}`);
     }
 }
-// export function convertToStringAndCountChar()
 
 
 /***/ }),

@@ -28,10 +28,8 @@ export function sanitizeString(str: string, context: Context): string {
     if (!valueOfSecret) continue
 
     if (result.includes(valueOfSecret))
-      console.log('XXXXXXYYYY VALUE exists=', valueOfSecret)
-    result = result.replaceAll(valueOfSecret, '*x*x**+x')
+      result = result.replaceAll(valueOfSecret, '*x*x**+x')
   }
-  console.log('XXXXXXYYYY=', str, ' ', result)
   return result
 }
 

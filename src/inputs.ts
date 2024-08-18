@@ -116,15 +116,23 @@ export function getContextFromPayload(): Context {
     {} as Context
   )
 
-  const requiredContext: Context = {} as Context
+  const payloadContext: Context = {} as Context
   const full_name = context.payload.repository?.full_name?.split('/') || []
-  requiredContext.full_name = full_name.join('/')
-  requiredContext.owner = full_name[0]
-  requiredContext.repo = full_name[1]
-  requiredContext.runId = context.runId ? context.runId.toString() : ''
-  requiredContext.pr = context.payload.number?.toString() || ''
-  requiredContext.commitId = context.payload.after?.toString() || ''
-  requiredContext.ref = context.ref || requiredContext.commitId
+  payloadContext.full_name = full_name.join('/')
+  payloadContext.owner = full_name[0]
+  payloadContext.repo = full_name[1]
+  payloadContext.runId = context.runId ? context.runId.toString() : ''
+  payloadContext.pr = context.payload.number?.toString() || ''
+  payloadContext.action = context.payload.action || ''
+  if (
+    payloadContext.action === 'synchronize' ||
+    payloadContext.action === 'opened'
+  ) {
+    payloadContext.commitId = context.payload.pull_request?.head.sha || ''
+  } else {
+    payloadContext.commitId = context.payload.after?.toString() || ''
+  }
+  payloadContext.ref = context.ref || payloadContext.commitId
 
-  return requiredContext
+  return payloadContext
 }
