@@ -1,25 +1,45 @@
-import { Context } from '../src/types'
 import {
-  sanitizeString,
   stripTimestampFromLogs,
   filterCommitFiles,
-  interpolateString,
-  interpolateObject
+  decode64,
+  stripWordsFromContent
 } from '../src/util'
 
-describe('sanitizeString', () => {
-  it('should return an empty string for empty input', () => {
-    expect(sanitizeString('')).toBe('')
+describe('stripWordsFromContent', () => {
+  it('should remove specified words from the content', () => {
+    const content = 'This is a test string with some words to remove.'
+    const words = ['test', 'remove']
+    const result = stripWordsFromContent(content, words)
+    expect(result).toBe('This is a  string with some words to .')
   })
 
-  it('should return the ****** string for input with length <= 6', () => {
-    expect(sanitizeString('a')).toBe('******')
-    expect(sanitizeString('abcde')).toBe('******')
-    expect(sanitizeString('abcdef')).toBe('******')
+  it('should remove lines that start with specified words', () => {
+    const content = `This is a test string.
+Remove this line.
+Keep this line.`
+    const linesStartWithWord = ['Remove']
+    const result = stripWordsFromContent(content, [], linesStartWithWord)
+    expect(result).toBe(`This is a test string.
+Keep this line.`)
   })
 
-  it('should replace characters in the middle with asterisks with length >6', () => {
-    expect(sanitizeString('hello world')).toBe('h******d')
+  it('should handle empty strings and arrays', () => {
+    const content = ''
+    const words: string[] = []
+    const linesStartWithWord: string[] = []
+    const result = stripWordsFromContent(content, words, linesStartWithWord)
+    expect(result).toBe('')
+  })
+
+  it('should combine word removal and line removal', () => {
+    const content = `This is a test string.
+Remove this line.
+Keep this line with test word.`
+    const words = ['test']
+    const linesStartWithWord = ['Remove']
+    const result = stripWordsFromContent(content, words, linesStartWithWord)
+    expect(result).toBe(`This is a  string.
+Keep this line with  word.`)
   })
 })
 
@@ -129,56 +149,23 @@ describe('filterCommitFiles', () => {
   })
 })
 
-describe('interpolateString', () => {
-  const context: Context = {
-    key1: 'value1',
-    key2: 'value2'
-  }
-
-  it('should replace placeholders with corresponding values from the context', () => {
-    const str = 'This is ${key1} and ${key2}'
-    expect(interpolateString(str, context)).toBe('This is value1 and value2')
+describe('decode64', () => {
+  it('should decode the base64 string and return the decoded string', () => {
+    const base64String = 'SGVsbG8gd29ybGQ='
+    const decodedString = 'Hello world'
+    expect(decode64(base64String, 'file.txt')).toBe(decodedString)
   })
 
-  it('should leave placeholders unchanged if corresponding values are not found in the context', () => {
-    const str = 'This is ${key1} and ${key3}'
-    expect(interpolateString(str, context)).toBe('This is value1 and ${key3}')
-  })
-})
-
-describe('interpolateObject', () => {
-  const context: Context = {
-    key1: 'value1',
-    key2: 'value2'
-  }
-
-  it('should return an empty object if the target is undefined', () => {
-    expect(interpolateObject(undefined, context)).toEqual({})
+  it('should return a space character if the base64 string is empty', () => {
+    const base64String = ''
+    expect(decode64(base64String, 'file.txt')).toBe(' ')
   })
 
-  it('should interpolate values from the context into the target object', () => {
-    const target = {
-      key1: '${key1}',
-      key2: '${key2}',
-      key3: 'value3'
-    }
-    expect(interpolateObject(target, context)).toEqual({
-      key1: 'value1',
-      key2: 'value2',
-      key3: 'value3'
-    })
-  })
-
-  it('should leave values unchanged if corresponding keys are not found in the context', () => {
-    const target = {
-      key1: '${key1}',
-      key2: '${key3}',
-      key3: 'value3'
-    }
-    expect(interpolateObject(target, context)).toEqual({
-      key1: 'value1',
-      key2: 'value2',
-      key3: 'value3'
-    })
+  it('should throw an error if there is an issue decoding the base64 string', () => {
+    const base64String = 'adasd'
+    const fileRef = 'file.txt'
+    expect(() => {
+      decode64(base64String, fileRef)
+    }).toThrow('error while decoding base64 string')
   })
 })

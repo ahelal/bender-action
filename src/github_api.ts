@@ -1,19 +1,24 @@
 import * as core from '@actions/core'
 import { Octokit } from '@octokit/core'
 import { OctokitResponse, Context, requestParams, dataResponse } from './types'
-import { GithubAPIversion, CMD_INCLUDE_FILE } from './config'
+import { GITHUB_API_VERSION, CMD_INCLUDE_FILE } from './config'
 
-import {
-  sanitizeString,
-  stripTimestampFromLogs,
-  filterCommitFiles,
-  interpolateString,
-  interpolateObject,
-  debugGroupedMsg
-} from './util'
+import { decode64, stripTimestampFromLogs, filterCommitFiles } from './util'
+
+import { outSantized, debugGroupedMsg } from './output'
+
+export async function getJobYaml(context: Context): Promise<string> {
+  const jobAction = await getActionRuns(context)
+  const jobYaml = await getContentByRef(
+    jobAction.path,
+    jobAction.head_branch,
+    context
+  )
+  return jobYaml
+}
 
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-async function getActionRuns(context: Context): Promise<any> {
+export async function getActionRuns(context: Context): Promise<any> {
   const response = await doRequest(
     {
       method: 'GET',
@@ -24,7 +29,31 @@ async function getActionRuns(context: Context): Promise<any> {
   return response.data
 }
 
-async function getJob(context: Context): Promise<any> {
+// async function getRepoMetaInfo(context: Context): Promise<String> {
+//   let info = ''
+//   const repoMeta = await doRequest(
+//     {
+//       method: 'GET',
+//       path: `/repos/${context.owner}/${context.repo}`
+//     },
+//     context
+//   )
+//   if (repoMeta.data.full_name) info = `Repo: ${repoMeta.data.full_name}`
+//   if (repoMeta.data.description)
+//     info += `, Description: ${repoMeta.data.description}`
+
+//   const repoLanguages = await doRequest(
+//     {
+//       method: 'GET',
+//       path: `/repos/${context.owner}/${context.repo}/languages`
+//     },
+//     context
+//   )
+//   info += `, Languages (with line count): ${Object.keys(repoLanguages.data).join(', ')}`
+//   return info
+// }
+
+export async function getJob(context: Context): Promise<any> {
   const response = await doRequest(
     {
       method: 'GET',
@@ -47,7 +76,18 @@ async function getJob(context: Context): Promise<any> {
   return failedJob || null
 }
 
-async function getContent(
+export async function getJobLogs(context: Context): Promise<string> {
+  const response = await doRequest(
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/actions/jobs/${context.jobId}/logs`
+    },
+    context
+  )
+  return stripTimestampFromLogs(response.data)
+}
+
+export async function getContentByRef(
   filepath: string,
   ref: string,
   context: Context
@@ -59,37 +99,17 @@ async function getContent(
     },
     context
   )
-  return atob(response.data.content)
+  return decode64(response.data.content, `${filepath}@${ref}`)
 }
 
-async function getJobLogs(context: Context): Promise<string> {
-  const response = await doRequest(
-    {
-      method: 'GET',
-      path: `/repos/${context.owner}/${context.repo}/actions/jobs/${context.jobId}/logs`
-    },
-    context
-  )
-  return stripTimestampFromLogs(response.data)
-}
-
-async function getJobYaml(context: Context): Promise<string> {
-  const jobAction = await getActionRuns(context)
-  const jobYaml = await getContent(
-    jobAction.path,
-    jobAction.head_branch,
-    context
-  )
-  return jobYaml
-}
-
-async function getFileContent4Context(
+export async function getFileContent4Context(
   response: string,
   context: Context
 ): Promise<{ filename: string; content: string } | false> {
   debugGroupedMsg(
     'getFileContent4Context',
-    `Response: ${JSON.stringify(response, null, 2)}`
+    `Response: ${JSON.stringify(response, null, 2)}`,
+    context
   )
   const regex = new RegExp(`${CMD_INCLUDE_FILE} "(.*?)"`, 'gm')
   const matches = [...response.matchAll(regex)]
@@ -100,12 +120,12 @@ async function getFileContent4Context(
     return false
   }
   const found = matches.map(match => match[1])
-  core.info(`Fetching more context from repo: ${found[0]}:${context.ref}`)
-  const fileContent = await getContent(found[0], context.ref, context)
+  core.info(`Fetching more context from repo: ${found[0]}@${context.ref}`)
+  const fileContent = await getContentByRef(found[0], context.ref, context)
   return { filename: found[0], content: fileContent }
 }
 
-async function getCommitFiles(
+export async function getCommitFiles(
   context: Context
 ): Promise<Record<string, string>[]> {
   const files = await doRequest(
@@ -115,10 +135,12 @@ async function getCommitFiles(
     },
     context
   )
-  return filterCommitFiles(files.data.files, context.filesSelection.split(';'))
+  return filterCommitFiles(files.data.files, context.include)
 }
 
-async function getUserInfo(context: Context): Promise<Record<string, any>> {
+export async function getUserInfo(
+  context: Context
+): Promise<Record<string, any>> {
   const user = await doRequest(
     {
       method: 'GET',
@@ -129,7 +151,7 @@ async function getUserInfo(context: Context): Promise<Record<string, any>> {
   return user.data
 }
 
-async function getComments(context: Context): Promise<dataResponse[]> {
+export async function getComments(context: Context): Promise<dataResponse[]> {
   const response = await doRequest(
     {
       method: 'GET',
@@ -140,7 +162,7 @@ async function getComments(context: Context): Promise<dataResponse[]> {
   return response.data
 }
 
-async function postComment(
+export async function postComment(
   pullRequestNumber: string,
   context: Context,
   body: Record<string, string>
@@ -178,42 +200,41 @@ export async function doRequest(
     : {}
   const octokit = new Octokit({ ...config, ...requestOctoKit })
 
-  const iMethodPath = interpolateString(`${method} ${path}`, context)
+  const iMethodPath = `${method} ${path}`
 
   if (core.isDebug()) core.startGroup(`doRequest ${iMethodPath}`)
   core.debug(
-    `doRequest octokit init: { baseURL: ${baseUrl} auth: ${sanitizeString(context.ghToken)} }`
+    `doRequest octokit init: { baseURL: ${baseUrl} auth: ${context?.ghToken?.length > 0} }`
   )
-  const iPayload = interpolateObject(body, context)
-  core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`)
 
-  headers['X-GitHub-Api-Version'] = GithubAPIversion
+  outSantized(
+    'debug',
+    `doRequest payload: ${JSON.stringify(body, null, 2)}`,
+    context
+  )
+
+  headers['X-GitHub-Api-Version'] = GITHUB_API_VERSION
 
   const response = await octokit.request(iMethodPath, {
     headers,
-    ...iPayload
+    ...body
   })
-  core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`)
+
+  outSantized(
+    'debug',
+    `doRequest response: ${JSON.stringify(response, null, 2)}`,
+    context
+  )
   if (core.isDebug()) core.endGroup()
 
   if (response.status < 200 || response.status >= 300) {
-    core.setFailed(
-      `Github API request failed with status code ${response.status}. ${response.data.message}`
+    outSantized(
+      'debug',
+      `Github API request failed with status code ${response.status}. ${response.data.message}`,
+      context
     )
+
+    core.setFailed('Request to Github API failed')
   }
-
   return response
-}
-
-export {
-  getJob,
-  getJobLogs,
-  getActionRuns,
-  getContent,
-  getJobYaml,
-  getFileContent4Context,
-  getUserInfo,
-  getCommitFiles,
-  getComments,
-  postComment
 }

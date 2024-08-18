@@ -1,4 +1,4 @@
-name: local bender PR
+name: Integeration Test Bender PR
 
 on:
   pull_request:
@@ -18,14 +18,21 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
-      - name: Get dir context
+      - name: encode project dir as base64 to pass to bender as dir_context
         id: getdir
         run: |
-          dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
-          echo "dir_context=${dirs}" >> "$GITHUB_ENV"
-
-      - name: echo dir context
-        run: echo ${{env.dir_context}}
+          dirs=$(find . -path ./.git -prune \
+            -o -path ./node_modules -prune \
+            -o -path ./.pnpm-store -prune \
+            -o -path ./coverage -prune \
+            -o -path ./.devcontainer -prune \
+            -o -path ./dist -prune \
+            -o -path ./badges -prune \
+            -o -path ./.github/linters -prune \
+            -o -print)
+          echo "${dirs}"
+          dirs_base64=$(echo "${dirs}" | base64 | tr '\n' ' ')
+          echo "dir_context=${dirs_base64}" >> "$GITHUB_ENV"
 
       - name: Run Bender
         uses: ./
@@ -37,7 +44,7 @@ jobs:
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
-          files-selection: 'src/*.ts'
+          include: 'src/*.ts'
 
       - name: Print Output
         id: output

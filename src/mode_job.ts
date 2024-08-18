@@ -5,11 +5,19 @@ import {
   getJobLogs,
   getFileContent4Context
 } from './github_api'
+
 import { setupInitialMessage, openAiRequest } from './openai_api'
 import { CompletionUsage, Context } from './types'
-import { maxRecursionJob, CMD_INCLUDE_FILE } from './config'
+import {
+  MAX_RECURSION_OPENAI_REQUEST_JOB,
+  CMD_INCLUDE_FILE,
+  STRIP_LINES_FROM_JOB,
+  STRIP_WORDS_FROM_JOB
+} from './config'
+import { stripWordsFromContent } from './util'
+import { outAIReply } from './output'
 
-export async function runJobMode(context: Context): Promise<string> {
+export async function mainJob(context: Context): Promise<string> {
   // Getting GH action job information
   const currentJob = await getJob(context)
   if (!currentJob) {
@@ -21,22 +29,29 @@ export async function runJobMode(context: Context): Promise<string> {
   context.jobId = currentJob.id
 
   core.info(
-    `* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`
+    `* Job Name/ID: ${currentJob.name}/${context.jobId} Get Job yaml context: ${context.jobContext}`
   )
 
-  if (context.jobContext) context.jobContext = await getJobYaml(context)
+  if (context.jobContext) {
+    context.jobContextFile = await getJobYaml(context)
+    context.jobContextFile = stripWordsFromContent(
+      context.jobContextFile,
+      STRIP_WORDS_FROM_JOB,
+      STRIP_LINES_FROM_JOB
+    )
+  }
 
   const jobLog = await getJobLogs(context)
   const message = setupInitialMessage(context, jobLog)
 
   let usage: CompletionUsage = {} as CompletionUsage
-  for (let i = 1; i <= maxRecursionJob; i++) {
+  for (let i = 1; i <= MAX_RECURSION_OPENAI_REQUEST_JOB; i++) {
     const aiResponse = await openAiRequest(message, context)
     if (aiResponse.usage !== undefined) usage = aiResponse.usage
 
     for (const result of aiResponse.choices) {
       const content = result.message.content
-      core.info(`###### [ Bender Response ] ######\n${content}\n############\n`)
+      outAIReply('JOB Response', content)
       message.push({ role: 'assistant', content })
     }
 

@@ -1,4 +1,5 @@
-name: local bender Job
+name: Integeration Test Bender Job
+
 on:
   pull_request:
     branches:
@@ -31,14 +32,21 @@ jobs:
       - name: echo needs
         run: echo "${{needs.fail.result }}"
 
-      - name: Get dir context
+      - name: encode project dir as base64 to pass to bender as dir_context
         id: getdir
         run: |
-          dirs="$(find . -path ./.git -prune -o -print | base64 | tr '\n' ' ')"
-          echo "dir_context=${dirs}" >> "$GITHUB_ENV"
-
-      - name: echo dir context
-        run: echo ${{env.dir_context}}
+          dirs=$(find . -path ./.git -prune \
+            -o -path ./node_modules -prune \
+            -o -path ./.pnpm-store -prune \
+            -o -path ./coverage -prune \
+            -o -path ./.devcontainer -prune \
+            -o -path ./dist -prune \
+            -o -path ./badges -prune \
+            -o -path ./.github/linters -prune \
+            -o -print)
+          echo "${dirs}"
+          dirs_base64=$(echo "${dirs}" | base64 | tr '\n' ' ')
+          echo "dir_context=${dirs_base64}" >> "$GITHUB_ENV"
 
       - name: Run Bender
         uses: ./
@@ -50,6 +58,7 @@ jobs:
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
+          job-context: true
           dir-context: ${{ env.dir_context }}
 
       - name: Print Output
@@ -64,11 +73,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get dir context
+      - name: encode project dir as base64 to pass to bender as dir_context
         id: getdir
-        run:
-          echo "dir_context=$(find . -path ./.git -prune -o -print | base64 | tr
-          '\n' ' ')" >> "$GITHUB_ENV"
+        run: |
+          dirs=$(find . -path ./.git -prune \
+            -o -path ./node_modules -prune \
+            -o -path ./.pnpm-store -prune \
+            -o -path ./coverage -prune \
+            -o -path ./.devcontainer -prune \
+            -o -path ./dist -prune \
+            -o -path ./badges -prune \
+            -o -path ./.github/linters -prune \
+            -o -print)
+          echo "${dirs}"
+          dirs_base64=$(echo "${dirs}" | base64 | tr '\n' ' ')
+          echo "dir_context=${dirs_base64}" >> "$GITHUB_ENV"
 
       - name: Run Bender (if failure)
         uses: ./
@@ -78,4 +97,5 @@ jobs:
           az-openai-endpoint: ${{vars.OA_ENDPOINT}}
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
+          job-context: true
           dir-context: ${{ env.dir_context }}

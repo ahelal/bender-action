@@ -12,8 +12,39 @@ export interface CompletionUsage {
   total_tokens: number
 }
 
+// export interface Context {
+//   [key: string]: string | boolean
+// }
+
 export interface Context {
-  [key: string]: string
+  // [key: string]: string | boolean | string[] | undefined
+  // Inputs
+  mode: string
+  ghToken: string
+  ghJob: string
+  azOpenaiEndpoint: string
+  azOpenaiDeployment: string
+  azOpenaiKey: string
+  azOpenaiVersion: string
+  dirContext: string
+  jobContext: boolean
+  jobContextFile: string
+  userContext: string
+  include: string[]
+  // PayloadContext
+  action: string
+  full_name: string
+  owner: string
+  repo: string
+  runId: string
+  ref: string
+  pr: string
+  commitId: string
+  // run time
+  jobId?: string
+  login?: string
+  //what type of comment
+  inlineComment: boolean
 }
 
 export interface requestParams {

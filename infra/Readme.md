@@ -23,9 +23,9 @@ prerequisites:
   You can install it by following the instructions at
   [Install Bicep CLI](https://docs.microsoft.com/azure/azure-resource-manager/bicep/install).
 
-- **jq**: jq us required to parase output from json.
-  You can install it by following the instructions at
-  [Downloading jq]([https://docs.microsoft.com/azure/azure-resource-manager/bicep/install](https://jqlang.github.io/jq/download/)).
+- **jq**: jq us required to parase output from json. You can install it by
+  following the instructions at
+  [Downloading jq](<[https://docs.microsoft.com/azure/azure-resource-manager/bicep/install](https://jqlang.github.io/jq/download/)>).
 
 ## Parameters
 
@@ -40,12 +40,14 @@ Then you can edit the `openai.solution.bicepparam` to your liking
 
 ## Deploy
 
-To deploy the bicep script you can use the helper script and run `./infra.sh deploy` in shell. 
+To deploy the bicep script you can use the helper script and run
+`./infra.sh deploy` in shell.
 
 ## Output
 
-Once the deployment is finished you can run `/infra.sh output` to see the _Azure OpenAI Endpoint_ and _OpenAI
-deployment_ and _OpenAI Key_ that you can use in your GitHub Action secrets.
+Once the deployment is finished you can run `/infra.sh output` to see the _Azure
+OpenAI Endpoint_ and _OpenAI deployment_ and _OpenAI Key_ that you can use in
+your GitHub Action secrets.
 
 ```shell
 # example output
@@ -56,4 +58,5 @@ Key1       : XXXXXXXXXXXXXXXXXXXXX
 
 ## Cleanup
 
-To do clean up run the script in delete `./infra.sh delete`. This will delete the resource group, deployment and purge the deployment.
+To do clean up run the script in delete `./infra.sh delete`. This will delete
+the resource group, deployment and purge the deployment.

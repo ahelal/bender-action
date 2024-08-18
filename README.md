@@ -59,7 +59,7 @@ user-context:
   description: Extra OpenAI user context
   default: ''
 
-files-selection:
+include:
   description:
     In PR mode, Filter files to be used for context, comma seperated regex i.e.
     'src/*.ts' '*.ts;*.js'
@@ -182,7 +182,7 @@ jobs:
           az-openai-deployment: ${{secrets.OA_DEPLOYMENT}}
           az-openai-key: ${{secrets.OA_KEY}}
           dir-context: ${{ env.dir_context }}
-          files-selection: '*.ts'
+          include: '*.ts'
 
       - name: Print Output
         id: output

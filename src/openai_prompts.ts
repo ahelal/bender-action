@@ -1,6 +1,6 @@
 import {
-  maxWordCountPr,
-  maxWordCountJob,
+  MAX_WORD_COUNT_REPLY_PR,
+  MAX_WORD_COUNT_REPLY_JOB,
   CMD_INCLUDE_FILE,
   CMD_NO_SUFFICIENT_INFO,
   CMD_LINE
@@ -10,24 +10,20 @@ export const githubActionFailurePrompt = `As a software engineer assistant, your
 - You'll receive GitHub Action job log that has a failures. 
 - Your reply should:
     - Be formatted as text, concise, and to the point.
-    - Not exceed ${maxWordCountJob} words.
+    - Not exceed ${MAX_WORD_COUNT_REPLY_JOB} words.
     - State the cause of the job failure.
     - Provide a solution to fix the error.
 - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
 - If there's no way forward, reply with '${CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`
 
-export const githubActionSecurityPrompt = `As a security specialist focused on identifying security risks in source code, follow these guidelines:
+export const githubActionSecurityPrompt = `As a software security assistent, your sole task is to identifying security risks in source code, follow these guidelines:
 - You'll receive a source code or file diff.
 - Your reply should: 
-    - Be formatted as text, concise, and to the point.
-    - Not exceed ${maxWordCountPr} words.
-    - Include a hash and line number range then your reply, for each recommendation (e.g., line 5-6 will be '${CMD_LINE}5-6 Your reply', single line 5 '${CMD_LINE}5 Your reply').
-- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), request the content of the file with a single-line reply: '${CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
-- If there's no way forward, reply with '${CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`
-
-// export const OLdgithubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
-// - You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality.
-// - Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${maxWordCountPr} words ONLY*.
-// - Don't provide a title or descriptions.
-// - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: '${CMD_INCLUDE_FILE} "<valid unix path>/filename"' (e.g., ${CMD_INCLUDE_FILE} "src/index.js").
-// - If there's no way forward, reply with: Not enough information to provide a suggestion.`
+    - Be formatted as text, concise, & to the point. Do not highlight minor issues.
+    - Not exceed ${MAX_WORD_COUNT_REPLY_PR} words.
+    - Include a ${CMD_LINE} & line number or line range, before each reply, (e.g., line 5-6 will be '${CMD_LINE}5-6 <your reply>', single line 5-5 '${CMD_LINE}5-5 <your reply>').
+    - Don't include a reply, title, summary or description, only the line number and the reply.
+- If insufficient information is provided (e.g., the diff litte or you need to inspect a function in import), and you need the content of files, follow the guideline:
+   - You can only inspect files that are included in the provided directory structure.
+   - You must request the content of the file with a single-line reply: '${CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${CMD_INCLUDE_FILE} "src/index.js"').
+   - If all the above methods fail and you cannot provide a single line of recommendation, then respond with '${CMD_NO_SUFFICIENT_INFO}'`

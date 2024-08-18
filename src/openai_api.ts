@@ -1,15 +1,15 @@
 import * as core from '@actions/core'
-import { ChatCompletionMessageParam, ChatCompletion } from './types'
+import { ChatCompletionMessageParam, ChatCompletion, Context } from './types'
 import { AzureOpenAI } from 'openai'
 import {
   githubActionFailurePrompt,
   githubActionSecurityPrompt
 } from './openai_prompts'
-import { maxTokens } from './config'
-import { debugGroupedMsg } from './util'
+import { MAX_TOKENS } from './config'
+import { debugGroupedMsg } from './output'
 
 function setupInitialMessage(
-  context: Record<string, string>,
+  context: Context,
   jobLog: string
 ): ChatCompletionMessageParam[] {
   const systemMessage: ChatCompletionMessageParam = {
@@ -20,7 +20,7 @@ function setupInitialMessage(
   let userMessageStr = `Github Action log that failed:\n---\n${jobLog}\n`
 
   if (context.jobContext) {
-    userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContext}\n`
+    userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContextFile}\n`
   }
 
   if (context.dirContext) {
@@ -43,7 +43,7 @@ function setupInitialMessage(
 }
 
 function setupInitialMessagePr(
-  context: Record<string, string>,
+  context: Context,
   diffText: string,
   filePath: string
 ): ChatCompletionMessageParam[] {
@@ -65,6 +65,7 @@ function setupInitialMessagePr(
   core.debug(
     `Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`
   )
+
   const userMessage: ChatCompletionMessageParam = {
     role: 'user',
     content: userMessageStr
@@ -75,7 +76,7 @@ function setupInitialMessagePr(
 
 async function openAiRequest(
   message: ChatCompletionMessageParam[],
-  context: Record<string, string>
+  context: Context
 ): Promise<ChatCompletion> {
   const {
     azOpenaiDeployment: deployment,
@@ -84,23 +85,29 @@ async function openAiRequest(
     azOpenaiEndpoint: endpoint
   } = context
 
-  core.info('* Request response from Azure OpenAI')
+  const payloadStr = JSON.stringify(message)
+
+  core.info(
+    `* Request response from Azure OpenAI [Chars: '${payloadStr.length}' Lines: '${payloadStr.split('\n').length}' ~Tokens: '${payloadStr.length / 4}']`
+  )
   debugGroupedMsg(
     'Azure OpenAI Message',
-    `Message: ${JSON.stringify(message, null, 2)}`
+    `Message: ${JSON.stringify(message, null, 2)}`,
+    context
   )
 
   const client = new AzureOpenAI({ apiKey, endpoint, deployment, apiVersion })
   const response = await client.chat.completions.create({
     messages: message,
     model: '',
-    max_tokens: maxTokens,
+    max_tokens: MAX_TOKENS,
     stream: false
   })
 
   debugGroupedMsg(
     'Azure OpenAI response',
-    `HTTP Response: ${JSON.stringify(response, null, 2)}`
+    `HTTP Response: ${JSON.stringify(response, null, 2)}`,
+    context
   )
 
   return response

@@ -34903,30 +34903,139 @@ function wrappy (fn, cb) {
 /***/ }),
 
 /***/ 5561:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.filterCommentsInline = filterCommentsInline;
+exports.filterCommentsFiles = filterCommentsFiles;
 exports.getRelevantComments = getRelevantComments;
+exports.splitComment = splitComment;
 exports.postReviewComment = postReviewComment;
+const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
-async function getRelevantComments(files, context) {
-    const user = await (0, github_api_1.getUserInfo)(context);
-    const prComments = await (0, github_api_1.getComments)(context);
-    const relevantComments = prComments.filter(comment => comment.user.login === user.login &&
+const output_1 = __nccwpck_require__(5768);
+/**
+ * Filters comments based on specified criteria for inline comments.
+ *
+ * @param comment - The comment to be filtered.
+ * @param files - The list of files to filter comments for.
+ * @param commitOnly - Indicates whether to filter comments based on commit ID only.
+ * @param context - The context object containing login and commit ID information.
+ * @returns A boolean value indicating whether the comment passes the filter.
+ */
+function filterCommentsInline(comment, files, commitOnly, context) {
+    if (!(comment.user.login === context.login &&
+        comment.subject_type === 'line' &&
+        files.includes(comment.path)))
+        return false;
+    if (commitOnly && comment.commit_id !== context.commitId)
+        return false;
+    // filter out comments that are outdated
+    if (comment.line == null)
+        return false;
+    return true;
+}
+/**
+ * Filters the comments based on the provided criteria for file comments.
+ *
+ * @param comment - The comment to be filtered.
+ * @param files - The list of files to compare against.
+ * @param context - The context object containing login and commitId.
+ * @returns A boolean indicating whether the comment meets the filtering criteria.
+ */
+function filterCommentsFiles(comment, files, context) {
+    return (comment.user.login === context.login &&
         comment.subject_type === 'file' &&
         comment.commit_id === context.commitId &&
         files.includes(comment.path));
-    return relevantComments;
+}
+/**
+ * Retrieves relevant comments based on the provided files and context.
+ *
+ * @param files - An array of file paths.
+ * @param context - The context object containing additional information.
+ * @returns A promise that resolves to an array of relevant comments.
+ */
+async function getRelevantComments(files, context) {
+    const prComments = await (0, github_api_1.getComments)(context);
+    // inline comments
+    if (context.inlineComment) {
+        return prComments.filter(comment => filterCommentsInline(comment, files, true, context));
+    }
+    return prComments.filter(comment => filterCommentsFiles(comment, files, context));
+}
+/**
+ * Splits a comment from OpenAI into its start line, end line, and comment text.
+ *
+ * @param comment - The comment to split.
+ * @returns An object containing the start line, end line, and comment text.
+ */
+function splitComment(comment) {
+    if (comment.trim().length === 0) {
+        return { start_line: 0, end_line: 0, comment: '' };
+    }
+    const regex = /#L(\d+)(?:-(\d+))?\s(.+)/;
+    const matches = comment.match(regex);
+    if (matches) {
+        const startLine = parseInt(matches[1]);
+        const endLine = matches[2] ? parseInt(matches[2]) : startLine;
+        const commentText = matches[3];
+        return { start_line: startLine, end_line: endLine, comment: commentText };
+    }
+    else {
+        return { start_line: -1, end_line: 0, comment: '' };
+    }
 }
 async function postReviewComment(reply, file, context) {
-    await (0, github_api_1.postComment)(context.pr, context, {
-        body: reply,
-        commit_id: context.commitId,
-        path: file,
-        subject_type: 'file'
-    });
+    // loop through each line in rely
+    // for (const line of reply.split('\n')) {
+    //   const lineComment = splitComment(line)
+    //   console.log(`YYYYYY Posting comment on ${file} ${line}`, lineComment)
+    // }
+    // await postComment(context.pr, context, {
+    //   body: reply,
+    //   commit_id: context.commitId,
+    //   path: file,
+    //   subject_type: 'file'
+    // })
+    if (context.inlineComment) {
+        core.warning('Inline comment not supported yet');
+    }
+    else {
+        await (0, github_api_1.postComment)(context.pr, context, {
+            body: reply,
+            commit_id: context.commitId,
+            path: file,
+            subject_type: 'file'
+        });
+    }
+    if (reply)
+        (0, output_1.outAIReply)(`PR response for ${file}@${context.ref}`, JSON.stringify(reply.split('\n'), null, 2));
 }
 
 
@@ -34939,27 +35048,37 @@ async function postReviewComment(reply, file, context) {
 
 // **** static application configuration ****
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.waitTime = exports.maxWordCountJob = exports.maxWordCountPr = exports.maxRecursionPr = exports.maxRecursionJob = exports.maxTokens = exports.GithubAPIversion = void 0;
-// Default Github API version
-exports.GithubAPIversion = '2022-11-28';
+exports.CMD_LINE = exports.CMD_NO_SUFFICIENT_INFO = exports.CMD_INCLUDE_FILE = exports.MAGIC_SYMBOL = exports.MAX_REGEX_CHARS = exports.MASK_CONTEXT_SECRETS = exports.STRIP_LINES_FROM_JOB = exports.STRIP_WORDS_FROM_JOB = exports.MAX_REGEX_PATTERNS = exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH = exports.WAIT_TIME = exports.MAX_WORD_COUNT_REPLY_JOB = exports.MAX_WORD_COUNT_REPLY_PR = exports.MAX_RECURSION_OPENAI_REQUEST_PR = exports.MAX_RECURSION_OPENAI_REQUEST_JOB = exports.MAX_TOKENS = exports.GITHUB_API_VERSION = void 0;
+// Default Public Github API version
+exports.GITHUB_API_VERSION = '2022-11-28';
 // Default max tokens for OpenAI
-exports.maxTokens = 384;
+exports.MAX_TOKENS = 384;
 // Default max recursion for OpenAI Job mode
-exports.maxRecursionJob = 3;
+exports.MAX_RECURSION_OPENAI_REQUEST_JOB = 2;
 // Default max recursion for OpenAI PR mode
-exports.maxRecursionPr = 2;
+exports.MAX_RECURSION_OPENAI_REQUEST_PR = 2;
 // Default max word count for OpenAI PR mode
-exports.maxWordCountPr = 300;
+exports.MAX_WORD_COUNT_REPLY_PR = 300;
 // Default max word count for OpenAI JOB mode
-exports.maxWordCountJob = 500;
+exports.MAX_WORD_COUNT_REPLY_JOB = 500;
 // Wait time in seconds before starting
-exports.waitTime = '1';
+exports.WAIT_TIME = '1';
 // Max input length for github action logs
-exports.MAX_INPUT_LOG_LENGTH = 20000;
+exports.MAX_INPUT_LOG_LENGTH = 2000;
 // Max input length for files
 exports.MAX_INPUT_FILES_LENGTH = exports.MAX_INPUT_LOG_LENGTH;
 // Max number of regex patterns that user is allowed to provide
 exports.MAX_REGEX_PATTERNS = 5;
+// Words to strip from the job output
+exports.STRIP_WORDS_FROM_JOB = [':debug::', ':notice::', ':info::'];
+// Lines to strip from the job output
+exports.STRIP_LINES_FROM_JOB = ['::group::', '::endgroup::'];
+// Secerts to mask in the job output
+exports.MASK_CONTEXT_SECRETS = [
+    'ghToken',
+    'azOpenaiDeployment',
+    'azOpenaiKey'
+];
 // Max char of  each regex pattern
 exports.MAX_REGEX_CHARS = 20;
 // The magic symbol used in openai responses
@@ -35003,21 +35122,27 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.doRequest = doRequest;
+exports.getJobYaml = getJobYaml;
+exports.getActionRuns = getActionRuns;
 exports.getJob = getJob;
 exports.getJobLogs = getJobLogs;
-exports.getActionRuns = getActionRuns;
-exports.getContent = getContent;
-exports.getJobYaml = getJobYaml;
+exports.getContentByRef = getContentByRef;
 exports.getFileContent4Context = getFileContent4Context;
-exports.getUserInfo = getUserInfo;
 exports.getCommitFiles = getCommitFiles;
+exports.getUserInfo = getUserInfo;
 exports.getComments = getComments;
 exports.postComment = postComment;
+exports.doRequest = doRequest;
 const core = __importStar(__nccwpck_require__(2186));
 const core_1 = __nccwpck_require__(6762);
 const config_1 = __nccwpck_require__(6373);
 const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
+async function getJobYaml(context) {
+    const jobAction = await getActionRuns(context);
+    const jobYaml = await getContentByRef(jobAction.path, jobAction.head_branch, context);
+    return jobYaml;
+}
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function getActionRuns(context) {
     const response = await doRequest({
@@ -35026,6 +35151,28 @@ async function getActionRuns(context) {
     }, context);
     return response.data;
 }
+// async function getRepoMetaInfo(context: Context): Promise<String> {
+//   let info = ''
+//   const repoMeta = await doRequest(
+//     {
+//       method: 'GET',
+//       path: `/repos/${context.owner}/${context.repo}`
+//     },
+//     context
+//   )
+//   if (repoMeta.data.full_name) info = `Repo: ${repoMeta.data.full_name}`
+//   if (repoMeta.data.description)
+//     info += `, Description: ${repoMeta.data.description}`
+//   const repoLanguages = await doRequest(
+//     {
+//       method: 'GET',
+//       path: `/repos/${context.owner}/${context.repo}/languages`
+//     },
+//     context
+//   )
+//   info += `, Languages (with line count): ${Object.keys(repoLanguages.data).join(', ')}`
+//   return info
+// }
 async function getJob(context) {
     const response = await doRequest({
         method: 'GET',
@@ -35038,13 +35185,6 @@ async function getJob(context) {
     const failedJob = response.data.jobs.find((job) => job.status === 'completed' && job.conclusion === 'failure');
     return failedJob || null;
 }
-async function getContent(filepath, ref, context) {
-    const response = await doRequest({
-        method: 'GET',
-        path: `/repos/${context.owner}/${context.repo}/contents/${filepath}?ref=${ref}`
-    }, context);
-    return atob(response.data.content);
-}
 async function getJobLogs(context) {
     const response = await doRequest({
         method: 'GET',
@@ -35052,13 +35192,15 @@ async function getJobLogs(context) {
     }, context);
     return (0, util_1.stripTimestampFromLogs)(response.data);
 }
-async function getJobYaml(context) {
-    const jobAction = await getActionRuns(context);
-    const jobYaml = await getContent(jobAction.path, jobAction.head_branch, context);
-    return jobYaml;
+async function getContentByRef(filepath, ref, context) {
+    const response = await doRequest({
+        method: 'GET',
+        path: `/repos/${context.owner}/${context.repo}/contents/${filepath}?ref=${ref}`
+    }, context);
+    return (0, util_1.decode64)(response.data.content, `${filepath}@${ref}`);
 }
 async function getFileContent4Context(response, context) {
-    (0, util_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`);
+    (0, output_1.debugGroupedMsg)('getFileContent4Context', `Response: ${JSON.stringify(response, null, 2)}`, context);
     const regex = new RegExp(`${config_1.CMD_INCLUDE_FILE} "(.*?)"`, 'gm');
     const matches = [...response.matchAll(regex)];
     if (matches.length < 1) {
@@ -35066,8 +35208,8 @@ async function getFileContent4Context(response, context) {
         return false;
     }
     const found = matches.map(match => match[1]);
-    core.info(`Fetching more context from repo: ${found[0]}:${context.ref}`);
-    const fileContent = await getContent(found[0], context.ref, context);
+    core.info(`Fetching more context from repo: ${found[0]}@${context.ref}`);
+    const fileContent = await getContentByRef(found[0], context.ref, context);
     return { filename: found[0], content: fileContent };
 }
 async function getCommitFiles(context) {
@@ -35075,7 +35217,7 @@ async function getCommitFiles(context) {
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
     }, context);
-    return (0, util_1.filterCommitFiles)(files.data.files, context.filesSelection.split(';'));
+    return (0, util_1.filterCommitFiles)(files.data.files, context.include);
 }
 async function getUserInfo(context) {
     const user = await doRequest({
@@ -35108,22 +35250,22 @@ async function doRequest(params, context, body, requestFetch) {
         ? { request: { fetch: requestFetch } }
         : {};
     const octokit = new core_1.Octokit({ ...config, ...requestOctoKit });
-    const iMethodPath = (0, util_1.interpolateString)(`${method} ${path}`, context);
+    const iMethodPath = `${method} ${path}`;
     if (core.isDebug())
         core.startGroup(`doRequest ${iMethodPath}`);
-    core.debug(`doRequest octokit init: { baseURL: ${baseUrl} auth: ${(0, util_1.sanitizeString)(context.ghToken)} }`);
-    const iPayload = (0, util_1.interpolateObject)(body, context);
-    core.debug(`doRequest payload: ${JSON.stringify(iPayload, null, 2)}`);
-    headers['X-GitHub-Api-Version'] = config_1.GithubAPIversion;
+    core.debug(`doRequest octokit init: { baseURL: ${baseUrl} auth: ${context?.ghToken?.length > 0} }`);
+    (0, output_1.outSantized)('debug', `doRequest payload: ${JSON.stringify(body, null, 2)}`, context);
+    headers['X-GitHub-Api-Version'] = config_1.GITHUB_API_VERSION;
     const response = await octokit.request(iMethodPath, {
         headers,
-        ...iPayload
+        ...body
     });
-    core.debug(`doRequest response: ${JSON.stringify(response, null, 2)}`);
+    (0, output_1.outSantized)('debug', `doRequest response: ${JSON.stringify(response, null, 2)}`, context);
     if (core.isDebug())
         core.endGroup();
     if (response.status < 200 || response.status >= 300) {
-        core.setFailed(`Github API request failed with status code ${response.status}. ${response.data.message}`);
+        (0, output_1.outSantized)('debug', `Github API request failed with status code ${response.status}. ${response.data.message}`, context);
+        core.setFailed('Request to Github API failed');
     }
     return response;
 }
@@ -35160,75 +35302,100 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.validateInputAsBoolean = validateInputAsBoolean;
+exports.validateInputWithSelection = validateInputWithSelection;
 exports.getInputs = getInputs;
 exports.getContextFromPayload = getContextFromPayload;
 const core = __importStar(__nccwpck_require__(2186));
-// import * as github from '@actions/github'
 const github_1 = __nccwpck_require__(5438);
 const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
+function validateInputAsBoolean(nameOfKey, userInput) {
+    if (userInput.toLowerCase() === 'true')
+        return true;
+    if (userInput.toLowerCase() === 'false')
+        return false;
+    if (userInput.trim() === '')
+        return false;
+    throw new Error(`Invalid input for input '${nameOfKey}': ${userInput} is not a boolean value`);
+}
+function validateInputWithSelection(nameOfKey, userInput, validValues) {
+    if (validValues.includes(userInput))
+        return userInput;
+    throw new Error(`Invalid input for input '${nameOfKey}': ${userInput} is not a valid value`);
+}
 /**
  * Get predfined action inputs for actions.
- * @returns {Record<string, string>} Resolves when the action is complete.
+ * @returns {Context} Resolves when the action is complete.
  */
 function getInputs() {
     const inputs = {};
-    inputs['mode'] = core.getInput('mode', { required: true });
-    if (!['pr', 'job'].includes(inputs['mode']))
-        throw new Error(`Invalid mode: ${inputs['mode']}`);
-    inputs['ghToken'] = core.getInput('gh-token', {
-        required: inputs['mode'] === 'pr'
+    // value selectopm for mode
+    // dynamic required based on mode
+    // input decode for dirContext
+    inputs.mode = validateInputWithSelection('mode', core.getInput('mode', { required: true }), ['pr', 'job']);
+    inputs.ghToken = core.getInput('gh-token', {
+        required: inputs.mode === 'pr'
     });
-    inputs['ghJob'] = core.getInput('gh-job', {
+    inputs.ghJob = core.getInput('gh-job', {
         required: false
     });
-    inputs['azOpenaiEndpoint'] = core.getInput('az-openai-endpoint', {
+    inputs.azOpenaiEndpoint = core.getInput('az-openai-endpoint', {
         required: true
     });
-    inputs['azOpenaiDeployment'] = core.getInput('az-openai-deployment', {
+    inputs.azOpenaiDeployment = core.getInput('az-openai-deployment', {
         required: true
     });
-    inputs['azOpenaiKey'] = core.getInput('az-openai-key', {
+    inputs.azOpenaiKey = core.getInput('az-openai-key', {
         required: true
     });
-    inputs['azOpenaiVersion'] = core.getInput('az-openai-apiVersion', {
+    inputs.azOpenaiVersion = core.getInput('az-openai-apiVersion', {
         required: true
     });
-    inputs['dirContext'] = core.getInput('dir-context', {
+    inputs.dirContext = core.getInput('dir-context', {
         required: false
     });
-    if (inputs['dirContext'].length > 0)
-        inputs['dirContext'] = atob(inputs['dirContext']);
-    inputs['jobContext'] = core.getInput('job-context', {
+    if (inputs.dirContext.length > 0)
+        inputs.dirContext = (0, util_1.decode64)(inputs.dirContext, "GH action input 'dirContext'");
+    inputs.jobContext = validateInputAsBoolean('jobContext', core.getInput('job-context', {
+        required: false
+    }));
+    inputs.userContext = core.getInput('user-context', {
         required: false
     });
-    inputs['userContext'] = core.getInput('user-context', {
+    inputs.inlineComment = validateInputAsBoolean('inline-comment', core.getInput('inline-comment', {
         required: false
-    });
-    inputs['filesSelection'] = core.getInput('files-selection', {
+    }));
+    inputs.include = core
+        .getInput('include', {
         required: false
-    });
+    })
+        .split(';');
     return inputs;
 }
 /**
  * Get context from githubaction payload and return required context.
- * @returns {Record<string, string>} Resolves when the action is complete.
+ * @returns {Context} Resolves when the action is complete.
  */
 function getContextFromPayload() {
-    (0, util_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context.payload, null, 2)}`);
-    const requiredContext = {};
+    (0, output_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context, null, 2)}`, {});
+    const payloadContext = {};
     const full_name = github_1.context.payload.repository?.full_name?.split('/') || [];
-    requiredContext['full_name'] = full_name.join('/');
-    requiredContext['owner'] = full_name[0];
-    requiredContext['repo'] = full_name[1];
-    requiredContext['runId'] = github_1.context.runId ? github_1.context.runId.toString() : '';
-    requiredContext['ref'] = github_1.context.ref;
-    requiredContext['pr'] = github_1.context.payload.number
-        ? github_1.context.payload.number.toString()
-        : '';
-    requiredContext['commitId'] = github_1.context.payload.after
-        ? github_1.context.payload.after.toString()
-        : '';
-    return requiredContext;
+    payloadContext.full_name = full_name.join('/');
+    payloadContext.owner = full_name[0];
+    payloadContext.repo = full_name[1];
+    payloadContext.runId = github_1.context.runId ? github_1.context.runId.toString() : '';
+    payloadContext.pr = github_1.context.payload.number?.toString() || '';
+    payloadContext.action = github_1.context.payload.action || '';
+    if (payloadContext.action === 'synchronize' ||
+        payloadContext.action === 'opened') {
+        payloadContext.commitId = github_1.context.payload.pull_request?.head.sha || '';
+    }
+    else {
+        payloadContext.commitId = github_1.context.payload.after?.toString() || '';
+    }
+    payloadContext.ref = github_1.context.ref || payloadContext.commitId;
+    return payloadContext;
 }
 
 
@@ -35269,7 +35436,7 @@ const wait_1 = __nccwpck_require__(5259);
 const inputs_1 = __nccwpck_require__(7063);
 const mode_job_1 = __nccwpck_require__(8341);
 const mode_pr_1 = __nccwpck_require__(5750);
-const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
 const config_1 = __nccwpck_require__(6373);
 /**
  * The main function for the action.
@@ -35280,13 +35447,13 @@ async function run() {
         let context = (0, inputs_1.getInputs)();
         const payloadContext = (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
-        (0, util_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`);
-        await (0, wait_1.wait)(parseInt(config_1.waitTime, 10));
+        (0, output_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`, context);
+        await (0, wait_1.wait)(parseInt(config_1.WAIT_TIME, 10));
         let usage;
         if (context.mode === 'pr')
-            usage = (0, mode_pr_1.runPrMode)(context);
+            usage = (0, mode_pr_1.mainPR)(context);
         else if (context.mode === 'job')
-            usage = (0, mode_job_1.runJobMode)(context);
+            usage = (0, mode_job_1.mainJob)(context);
         else
             throw new Error(`Invalid mode: ${context.mode}`);
         core.setOutput('usage', usage);
@@ -35337,12 +35504,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runJobMode = runJobMode;
+exports.mainJob = mainJob;
 const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
-async function runJobMode(context) {
+const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
+async function mainJob(context) {
     // Getting GH action job information
     const currentJob = await (0, github_api_1.getJob)(context);
     if (!currentJob) {
@@ -35350,19 +35519,21 @@ async function runJobMode(context) {
         return '';
     }
     context.jobId = currentJob.id;
-    core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Job yaml context: ${context.jobContext}`);
-    if (context.jobContext)
-        context.jobContext = await (0, github_api_1.getJobYaml)(context);
+    core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Get Job yaml context: ${context.jobContext}`);
+    if (context.jobContext) {
+        context.jobContextFile = await (0, github_api_1.getJobYaml)(context);
+        context.jobContextFile = (0, util_1.stripWordsFromContent)(context.jobContextFile, config_1.STRIP_WORDS_FROM_JOB, config_1.STRIP_LINES_FROM_JOB);
+    }
     const jobLog = await (0, github_api_1.getJobLogs)(context);
     const message = (0, openai_api_1.setupInitialMessage)(context, jobLog);
     let usage = {};
-    for (let i = 1; i <= config_1.maxRecursionJob; i++) {
+    for (let i = 1; i <= config_1.MAX_RECURSION_OPENAI_REQUEST_JOB; i++) {
         const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
         if (aiResponse.usage !== undefined)
             usage = aiResponse.usage;
         for (const result of aiResponse.choices) {
             const content = result.message.content;
-            core.info(`###### [ Bender Response ] ######\n${content}\n############\n`);
+            (0, output_1.outAIReply)('JOB Response', content);
             message.push({ role: 'assistant', content });
         }
         const firstChoice = aiResponse.choices[0];
@@ -35416,17 +35587,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runPrMode = runPrMode;
+exports.mainPR = mainPR;
 const core = __importStar(__nccwpck_require__(2186));
 const github_api_1 = __nccwpck_require__(1030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 const comments_1 = __nccwpck_require__(5561);
-// core.notice('More context needed')
-// AnnotationProperties
 async function generateReply(prFileContent, context, file) {
     let reply = '';
-    for (let i = 1; i <= config_1.maxRecursionPr; i++) {
+    for (let i = 1; i <= config_1.MAX_RECURSION_OPENAI_REQUEST_PR; i++) {
         const message = (0, openai_api_1.setupInitialMessagePr)(context, prFileContent, file);
         const aiResponse = await (0, openai_api_1.openAiRequest)(message, context);
         if (aiResponse.choices.length > 1) {
@@ -35434,26 +35603,33 @@ async function generateReply(prFileContent, context, file) {
             core.debug(JSON.stringify(aiResponse.choices));
             return '';
         }
-        const content = aiResponse.choices[0].message.content ?? '';
-        reply = content;
-        if (!content.includes(config_1.CMD_INCLUDE_FILE)) {
+        reply = aiResponse.choices[0].message.content ?? '';
+        if (!reply.includes(config_1.CMD_INCLUDE_FILE)) {
             core.debug('No more context needed');
             break;
         }
-        const fileContent = await (0, github_api_1.getFileContent4Context)(content, context);
+        const fileContent = await (0, github_api_1.getFileContent4Context)(reply, context);
         if (!fileContent) {
             core.warning('Unable to get file content');
             break;
         }
-        message.push({ role: 'assistant', content });
+        message.push({ role: 'assistant', content: reply });
+    }
+    if (reply.includes(config_1.CMD_NO_SUFFICIENT_INFO)) {
+        core.warning(`No sufficient info for OpenAI to provide reply for content of '${file}'.\n${reply}\n`);
+        return '';
     }
     return reply;
 }
 async function processFile(file, context, relevantComments) {
     core.info(`* Processing file: ${file}`);
-    const prFileContent = await (0, github_api_1.getContent)(file, context.ref, context);
+    const prFileContent = await (0, github_api_1.getContentByRef)(file, context.ref, context);
     if (!prFileContent) {
         core.error(`Unable to fetch file content '${file}' '${context.ref}'`);
+        return;
+    }
+    if (prFileContent.trim().length < 1) {
+        core.warning(`File ${file} is empty skipping`);
         return;
     }
     const fileComment = relevantComments.find(comment => comment.path === file);
@@ -35462,14 +35638,18 @@ async function processFile(file, context, relevantComments) {
         return;
     }
     const reply = await generateReply(prFileContent, context, file);
+    if (reply.trim().length < 1)
+        return;
     await (0, comments_1.postReviewComment)(reply, file, context);
-    console.info(reply);
 }
-async function runPrMode(context) {
+async function mainPR(context) {
     const filesInPR = await (0, github_api_1.getCommitFiles)(context);
     const files = filesInPR.map(f => f.filename);
     if (filesInPR.length < 1)
         return '';
+    // Whoami
+    const user = await (0, github_api_1.getUserInfo)(context);
+    context.login = user.login;
     const relevantComments = await (0, comments_1.getRelevantComments)(files, context);
     for (const file of files) {
         await processFile(file, context, relevantComments);
@@ -35516,7 +35696,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const openai_1 = __nccwpck_require__(47);
 const openai_prompts_1 = __nccwpck_require__(8903);
 const config_1 = __nccwpck_require__(6373);
-const util_1 = __nccwpck_require__(2629);
+const output_1 = __nccwpck_require__(5768);
 function setupInitialMessage(context, jobLog) {
     const systemMessage = {
         role: 'system',
@@ -35524,7 +35704,7 @@ function setupInitialMessage(context, jobLog) {
     };
     let userMessageStr = `Github Action log that failed:\n---\n${jobLog}\n`;
     if (context.jobContext) {
-        userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContext}\n`;
+        userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContextFile}\n`;
     }
     if (context.dirContext) {
         userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`;
@@ -35560,16 +35740,17 @@ function setupInitialMessagePr(context, diffText, filePath) {
 }
 async function openAiRequest(message, context) {
     const { azOpenaiDeployment: deployment, azOpenaiVersion: apiVersion, azOpenaiKey: apiKey, azOpenaiEndpoint: endpoint } = context;
-    core.info('* Request response from Azure OpenAI');
-    (0, util_1.debugGroupedMsg)('Azure OpenAI Message', `Message: ${JSON.stringify(message, null, 2)}`);
+    const payloadStr = JSON.stringify(message);
+    core.info(`* Request response from Azure OpenAI [Chars: '${payloadStr.length}' Lines: '${payloadStr.split('\n').length}' ~Tokens: '${payloadStr.length / 4}']`);
+    (0, output_1.debugGroupedMsg)('Azure OpenAI Message', `Message: ${JSON.stringify(message, null, 2)}`, context);
     const client = new openai_1.AzureOpenAI({ apiKey, endpoint, deployment, apiVersion });
     const response = await client.chat.completions.create({
         messages: message,
         model: '',
-        max_tokens: config_1.maxTokens,
+        max_tokens: config_1.MAX_TOKENS,
         stream: false
     });
-    (0, util_1.debugGroupedMsg)('Azure OpenAI response', `HTTP Response: ${JSON.stringify(response, null, 2)}`);
+    (0, output_1.debugGroupedMsg)('Azure OpenAI response', `HTTP Response: ${JSON.stringify(response, null, 2)}`, context);
     return response;
 }
 
@@ -35588,25 +35769,117 @@ exports.githubActionFailurePrompt = `As a software engineer assistant, your purp
 - You'll receive GitHub Action job log that has a failures. 
 - Your reply should:
     - Be formatted as text, concise, and to the point.
-    - Not exceed ${config_1.maxWordCountJob} words.
+    - Not exceed ${config_1.MAX_WORD_COUNT_REPLY_JOB} words.
     - State the cause of the job failure.
     - Provide a solution to fix the error.
 - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
 - If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
-exports.githubActionSecurityPrompt = `As a security specialist focused on identifying security risks in source code, follow these guidelines:
+exports.githubActionSecurityPrompt = `As a software security assistent, your sole task is to identifying security risks in source code, follow these guidelines:
 - You'll receive a source code or file diff.
 - Your reply should: 
-    - Be formatted as text, concise, and to the point.
-    - Not exceed ${config_1.maxWordCountPr} words.
-    - Include a hash and line number range then your reply, for each recommendation (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 Your reply', single line 5 '${config_1.CMD_LINE}5 Your reply').
-- If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
-- If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
-// export const OLdgithubActionSecurityPrompt = `As a pair programming assistant focused on code security and quality, your purpose is to review code changes & suggest improvements. Follow these guidelines when reviewing code changes:
-// - You will be represented with a source code or file diff, You should review the code with focus on best code security practices & general code quality.
-// - Provide feedback formatted as text & conciseness & to the point. Your reply should not exceed *${maxWordCountPr} words ONLY*.
-// - Don't provide a title or descriptions.
-// - If insufficient information is provided (e.g., the diff is less than 3 lines or lacks context), You can reply in this format: '${CMD_INCLUDE_FILE} "<valid unix path>/filename"' (e.g., ${CMD_INCLUDE_FILE} "src/index.js").
-// - If there's no way forward, reply with: Not enough information to provide a suggestion.`
+    - Be formatted as text, concise, & to the point. Do not highlight minor issues.
+    - Not exceed ${config_1.MAX_WORD_COUNT_REPLY_PR} words.
+    - Include a ${config_1.CMD_LINE} & line number or line range, before each reply, (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 <your reply>', single line 5-5 '${config_1.CMD_LINE}5-5 <your reply>').
+    - Don't include a reply, title, summary or description, only the line number and the reply.
+- If insufficient information is provided (e.g., the diff litte or you need to inspect a function in import), and you need the content of files, follow the guideline:
+   - You can only inspect files that are included in the provided directory structure.
+   - You must request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"').
+   - If all the above methods fail and you cannot provide a single line of recommendation, then respond with '${config_1.CMD_NO_SUFFICIENT_INFO}'`;
+
+
+/***/ }),
+
+/***/ 5768:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.outAIReply = outAIReply;
+exports.sanitizeString = sanitizeString;
+exports.outSantized = outSantized;
+exports.rawPrintIfDebug = rawPrintIfDebug;
+exports.debugGroupedMsg = debugGroupedMsg;
+const core = __importStar(__nccwpck_require__(2186));
+const config_1 = __nccwpck_require__(6373);
+/**
+ * Prints the AI response with a formatted title and message.
+ *
+ * @param title - The title of the AI response.
+ * @param message - The message of the AI response. Can be null.
+ */
+function outAIReply(title, message) {
+    core.info(`${'#'.repeat(6)} [ Bender: ${title} ] ${'#'.repeat(6)}\n${message}\n${'#'.repeat(12)}\n`);
+}
+/**
+ * Sanitizes a string by replacing all characters except the first and last with asterisks.
+ * If the string is empty or null, an empty string is returned.
+ * @param str - The string to sanitize.
+ * @returns The sanitized string.
+ */
+function sanitizeString(str, context) {
+    if (!str)
+        return '';
+    let result = str;
+    for (const secret of config_1.MASK_CONTEXT_SECRETS) {
+        const valueOfSecret = context[secret];
+        if (!valueOfSecret)
+            continue;
+        if (result.includes(valueOfSecret))
+            result = result.replaceAll(valueOfSecret, '*x*x**+x');
+    }
+    return result;
+}
+function outSantized(level, message, context) {
+    const sanitizeMessage = sanitizeString(message, context);
+    core[level](sanitizeMessage);
+}
+/**
+ * Prints the given message if the debug mode is enabled.
+ *
+ * @param message - The message to be printed.
+ * @returns void
+ */
+function rawPrintIfDebug(message) {
+    if (core.isDebug())
+        core.info(message);
+}
+/**
+ * Logs a grouped debug message with a specified title and message.
+ *
+ * @param title - The title of the debug group.
+ * @param message - The message to be logged.
+ */
+function debugGroupedMsg(title, message, context) {
+    if (core.isDebug()) {
+        core.startGroup(title);
+        outSantized('debug', message, context);
+        core.endGroup();
+    }
+}
 
 
 /***/ }),
@@ -35640,25 +35913,30 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.sanitizeString = sanitizeString;
+exports.stripWordsFromContent = stripWordsFromContent;
 exports.stripTimestampFromLogs = stripTimestampFromLogs;
 exports.filterCommitFiles = filterCommitFiles;
-exports.interpolateString = interpolateString;
-exports.interpolateObject = interpolateObject;
-exports.rawPrintIfDebug = rawPrintIfDebug;
-exports.debugGroupedMsg = debugGroupedMsg;
+exports.decode64 = decode64;
 const core = __importStar(__nccwpck_require__(2186));
 const config_1 = __nccwpck_require__(6373);
 /**
- * Sanitizes a string by replacing all characters except the first and last with asterisks.
- * If the string is empty or null, an empty string is returned.
- * @param str - The string to sanitize.
- * @returns The sanitized string.
+ * Removes specified words from a given string and removes lines that start with specified words.
+ *
+ * @param str - The input string.
+ * @param words - An array of words to be removed from the string. Default is an empty array.
+ * @param linesStartWithWord - An array of words that indicate the start of lines to be removed from the string. Default is an empty array.
+ * @returns The modified string after removing the specified words and lines.
  */
-function sanitizeString(str) {
-    if (!str)
-        return '';
-    return str.length <= 6 ? '******' : `${str[0]}******${str[str.length - 1]}`;
+function stripWordsFromContent(str, words = [], linesStartWithWord = []) {
+    let result = str;
+    for (const word of words) {
+        result = result.replaceAll(word, '');
+    }
+    for (const lineStartWithWord of linesStartWithWord) {
+        const regex = new RegExp(`^${lineStartWithWord}.*\n`, 'gm');
+        result = result.replaceAll(regex, '');
+    }
+    return result;
 }
 /**
  * Removes timestamps from log strings.
@@ -35667,8 +35945,8 @@ function sanitizeString(str) {
  * @returns The log string without timestamps.
  */
 function stripTimestampFromLogs(str) {
-    if (str.length > config_1.MAX_INPUT_LOG_LENGTH) {
-        throw new Error('Input string is too long');
+    if (str.split('\n').length > config_1.MAX_INPUT_LOG_LENGTH) {
+        throw new Error(`Input string is too long. Max length is ${config_1.MAX_INPUT_LOG_LENGTH} file lines ${str.split('\n').length}`);
     }
     const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{7}Z\s/gm;
     return str.replaceAll(regex, '');
@@ -35704,6 +35982,14 @@ function filterCommitFiles(files, regexFilters) {
     }
     return uniqueFiles;
 }
+/**
+ * Validates the input files and regex filters.
+ *
+ * @param files - An array of objects representing the files to be validated.
+ * @param regexFilters - An array of regex patterns to be applied for filtering.
+ * @throws {Error} If the total length of filenames exceeds the maximum limit.
+ * @throws {Error} If the number of regex patterns exceeds the maximum limit.
+ */
 function filterValidateInput(files, regexFilters) {
     const totalFilenameLength = files
         .map(f => f.filename.length)
@@ -35715,11 +36001,24 @@ function filterValidateInput(files, regexFilters) {
         throw new Error(`Too many regex patterns max limit is ${config_1.MAX_REGEX_PATTERNS}`);
     }
 }
+/**
+ * Filters an array of files based on allowed diff status only added, modified and renamed.
+ *
+ * @param files - The array of files to filter.
+ * @returns The filtered array of files.
+ */
 function filterByStatus(files) {
     const allowedStatus = ['added', 'modified', 'renamed'];
     core.info(`* PR files (${files.length}): ${files.map(f => f.filename).join(', ')}`);
     return files.filter(f => allowedStatus.includes(f.status));
 }
+/**
+ * Tests if a given string matches a regular expression pattern.
+ *
+ * @param regexStr - The regular expression pattern to test.
+ * @param testString - The string to test against the regular expression pattern.
+ * @returns A boolean indicating whether the test string matches the regular expression pattern.
+ */
 function regTest(regexStr, testString) {
     if (!testString)
         return false;
@@ -35744,6 +36043,13 @@ function sanitizeRegex(input) {
         .replace(/\*/g, '.*');
     return sanitized;
 }
+/**
+ * Filters an array of files based on an array of regular expressions.
+ *
+ * @param files - The array of files to be filtered.
+ * @param regexFilters - The array of regular expressions to filter the files.
+ * @returns The filtered array of files.
+ */
 function filterByRegex(files, regexFilters) {
     let filteredFiles = [];
     for (const regEx of regexFilters) {
@@ -35752,66 +36058,21 @@ function filterByRegex(files, regexFilters) {
     return filteredFiles;
 }
 /**
- * Replaces placeholders in a string with corresponding values from a context object.
+ * Decodes a base64 string.
  *
- * @param str - The string containing placeholders to be replaced.
- * @param context - The context object containing key-value pairs for replacement.
- * @returns The string with placeholders replaced by their corresponding values.
+ * @param str - The base64 string to decode.
+ * @param fileRef - The reference to the file being decoded.
+ * @returns The decoded string.
+ * @throws An error if there is an issue decoding the base64 string.
  */
-function interpolateString(str, context) {
-    return str.replace(/\${(.*?)}/g, (match, key) => context[key] || match);
-}
-/**
- * Interpolates values from the given `context` object into the `target` object.
- * If a key in `target` exists in `context`, the corresponding value from `context` is used.
- * Otherwise, the original value from `target` is used.
- *
- * @param target - The target object to interpolate values into.
- * @param context - The context object containing the values to interpolate.
- * @returns A new object with interpolated values.
- */
-function interpolateObject(target, context) {
-    if (!target)
-        return {};
-    const newDic = {};
-    let targetObj = {};
-    if (typeof target === 'string') {
-        targetObj = JSON.parse(target);
+function decode64(str, fileRef) {
+    if (!str || str.length === 0)
+        return ' ';
+    try {
+        return atob(str);
     }
-    else {
-        targetObj = target;
-    }
-    for (const [key, value] of Object.entries(targetObj)) {
-        if (key in context) {
-            newDic[key] = context[key];
-        }
-        else {
-            newDic[key] = value;
-        }
-    }
-    return newDic;
-}
-/**
- * Prints the given message if the debug mode is enabled.
- *
- * @param message - The message to be printed.
- * @returns void
- */
-function rawPrintIfDebug(message) {
-    if (core.isDebug())
-        core.info(message);
-}
-/**
- * Logs a grouped debug message with a specified title and message.
- *
- * @param title - The title of the debug group.
- * @param message - The message to be logged.
- */
-function debugGroupedMsg(title, message) {
-    if (core.isDebug()) {
-        core.startGroup(title);
-        core.debug(message);
-        core.endGroup();
+    catch (e) {
+        throw new Error(`error while decoding base64 string when attempting to decode ${fileRef}. ${e}`);
     }
 }
 
