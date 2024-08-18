@@ -37,8 +37,10 @@ export function stripWordsFromContent(
  * @returns The log string without timestamps.
  */
 export function stripTimestampFromLogs(str: string): string {
-  if (str.length > MAX_INPUT_LOG_LENGTH) {
-    throw new Error('Input string is too long')
+  if (str.split('\n').length > MAX_INPUT_LOG_LENGTH) {
+    throw new Error(
+      `Input string is too long. Max length is ${MAX_INPUT_LOG_LENGTH} file lines ${str.split('\n').length}`
+    )
   }
   const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{7}Z\s/gm
   return str.replaceAll(regex, '')
