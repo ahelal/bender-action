@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import { postComment, getComments } from './github_api'
+import { postComment, getComments } from './gh_api'
 import { Context, dataResponse } from './types'
 import { outAIReply } from './output'
 

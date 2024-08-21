@@ -1,11 +1,65 @@
 import * as core from '@actions/core'
-import { Octokit } from '@octokit/core'
-import { OctokitResponse, Context, requestParams, dataResponse } from './types'
-import { GITHUB_API_VERSION, CMD_INCLUDE_FILE } from './config'
+import { doRequest } from './gh_requests'
+
+import { Context, dataResponse } from './types'
+import { CMD_INCLUDE_FILE } from './config'
 
 import { decode64, stripTimestampFromLogs, filterCommitFiles } from './util'
 
-import { outSantized, debugGroupedMsg } from './output'
+import { debugGroupedMsg } from './output'
+
+/**
+ * Retrieves the GH user information.
+ *
+ * @param context - The context object.
+ * @returns A promise that resolves to dataResponse to the user information.
+ */
+export async function getUserInfo(context: Context): Promise<dataResponse> {
+  const user = await doRequest(
+    {
+      method: 'GET',
+      path: '/user'
+    },
+    context
+  )
+  return user.data
+}
+
+/**
+ * Retrieves the comments for a specific pull request.
+ *
+ * @param context - The context object containing information about the repository and pull request.
+ * @returns A promise that resolves to an array of dataResponse objects representing the comments.
+ */
+export async function getComments(context: Context): Promise<dataResponse[]> {
+  const response = await doRequest(
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/pulls/${context.pr}/comments`
+    },
+    context
+  )
+  return response.data
+}
+
+/**
+ * Retrieves the list of files associated with a specific commit.
+ *
+ * @param context - The context object containing information about the repository and commit.
+ * @returns A promise that resolves to an array of dataResponse objects representing the commit files.
+ */
+export async function getCommitFiles(
+  context: Context
+): Promise<dataResponse[]> {
+  const files = await doRequest(
+    {
+      method: 'GET',
+      path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
+    },
+    context
+  )
+  return filterCommitFiles(files.data.files, context.include)
+}
 
 export async function getJobYaml(context: Context): Promise<string> {
   const jobAction = await getActionRuns(context)
@@ -125,43 +179,6 @@ export async function getFileContent4Context(
   return { filename: found[0], content: fileContent }
 }
 
-export async function getCommitFiles(
-  context: Context
-): Promise<Record<string, string>[]> {
-  const files = await doRequest(
-    {
-      method: 'GET',
-      path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
-    },
-    context
-  )
-  return filterCommitFiles(files.data.files, context.include)
-}
-
-export async function getUserInfo(
-  context: Context
-): Promise<Record<string, any>> {
-  const user = await doRequest(
-    {
-      method: 'GET',
-      path: '/user'
-    },
-    context
-  )
-  return user.data
-}
-
-export async function getComments(context: Context): Promise<dataResponse[]> {
-  const response = await doRequest(
-    {
-      method: 'GET',
-      path: `/repos/${context.owner}/${context.repo}/pulls/${context.pr}/comments`
-    },
-    context
-  )
-  return response.data
-}
-
 export async function postComment(
   pullRequestNumber: string,
   context: Context,
@@ -176,65 +193,4 @@ export async function postComment(
     body
   )
   return response.data
-}
-
-export async function doRequest(
-  params: requestParams,
-  context: Context,
-  body?: Record<string, string>,
-  requestFetch?: () => Promise<any>
-): Promise<OctokitResponse<any, number>> {
-  const {
-    baseUrl = 'https://api.github.com',
-    method,
-    path,
-    headers = {}
-  } = params
-  const { ghToken } = context
-
-  const config: Record<string, string> = { baseUrl }
-  if (ghToken) config['auth'] = ghToken
-
-  const requestOctoKit = requestFetch
-    ? { request: { fetch: requestFetch } }
-    : {}
-  const octokit = new Octokit({ ...config, ...requestOctoKit })
-
-  const iMethodPath = `${method} ${path}`
-
-  if (core.isDebug()) core.startGroup(`doRequest ${iMethodPath}`)
-  core.debug(
-    `doRequest octokit init: { baseURL: ${baseUrl} auth: ${context?.ghToken?.length > 0} }`
-  )
-
-  outSantized(
-    'debug',
-    `doRequest payload: ${JSON.stringify(body, null, 2)}`,
-    context
-  )
-
-  headers['X-GitHub-Api-Version'] = GITHUB_API_VERSION
-
-  const response = await octokit.request(iMethodPath, {
-    headers,
-    ...body
-  })
-
-  outSantized(
-    'debug',
-    `doRequest response: ${JSON.stringify(response, null, 2)}`,
-    context
-  )
-  if (core.isDebug()) core.endGroup()
-
-  if (response.status < 200 || response.status >= 300) {
-    outSantized(
-      'debug',
-      `Github API request failed with status code ${response.status}. ${response.data.message}`,
-      context
-    )
-
-    core.setFailed('Request to Github API failed')
-  }
-  return response
 }

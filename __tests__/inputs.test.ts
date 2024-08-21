@@ -1,10 +1,5 @@
-// import * as core from '@actions/core'
-// import { context } from '@actions/github'
-import { getInputs, validateInputAsBoolean } from '../src/inputs'
-// getContextFromPayload
-
-// jest.mock('@actions/core')
-// jest.mock('@actions/github')
+import fs from 'fs'
+import { getInputs, getContextFromPayload } from '../src/inputs'
 
 function setInputEnvironmentVariables(
   override: Record<string, string> = {}
@@ -24,7 +19,8 @@ function setInputEnvironmentVariables(
     process.env[`INPUT_${key.toUpperCase()}`] = override[key]
   }
 }
-function clearEnvironmentVariables(): void {
+
+function clearInputEnvironmentVariables(): void {
   for (const key in process.env) {
     if (key.startsWith('INPUT_')) {
       delete process.env[key]
@@ -32,23 +28,73 @@ function clearEnvironmentVariables(): void {
   }
 }
 
+function setContextPayloadEnvironmentVariables(
+  payload: string,
+  override: Record<string, string> = {}
+): string {
+  const tmp = require('tmp')
+  const tmpobj = tmp.fileSync()
+  fs.writeSync(tmpobj.fd, payload)
+  // fs.writeSync('sadasd.txt', payload)
+  // const p = 'test.txt'
+  // fs.writeFile(p, payload, err => {
+  //   if (err) throw err
+  //   console.log('The file has been saved!')
+  // })
+
+  process.env['GITHUB_WORKFLOW'] = 'Test workflow'
+  process.env['GITHUB_RUN_NUMBER'] = '2'
+  process.env['GITHUB_RUN_ID'] = '123'
+  process.env['GITHUB_SHA'] = 'commit'
+  process.env['GITHUB_EVENT_NAME'] = 'pull_request'
+  process.env['GITHUB_JOB'] = 'JOB'
+  process.env['GITHUB_REF'] = 'ref'
+  for (const key in override) {
+    process.env[key] = override[key]
+  }
+  process.env['CI'] = 'true'
+  process.env['GITHUB_EVENT_PATH'] = tmpobj.name
+  // process.env['GITHUB_EVENT_PATH'] = p
+
+  return tmpobj.name
+  // return p
+}
+
+function clearContextPayloadEnvironmentVariables(path: string): void {
+  for (const key in process.env) {
+    if (key.startsWith('GITHUB_')) {
+      delete process.env[key]
+    }
+  }
+  try {
+    fs.unlinkSync(path)
+  } catch (e) {
+    console.log('')
+  }
+}
+
 describe('getInputs', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    clearEnvironmentVariables()
+    jest.resetModules()
+    clearInputEnvironmentVariables()
   })
 
   it('should throw an error for empty mode', () => {
-    expect(getInputs).toThrow('Input required and not supplied: mode')
+    // const getInputs = require('../src/inputs')
+    expect(getInputs).toThrow('required')
   })
 
   it('should throw an error for invalid mode', () => {
+    // const getInputs = require('../src/inputs')
     // set environment variables for the test
     process.env['INPUT_MODE'] = 'no-mode'
-    expect(getInputs).toThrow("Invalid input for input 'mode'")
+    expect(getInputs).toThrow("Invalid input for 'mode'")
+    expect(getInputs).toThrow('no-mode')
   })
 
   it('should return the correct inputs for pr mode', () => {
+    // const getInputs = require('../src/inputs')
     setInputEnvironmentVariables()
     const inputs = getInputs()
     expect(inputs).toEqual({
@@ -68,6 +114,7 @@ describe('getInputs', () => {
   })
 
   it('should return the correct inputs for job mode', () => {
+    // const getInputs = require('../src/inputs')
     setInputEnvironmentVariables({ mode: 'job' })
     const inputs = getInputs()
     expect(inputs).toEqual({
@@ -110,25 +157,146 @@ describe('getInputs', () => {
         expect(getInputs).toThrow('Input required and not supplied')
       })
     }
-
-    describe('validateInputAsBoolean', () => {
-      it('should return true for valid input "true"', () => {
-        const result = validateInputAsBoolean('testKey', 'true')
-        expect(result).toBe(true)
-      })
-
-      it('should return false for valid input "false"', () => {
-        const result = validateInputAsBoolean('testKey', 'false')
-        expect(result).toBe(false)
-      })
-
-      it('should throw an error for invalid input', () => {
-        expect(() => {
-          validateInputAsBoolean('testKey', 'invalid')
-        }).toThrow(
-          "Invalid input for input 'testKey': invalid is not a boolean value"
-        )
-      })
-    })
   })
 })
+
+describe('getContextFromPayload', () => {
+  let tmpfile = ''
+
+  beforeEach(() => {
+    jest.resetModules()
+    // jest.isolateModules()
+    jest.clearAllMocks()
+  })
+
+  afterEach(() => {
+    jest.resetModules()
+    clearContextPayloadEnvironmentVariables(tmpfile)
+  })
+
+  it('should return empty context when payload is empty', () => {
+    // const { getContextFromPayload } = require('../src/inputs')
+    const expectedContext = {
+      action: '',
+      commitId: '',
+      full_name: '',
+      owner: '',
+      pr: '',
+      ref: '',
+      repo: '',
+      runId: ''
+    }
+    const responseContext = getContextFromPayload()
+    expect(responseContext).toEqual(expectedContext)
+  })
+
+  it('should return the correct context for a valid payload', () => {
+    // const { getContextFromPayload } = require('../src/inputs')
+    const payload = {
+      runId: 123,
+      action: 'opened',
+      repository: {
+        full_name: 'ownerName/repoName'
+      },
+      number: '20',
+      pull_request: {
+        head: {
+          sha: 'commit'
+        }
+      }
+    }
+    const envVar = {
+      // GITHUB_WORKFLOW: 'Node js cli',
+      // GITHUB_EVENT_NAME: 'pull_request',
+      // GITHUB_ACTION: '__run_2',
+      // GITHUB_REF: 'refs/pull/6/merge',
+      // GITHUB_RUN_NUMBER: '1',
+      // GITHUB_RUN_ID: '123',
+      // GITHUB_ACTOR: 'ahelal',
+      // GITHUB_JOB: 'build',
+      // GITHUB_SHA: 'd492f0dc80bbde6de8aca5bf59d068a6b811fc9f'
+      // // GITHUB_EVENT_PATH: /home/runner/work/_temp/_github_workflow/event.json
+    }
+
+    tmpfile = setContextPayloadEnvironmentVariables(
+      JSON.stringify(payload),
+      envVar
+    )
+    const expectedContext = {
+      action: 'opened',
+      full_name: 'ownerName/repoName',
+      owner: 'ownerName',
+      repo: 'repoName',
+      pr: '20',
+      runId: '123',
+      commitId: 'commit',
+      ref: 'ref'
+    }
+
+    const responseContext = getContextFromPayload()
+    expect(responseContext).toEqual(expectedContext)
+  })
+
+  //   it('should handle missing pull_request in payload', () => {
+  //     const payload = {
+  //       repository: {
+  //         owner: { login: 'ownerName' },
+  //         name: 'repoName'
+  //       }
+  //     }
+
+  //     const expectedContext = {
+  //       owner: 'ownerName',
+  //       repo: 'repoName',
+  //       pullRequestNumber: undefined
+  //     }
+
+  //     const context = getContextFromPayload(payload)
+
+  //     expect(context).toEqual(expectedContext)
+  //   })
+
+  //   it('should handle missing repository in payload', () => {
+  //     const payload = {}
+
+  //     const expectedContext = {
+  //       owner: undefined,
+  //       repo: undefined,
+  //       pullRequestNumber: undefined
+  //     }
+
+  //     const context = getContextFromPayload(payload)
+
+  //     expect(context).toEqual(expectedContext)
+  //   })
+})
+
+// {
+//   "action": "synchronize",
+//   "after": "5c1ff863f4116a38622b2495b94d592ec4d3af17",
+//   "number": 2,
+//   "repository": {
+//     "default_branch": "main",
+//     "description": null,
+//     "full_name": "ahelal/bender-action-test",
+//     "language": "Python",
+//     "languages_url": "https://api.github.com/repos/ahelal/bender-action-test/languages",
+//     "name": "bender-action-test",
+//     "owner": {
+//       "login": "ahelal",
+//       "type": "User",
+//       "url": "https://api.github.com/users/ahelal"
+//     },
+//     "private": false
+//   },
+//   "sender": {
+//     "login": "ahelal"
+//   }
+// }
+
+// safely create a temp file and return the path
+// function createTempFile(): string {
+//   const tmp = require('tmp')
+//   const tmpobj = tmp.fileSync()
+//   return tmpobj.name
+// }

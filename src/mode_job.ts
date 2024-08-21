@@ -4,7 +4,7 @@ import {
   getJobYaml,
   getJobLogs,
   getFileContent4Context
-} from './github_api'
+} from './gh_api'
 
 import { setupInitialMessage, openAiRequest } from './openai_api'
 import { CompletionUsage, Context } from './types'

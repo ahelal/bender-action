@@ -1010,6 +1010,7 @@ class Context {
     constructor() {
         var _a, _b, _c;
         this.payload = {};
+        // console.log("XXXXXXX:::XXXXXX", process.env)
         if (process.env.GITHUB_EVENT_PATH) {
             if ((0, fs_1.existsSync)(process.env.GITHUB_EVENT_PATH)) {
                 this.payload = JSON.parse((0, fs_1.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: 'utf8' }));
@@ -1028,6 +1029,7 @@ class Context {
         this.job = process.env.GITHUB_JOB;
         this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
         this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
+
         this.apiUrl = (_a = process.env.GITHUB_API_URL) !== null && _a !== void 0 ? _a : `https://api.github.com`;
         this.serverUrl = (_b = process.env.GITHUB_SERVER_URL) !== null && _b !== void 0 ? _b : `https://github.com`;
         this.graphqlUrl =
@@ -34937,7 +34939,7 @@ exports.getRelevantComments = getRelevantComments;
 exports.splitComment = splitComment;
 exports.postReviewComment = postReviewComment;
 const core = __importStar(__nccwpck_require__(2186));
-const github_api_1 = __nccwpck_require__(1030);
+const gh_api_1 = __nccwpck_require__(9030);
 const output_1 = __nccwpck_require__(5768);
 /**
  * Filters comments based on specified criteria for inline comments.
@@ -34982,7 +34984,7 @@ function filterCommentsFiles(comment, files, context) {
  * @returns A promise that resolves to an array of relevant comments.
  */
 async function getRelevantComments(files, context) {
-    const prComments = await (0, github_api_1.getComments)(context);
+    const prComments = await (0, gh_api_1.getComments)(context);
     // inline comments
     if (context.inlineComment) {
         return prComments.filter(comment => filterCommentsInline(comment, files, true, context));
@@ -35027,7 +35029,7 @@ async function postReviewComment(reply, file, context) {
         core.warning('Inline comment not supported yet');
     }
     else {
-        await (0, github_api_1.postComment)(context.pr, context, {
+        await (0, gh_api_1.postComment)(context.pr, context, {
             body: reply,
             commit_id: context.commitId,
             path: file,
@@ -35093,7 +35095,7 @@ exports.CMD_LINE = `${exports.MAGIC_SYMBOL}L`;
 
 /***/ }),
 
-/***/ 1030:
+/***/ 9030:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -35122,22 +35124,60 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getUserInfo = getUserInfo;
+exports.getComments = getComments;
+exports.getCommitFiles = getCommitFiles;
 exports.getJobYaml = getJobYaml;
 exports.getActionRuns = getActionRuns;
 exports.getJob = getJob;
 exports.getJobLogs = getJobLogs;
 exports.getContentByRef = getContentByRef;
 exports.getFileContent4Context = getFileContent4Context;
-exports.getCommitFiles = getCommitFiles;
-exports.getUserInfo = getUserInfo;
-exports.getComments = getComments;
 exports.postComment = postComment;
-exports.doRequest = doRequest;
 const core = __importStar(__nccwpck_require__(2186));
-const core_1 = __nccwpck_require__(6762);
+const gh_requests_1 = __nccwpck_require__(8252);
 const config_1 = __nccwpck_require__(6373);
 const util_1 = __nccwpck_require__(2629);
 const output_1 = __nccwpck_require__(5768);
+/**
+ * Retrieves the GH user information.
+ *
+ * @param context - The context object.
+ * @returns A promise that resolves to dataResponse to the user information.
+ */
+async function getUserInfo(context) {
+    const user = await (0, gh_requests_1.doRequest)({
+        method: 'GET',
+        path: '/user'
+    }, context);
+    return user.data;
+}
+/**
+ * Retrieves the comments for a specific pull request.
+ *
+ * @param context - The context object containing information about the repository and pull request.
+ * @returns A promise that resolves to an array of dataResponse objects representing the comments.
+ */
+async function getComments(context) {
+    const response = await (0, gh_requests_1.doRequest)({
+        method: 'GET',
+        path: `/repos/${context.owner}/${context.repo}/pulls/${context.pr}/comments`
+    }, context);
+    return response.data;
+}
+/**
+ * Retrieves the list of files associated with a specific commit.
+ *
+ * @param context - The context object containing information about the repository and commit.
+ * @returns A promise that resolves to an array of dataResponse objects representing the commit files.
+ */
+async function getCommitFiles(context) {
+    const files = await (0, gh_requests_1.doRequest)({
+        method: 'GET',
+        path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
+    }, context);
+    return (0, util_1.filterCommitFiles)(files.data.files, context.include);
+}
 async function getJobYaml(context) {
     const jobAction = await getActionRuns(context);
     const jobYaml = await getContentByRef(jobAction.path, jobAction.head_branch, context);
@@ -35145,7 +35185,7 @@ async function getJobYaml(context) {
 }
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 async function getActionRuns(context) {
-    const response = await doRequest({
+    const response = await (0, gh_requests_1.doRequest)({
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/actions/runs/${context.runId}`
     }, context);
@@ -35174,7 +35214,7 @@ async function getActionRuns(context) {
 //   return info
 // }
 async function getJob(context) {
-    const response = await doRequest({
+    const response = await (0, gh_requests_1.doRequest)({
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/actions/runs/${context.runId}/jobs`
     }, context);
@@ -35186,14 +35226,14 @@ async function getJob(context) {
     return failedJob || null;
 }
 async function getJobLogs(context) {
-    const response = await doRequest({
+    const response = await (0, gh_requests_1.doRequest)({
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/actions/jobs/${context.jobId}/logs`
     }, context);
     return (0, util_1.stripTimestampFromLogs)(response.data);
 }
 async function getContentByRef(filepath, ref, context) {
-    const response = await doRequest({
+    const response = await (0, gh_requests_1.doRequest)({
         method: 'GET',
         path: `/repos/${context.owner}/${context.repo}/contents/${filepath}?ref=${ref}`
     }, context);
@@ -35212,34 +35252,52 @@ async function getFileContent4Context(response, context) {
     const fileContent = await getContentByRef(found[0], context.ref, context);
     return { filename: found[0], content: fileContent };
 }
-async function getCommitFiles(context) {
-    const files = await doRequest({
-        method: 'GET',
-        path: `/repos/${context.owner}/${context.repo}/commits/${context.commitId}`
-    }, context);
-    return (0, util_1.filterCommitFiles)(files.data.files, context.include);
-}
-async function getUserInfo(context) {
-    const user = await doRequest({
-        method: 'GET',
-        path: '/user'
-    }, context);
-    return user.data;
-}
-async function getComments(context) {
-    const response = await doRequest({
-        method: 'GET',
-        path: `/repos/${context.owner}/${context.repo}/pulls/${context.pr}/comments`
-    }, context);
-    return response.data;
-}
 async function postComment(pullRequestNumber, context, body) {
-    const response = await doRequest({
+    const response = await (0, gh_requests_1.doRequest)({
         method: 'POST',
         path: `/repos/${context.owner}/${context.repo}/pulls/${pullRequestNumber}/comments`
     }, context, body);
     return response.data;
 }
+
+
+/***/ }),
+
+/***/ 8252:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.doRequest = doRequest;
+const core = __importStar(__nccwpck_require__(2186));
+const core_1 = __nccwpck_require__(6762);
+const config_1 = __nccwpck_require__(6373);
+const output_1 = __nccwpck_require__(5768);
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 async function doRequest(params, context, body, requestFetch) {
     const { baseUrl = 'https://api.github.com', method, path, headers = {} } = params;
     const { ghToken } = context;
@@ -35302,15 +35360,17 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.validateInputAsBoolean = validateInputAsBoolean;
-exports.validateInputWithSelection = validateInputWithSelection;
 exports.getInputs = getInputs;
 exports.getContextFromPayload = getContextFromPayload;
 const core = __importStar(__nccwpck_require__(2186));
-const github_1 = __nccwpck_require__(5438);
+// import { context } from '@actions/github'
+// import * as Context from './context';
+// export declare const context: Context.Context;
+// import { Context } from '@actions/Context'
 const util_1 = __nccwpck_require__(2629);
 const output_1 = __nccwpck_require__(5768);
-function validateInputAsBoolean(nameOfKey, userInput) {
+function getBooleanInput(nameOfKey, required) {
+    const userInput = core.getInput(nameOfKey, { required });
     if (userInput.toLowerCase() === 'true')
         return true;
     if (userInput.toLowerCase() === 'false')
@@ -35319,10 +35379,15 @@ function validateInputAsBoolean(nameOfKey, userInput) {
         return false;
     throw new Error(`Invalid input for input '${nameOfKey}': ${userInput} is not a boolean value`);
 }
-function validateInputWithSelection(nameOfKey, userInput, validValues) {
-    if (validValues.includes(userInput))
-        return userInput;
-    throw new Error(`Invalid input for input '${nameOfKey}': ${userInput} is not a valid value`);
+function getStringInput(nameOfKey, required, validValues = []) {
+    const strInput = core
+        .getInput(nameOfKey, { required })
+        ?.toLocaleLowerCase();
+    if (validValues.length === 0)
+        return strInput;
+    if (validValues.includes(strInput))
+        return strInput;
+    throw new Error(`Invalid input for '${nameOfKey}': ${strInput} is not a valid value`);
 }
 /**
  * Get predfined action inputs for actions.
@@ -35330,10 +35395,7 @@ function validateInputWithSelection(nameOfKey, userInput, validValues) {
  */
 function getInputs() {
     const inputs = {};
-    // value selectopm for mode
-    // dynamic required based on mode
-    // input decode for dirContext
-    inputs.mode = validateInputWithSelection('mode', core.getInput('mode', { required: true }), ['pr', 'job']);
+    inputs.mode = getStringInput('mode', true, ['pr', 'job']);
     inputs.ghToken = core.getInput('gh-token', {
         required: inputs.mode === 'pr'
     });
@@ -35357,15 +35419,11 @@ function getInputs() {
     });
     if (inputs.dirContext.length > 0)
         inputs.dirContext = (0, util_1.decode64)(inputs.dirContext, "GH action input 'dirContext'");
-    inputs.jobContext = validateInputAsBoolean('jobContext', core.getInput('job-context', {
-        required: false
-    }));
+    inputs.jobContext = getBooleanInput('job-context', false);
     inputs.userContext = core.getInput('user-context', {
         required: false
     });
-    inputs.inlineComment = validateInputAsBoolean('inline-comment', core.getInput('inline-comment', {
-        required: false
-    }));
+    inputs.inlineComment = getBooleanInput('inline-comment', false);
     inputs.include = core
         .getInput('include', {
         required: false
@@ -35378,23 +35436,25 @@ function getInputs() {
  * @returns {Context} Resolves when the action is complete.
  */
 function getContextFromPayload() {
-    (0, output_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(github_1.context, null, 2)}`, {});
+    // const contextPayload = context()
+    const context = (__nccwpck_require__(5438).context);
+    (0, output_1.debugGroupedMsg)(`GH Context event`, `GH Action context event ${JSON.stringify(context, null, 2)}`, {});
     const payloadContext = {};
-    const full_name = github_1.context.payload.repository?.full_name?.split('/') || [];
+    const full_name = context.payload.repository?.full_name?.split('/') || [];
     payloadContext.full_name = full_name.join('/');
-    payloadContext.owner = full_name[0];
-    payloadContext.repo = full_name[1];
-    payloadContext.runId = github_1.context.runId ? github_1.context.runId.toString() : '';
-    payloadContext.pr = github_1.context.payload.number?.toString() || '';
-    payloadContext.action = github_1.context.payload.action || '';
+    payloadContext.owner = full_name[0] || '';
+    payloadContext.repo = full_name[1] || '';
+    payloadContext.runId = context.runId ? context.runId.toString() : '';
+    payloadContext.pr = context.payload.number?.toString() || '';
+    payloadContext.action = context.payload.action || '';
     if (payloadContext.action === 'synchronize' ||
         payloadContext.action === 'opened') {
-        payloadContext.commitId = github_1.context.payload.pull_request?.head.sha || '';
+        payloadContext.commitId = context.payload.pull_request?.head.sha || '';
     }
     else {
-        payloadContext.commitId = github_1.context.payload.after?.toString() || '';
+        payloadContext.commitId = context.payload.after?.toString() || '';
     }
-    payloadContext.ref = github_1.context.ref || payloadContext.commitId;
+    payloadContext.ref = context.ref || payloadContext.commitId;
     return payloadContext;
 }
 
@@ -35506,14 +35566,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.mainJob = mainJob;
 const core = __importStar(__nccwpck_require__(2186));
-const github_api_1 = __nccwpck_require__(1030);
+const gh_api_1 = __nccwpck_require__(9030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 const util_1 = __nccwpck_require__(2629);
 const output_1 = __nccwpck_require__(5768);
 async function mainJob(context) {
     // Getting GH action job information
-    const currentJob = await (0, github_api_1.getJob)(context);
+    const currentJob = await (0, gh_api_1.getJob)(context);
     if (!currentJob) {
         core.warning(`Unable to get job ID, either no failed job or wrong job name provided`);
         return '';
@@ -35521,10 +35581,10 @@ async function mainJob(context) {
     context.jobId = currentJob.id;
     core.info(`* Job Name/ID: ${currentJob.name}/${context.jobId} Get Job yaml context: ${context.jobContext}`);
     if (context.jobContext) {
-        context.jobContextFile = await (0, github_api_1.getJobYaml)(context);
+        context.jobContextFile = await (0, gh_api_1.getJobYaml)(context);
         context.jobContextFile = (0, util_1.stripWordsFromContent)(context.jobContextFile, config_1.STRIP_WORDS_FROM_JOB, config_1.STRIP_LINES_FROM_JOB);
     }
-    const jobLog = await (0, github_api_1.getJobLogs)(context);
+    const jobLog = await (0, gh_api_1.getJobLogs)(context);
     const message = (0, openai_api_1.setupInitialMessage)(context, jobLog);
     let usage = {};
     for (let i = 1; i <= config_1.MAX_RECURSION_OPENAI_REQUEST_JOB; i++) {
@@ -35541,7 +35601,7 @@ async function mainJob(context) {
             core.debug('No more context needed');
             break;
         }
-        const fileContent = await (0, github_api_1.getFileContent4Context)(firstChoice.message.content, context);
+        const fileContent = await (0, gh_api_1.getFileContent4Context)(firstChoice.message.content, context);
         if (!fileContent) {
             core.warning('Unable to get file content');
             break;
@@ -35589,7 +35649,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.mainPR = mainPR;
 const core = __importStar(__nccwpck_require__(2186));
-const github_api_1 = __nccwpck_require__(1030);
+const gh_api_1 = __nccwpck_require__(9030);
 const openai_api_1 = __nccwpck_require__(3333);
 const config_1 = __nccwpck_require__(6373);
 const comments_1 = __nccwpck_require__(5561);
@@ -35608,7 +35668,7 @@ async function generateReply(prFileContent, context, file) {
             core.debug('No more context needed');
             break;
         }
-        const fileContent = await (0, github_api_1.getFileContent4Context)(reply, context);
+        const fileContent = await (0, gh_api_1.getFileContent4Context)(reply, context);
         if (!fileContent) {
             core.warning('Unable to get file content');
             break;
@@ -35623,7 +35683,7 @@ async function generateReply(prFileContent, context, file) {
 }
 async function processFile(file, context, relevantComments) {
     core.info(`* Processing file: ${file}`);
-    const prFileContent = await (0, github_api_1.getContentByRef)(file, context.ref, context);
+    const prFileContent = await (0, gh_api_1.getContentByRef)(file, context.ref, context);
     if (!prFileContent) {
         core.error(`Unable to fetch file content '${file}' '${context.ref}'`);
         return;
@@ -35643,12 +35703,12 @@ async function processFile(file, context, relevantComments) {
     await (0, comments_1.postReviewComment)(reply, file, context);
 }
 async function mainPR(context) {
-    const filesInPR = await (0, github_api_1.getCommitFiles)(context);
+    const filesInPR = await (0, gh_api_1.getCommitFiles)(context);
     const files = filesInPR.map(f => f.filename);
     if (filesInPR.length < 1)
         return '';
     // Whoami
-    const user = await (0, github_api_1.getUserInfo)(context);
+    const user = await (0, gh_api_1.getUserInfo)(context);
     context.login = user.login;
     const relevantComments = await (0, comments_1.getRelevantComments)(files, context);
     for (const file of files) {
@@ -35765,26 +35825,33 @@ async function openAiRequest(message, context) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.githubActionSecurityPrompt = exports.githubActionFailurePrompt = void 0;
 const config_1 = __nccwpck_require__(6373);
-exports.githubActionFailurePrompt = `As a software engineer assistant, your purpose is to identify errors and suggest solutions to fix them, follow these guidelines:
+exports.githubActionFailurePrompt = `
+As a software engineer assistant, your task is to identify errors and suggest solutions to fix them, follow these guidelines:
 - You'll receive GitHub Action job log that has a failures. 
 - Your reply should:
-    - Be formatted as text, concise, and to the point.
+    - Be formatted as text, concise, & to the point.
+    - Not highlight minor issues.
     - Not exceed ${config_1.MAX_WORD_COUNT_REPLY_JOB} words.
     - State the cause of the job failure.
     - Provide a solution to fix the error.
 - If there's a stacktrace or an error pointing to a specific file, request the content of that file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"'). If directory structure is provided, you can cross-reference the file path with the directory structure.
-- If there's no way forward, reply with '${config_1.CMD_NO_SUFFICIENT_INFO} Not enough information to provide a solution.'`;
-exports.githubActionSecurityPrompt = `As a software security assistent, your sole task is to identifying security risks in source code, follow these guidelines:
+- If all the above methods fail and you cannot provide a single line of recommendation, then respond with '${config_1.CMD_NO_SUFFICIENT_INFO}'
+`;
+exports.githubActionSecurityPrompt = `
+As a software security reviewer, your task is to identifying security risks in source code, follow these guidelines:
 - You'll receive a source code or file diff.
 - Your reply should: 
-    - Be formatted as text, concise, & to the point. Do not highlight minor issues.
+    - Be formatted as text, concise, & to the point.
+    - Not highlight minor issues.
+    - Only provide security-related feedback.
     - Not exceed ${config_1.MAX_WORD_COUNT_REPLY_PR} words.
     - Include a ${config_1.CMD_LINE} & line number or line range, before each reply, (e.g., line 5-6 will be '${config_1.CMD_LINE}5-6 <your reply>', single line 5-5 '${config_1.CMD_LINE}5-5 <your reply>').
-    - Don't include a reply, title, summary or description, only the line number and the reply.
+    - Don't include title, summary or description, only the line number and your recommendation.
 - If insufficient information is provided (e.g., the diff litte or you need to inspect a function in import), and you need the content of files, follow the guideline:
    - You can only inspect files that are included in the provided directory structure.
    - You must request the content of the file with a single-line reply: '${config_1.CMD_INCLUDE_FILE} "<valid unix path>"' (e.g., '${config_1.CMD_INCLUDE_FILE} "src/index.js"').
-   - If all the above methods fail and you cannot provide a single line of recommendation, then respond with '${config_1.CMD_NO_SUFFICIENT_INFO}'`;
+   - If all the above methods fail and you cannot provide a single line of recommendation, then respond with '${config_1.CMD_NO_SUFFICIENT_INFO}'
+`;
 
 
 /***/ }),

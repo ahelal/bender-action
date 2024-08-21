@@ -1,9 +1,7 @@
-import { doRequest } from '../src/github_api'
+import { doRequest } from '../src/gh_requests'
 import fetchMock from 'fetch-mock'
 import { GITHUB_API_VERSION } from '../src/config'
 import { Context } from '../src/types'
-// import { request } from '@octokit/request'
-// import { RequestInterface } from '@octokit/types'
 
 describe('doRequest no context', () => {
   const context = {} as Context
@@ -30,7 +28,6 @@ describe('doRequest no context', () => {
     const request = fetchMockFunc.lastOptions()
     expect(response.status).toBe(200)
     expect(request?.method).toEqual('GET')
-    // console.log('Response: ', request)
     return response
   })
 })
@@ -70,7 +67,6 @@ describe('doRequest more context', () => {
   it('should make a successful request', async () => {
     const response = await doRequest(params, context, body, fetchMockFunc)
     const request = fetchMockFunc.lastOptions()
-    // console.log('Bodyyyyyyy', request)
     expect(request?.method).toEqual('POST')
     expect(response.status).toBe(200)
     return response
