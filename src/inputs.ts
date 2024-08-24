@@ -96,9 +96,11 @@ export function getInputs(): Context {
  * Get context from githubaction payload and return required context.
  * @returns {Context} Resolves when the action is complete.
  */
-export function getContextFromPayload(): Context {
+export async function getContextFromPayload(): Promise<Context> {
   // const contextPayload = context()
-  const context = require('@actions/github').context
+  const { context } = await import('@actions/github')
+  // const context = require('@actions/github').context
+  // const users = await import("./yourModuleThatExportsUsers");
   debugGroupedMsg(
     `GH Context event`,
     `GH Action context event ${JSON.stringify(context, null, 2)}`,

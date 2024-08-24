@@ -1,4 +1,7 @@
-import { setupInitialMessage, setupInitialMessagePr } from '../src/openai_api'
+import {
+  setupInitialMessageJob,
+  setupInitialMessagePr
+} from '../src/openai_api'
 import {
   githubActionFailurePrompt,
   githubActionSecurityPrompt
@@ -7,17 +10,16 @@ import { Context } from '../src/types'
 
 jest.mock('@actions/core')
 
-describe('setupInitialMessage', () => {
+describe('setupInitialMessageJob', () => {
   it('should return correct messages with minimal context', () => {
     const context: Context = {} as Context
     const jobLog = 'Sample job log'
-    const messages = setupInitialMessage(context, jobLog)
-
+    const messages = setupInitialMessageJob(context, jobLog)
     expect(messages).toEqual([
       { role: 'system', content: githubActionFailurePrompt },
       {
         role: 'user',
-        content: `Github Action log that failed:\n---\n${jobLog}\n`
+        content: `Github Action log that failed:\n"""${jobLog}\n"""\n`
       }
     ])
   })
@@ -30,13 +32,12 @@ describe('setupInitialMessage', () => {
       userContext: 'Sample user context'
     } as Context
     const jobLog = 'Sample job log'
-    const messages = setupInitialMessage(context, jobLog)
-
+    const messages = setupInitialMessageJob(context, jobLog)
     expect(messages).toEqual([
       { role: 'system', content: githubActionFailurePrompt },
       {
         role: 'user',
-        content: `Github Action log that failed:\n---\n${jobLog}\nGitHub Action job definition yaml:\n---\n${context.jobContextFile}\nDirectory structure of project:\n---\n${context.dirContext})\nExtra user context:\n---\n${context.userContext}\n`
+        content: `Github Action log that failed:\n"""${jobLog}\n"""\nGitHub Action job yaml:\n"""${context.jobContextFile}\n"""\nProject Directory structure:\n"""${context.dirContext}\n"""\nExtra user context:\n"""${context.userContext}\n"""\n`
       }
     ])
   })
@@ -51,7 +52,10 @@ describe('setupInitialMessagePr', () => {
 
     expect(messages).toEqual([
       { role: 'system', content: githubActionSecurityPrompt },
-      { role: 'user', content: `${filePath} diff:\n---\n${diffText}\n` }
+      {
+        role: 'user',
+        content: `Source code/Diff. File path '${filePath}':\n\n"""${diffText}\n"""\n`
+      }
     ])
   })
 
@@ -68,7 +72,7 @@ describe('setupInitialMessagePr', () => {
       { role: 'system', content: githubActionSecurityPrompt },
       {
         role: 'user',
-        content: `${filePath} diff:\n---\n${diffText}\nDirectory structure of project:\n---\n${context.dirContext})\nExtra user context:\n---\n${context.userContext}\n`
+        content: `Source code/Diff. File path '${filePath}':\n\n"""${diffText}\n"""\nProject Directory structure:\n"""${context.dirContext}\n"""\nExtra user context:\n"""${context.userContext}\n"""\n`
       }
     ])
   })

@@ -6,7 +6,7 @@ import {
   getFileContent4Context
 } from './gh_api'
 
-import { setupInitialMessage, openAiRequest } from './openai_api'
+import { setupInitialMessageJob, openAiRequest } from './openai_api'
 import { CompletionUsage, Context } from './types'
 import {
   MAX_RECURSION_OPENAI_REQUEST_JOB,
@@ -42,7 +42,7 @@ export async function mainJob(context: Context): Promise<string> {
   }
 
   const jobLog = await getJobLogs(context)
-  const message = setupInitialMessage(context, jobLog)
+  const message = setupInitialMessageJob(context, jobLog)
 
   let usage: CompletionUsage = {} as CompletionUsage
   for (let i = 1; i <= MAX_RECURSION_OPENAI_REQUEST_JOB; i++) {

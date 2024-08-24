@@ -8,31 +8,28 @@ import {
 import { MAX_TOKENS } from './config'
 import { debugGroupedMsg } from './output'
 
-function setupInitialMessage(
+export function setupInitialMessageJob(
   context: Context,
-  jobLog: string
+  logs: string
 ): ChatCompletionMessageParam[] {
   const systemMessage: ChatCompletionMessageParam = {
     role: 'system',
     content: githubActionFailurePrompt
   }
-
-  let userMessageStr = `Github Action log that failed:\n---\n${jobLog}\n`
-
-  if (context.jobContext) {
-    userMessageStr = `${userMessageStr}GitHub Action job definition yaml:\n---\n${context.jobContextFile}\n`
-  }
-
-  if (context.dirContext) {
-    userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`
-  }
-
-  if (context.userContext) {
-    userMessageStr = `${userMessageStr}Extra user context:\n---\n${context.userContext}\n`
-  }
+  const jobLogs = `Github Action log that failed:\n"""${logs}\n"""\n`
+  const jobContext = context.jobContext
+    ? `GitHub Action job yaml:\n"""${context.jobContextFile}\n"""\n`
+    : ''
+  const dirContext = context.dirContext
+    ? `Project Directory structure:\n"""${context.dirContext}\n"""\n`
+    : ''
+  const userContext = context.userContext
+    ? `Extra user context:\n"""${context.userContext}\n"""\n`
+    : ''
+  const userMessageStr = `${jobLogs}${jobContext}${dirContext}${userContext}`
 
   core.debug(
-    `Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`
+    `Job definition context: '${context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`
   )
   const userMessage: ChatCompletionMessageParam = {
     role: 'user',
@@ -42,7 +39,7 @@ function setupInitialMessage(
   return [systemMessage, userMessage]
 }
 
-function setupInitialMessagePr(
+export function setupInitialMessagePr(
   context: Context,
   diffText: string,
   filePath: string
@@ -52,18 +49,20 @@ function setupInitialMessagePr(
     content: githubActionSecurityPrompt
   }
 
-  let userMessageStr = `${filePath} diff:\n---\n${diffText}\n`
+  const sourceCode = `Source code/Diff. File path '${filePath}':\n\n"""${diffText}\n"""\n`
 
-  if (context.dirContext) {
-    userMessageStr = `${userMessageStr}Directory structure of project:\n---\n${context.dirContext})\n`
-  }
+  const dirContext = context.dirContext
+    ? `Project Directory structure:\n"""${context.dirContext}\n"""\n`
+    : ''
 
-  if (context.userContext) {
-    userMessageStr = `${userMessageStr}Extra user context:\n---\n${context.userContext}\n`
-  }
+  const userContext = context.userContext
+    ? `Extra user context:\n"""${context.userContext}\n"""\n`
+    : ''
+
+  const userMessageStr = `${sourceCode}${dirContext}${userContext}`
 
   core.debug(
-    `Job definition context: '${!!context.jobContext}' Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`
+    `PR  context: Dir context: '${!!context.dirContext}' User context: '${!!context.userContext}'`
   )
 
   const userMessage: ChatCompletionMessageParam = {
@@ -74,7 +73,7 @@ function setupInitialMessagePr(
   return [systemMessage, userMessage]
 }
 
-async function openAiRequest(
+export async function openAiRequest(
   message: ChatCompletionMessageParam[],
   context: Context
 ): Promise<ChatCompletion> {
@@ -112,5 +111,3 @@ async function openAiRequest(
 
   return response
 }
-
-export { openAiRequest, setupInitialMessage, setupInitialMessagePr }

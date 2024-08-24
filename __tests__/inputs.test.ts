@@ -1,5 +1,7 @@
-import fs from 'fs'
+import fs, { promises as fsPromises } from 'fs'
 import { getInputs, getContextFromPayload } from '../src/inputs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 function setInputEnvironmentVariables(
   override: Record<string, string> = {}
@@ -28,19 +30,27 @@ function clearInputEnvironmentVariables(): void {
   }
 }
 
-function setContextPayloadEnvironmentVariables(
+async function setContextPayloadEnvironmentVariables(
   payload: string,
   override: Record<string, string> = {}
-): string {
-  const tmp = require('tmp')
-  const tmpobj = tmp.fileSync()
-  fs.writeSync(tmpobj.fd, payload)
-  // fs.writeSync('sadasd.txt', payload)
-  // const p = 'test.txt'
-  // fs.writeFile(p, payload, err => {
-  //   if (err) throw err
-  //   console.log('The file has been saved!')
-  // })
+): Promise<string> {
+  // const tmp = require('tmp')
+  const payloadPath = join(
+    tmpdir(),
+    `${Math.random().toString(36).substring(7)}.json`
+  )
+  await fsPromises.writeFile(payloadPath, payload)
+
+  const tmpobj = {
+    name: payloadPath,
+    removeCallback: async () => {
+      try {
+        await fsPromises.unlink(payloadPath)
+      } catch {
+        console.log('..')
+      }
+    }
+  }
 
   process.env['GITHUB_WORKFLOW'] = 'Test workflow'
   process.env['GITHUB_RUN_NUMBER'] = '2'
@@ -174,7 +184,7 @@ describe('getContextFromPayload', () => {
     clearContextPayloadEnvironmentVariables(tmpfile)
   })
 
-  it('should return empty context when payload is empty', () => {
+  it('should return empty context when payload is empty', async () => {
     // const { getContextFromPayload } = require('../src/inputs')
     const expectedContext = {
       action: '',
@@ -186,11 +196,11 @@ describe('getContextFromPayload', () => {
       repo: '',
       runId: ''
     }
-    const responseContext = getContextFromPayload()
+    const responseContext = await getContextFromPayload()
     expect(responseContext).toEqual(expectedContext)
   })
 
-  it('should return the correct context for a valid payload', () => {
+  it('should return the correct context for a valid payload', async () => {
     // const { getContextFromPayload } = require('../src/inputs')
     const payload = {
       runId: 123,
@@ -218,7 +228,7 @@ describe('getContextFromPayload', () => {
       // // GITHUB_EVENT_PATH: /home/runner/work/_temp/_github_workflow/event.json
     }
 
-    tmpfile = setContextPayloadEnvironmentVariables(
+    tmpfile = await setContextPayloadEnvironmentVariables(
       JSON.stringify(payload),
       envVar
     )
@@ -233,7 +243,7 @@ describe('getContextFromPayload', () => {
       ref: 'ref'
     }
 
-    const responseContext = getContextFromPayload()
+    const responseContext = await getContextFromPayload()
     expect(responseContext).toEqual(expectedContext)
   })
 
