@@ -18,7 +18,6 @@ class Context {
     constructor() {
         var _a, _b, _c;
         this.payload = {};
-        // console.log("XXXXXXX:::XXXXXX", process.env)
         if (process.env.GITHUB_EVENT_PATH) {
             if ((0, fs_1.existsSync)(process.env.GITHUB_EVENT_PATH)) {
                 this.payload = JSON.parse((0, fs_1.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: 'utf8' }));
@@ -37,7 +36,6 @@ class Context {
         this.job = process.env.GITHUB_JOB;
         this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
         this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
-
         this.apiUrl = (_a = process.env.GITHUB_API_URL) !== null && _a !== void 0 ? _a : `https://api.github.com`;
         this.serverUrl = (_b = process.env.GITHUB_SERVER_URL) !== null && _b !== void 0 ? _b : `https://github.com`;
         this.graphqlUrl =
