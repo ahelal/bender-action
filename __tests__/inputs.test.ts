@@ -70,14 +70,14 @@ async function setContextPayloadEnvironmentVariables(
   // return p
 }
 
-function clearContextPayloadEnvironmentVariables(path: string): void {
+function clearContextPayloadEnvironmentVariables(path = ''): void {
   for (const key in process.env) {
     if (key.startsWith('GITHUB_')) {
       delete process.env[key]
     }
   }
   try {
-    fs.unlinkSync(path)
+    path ? fs.unlinkSync(path) : ''
   } catch (e) {
     console.log('')
   }
@@ -174,6 +174,7 @@ describe('getContextFromPayload', () => {
   let tmpfile = ''
 
   beforeEach(() => {
+    clearContextPayloadEnvironmentVariables()
     jest.resetModules()
     // jest.isolateModules()
     jest.clearAllMocks()
