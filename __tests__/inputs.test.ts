@@ -1,5 +1,5 @@
 import fs, { promises as fsPromises } from 'fs'
-import { getInputs, getContextFromPayload } from '../src/inputs'
+import { getInputs } from '../src/inputs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -185,7 +185,7 @@ describe('getContextFromPayload', () => {
   })
 
   it('should return empty context when payload is empty', async () => {
-    // const { getContextFromPayload } = require('../src/inputs')
+    const { getContextFromPayload } = await import('../src/inputs')
     const expectedContext = {
       action: '',
       commitId: '',
@@ -201,7 +201,7 @@ describe('getContextFromPayload', () => {
   })
 
   it('should return the correct context for a valid payload', async () => {
-    // const { getContextFromPayload } = require('../src/inputs')
+    const { getContextFromPayload } = await import('../src/inputs')
     const payload = {
       runId: 123,
       action: 'opened',
@@ -215,22 +215,9 @@ describe('getContextFromPayload', () => {
         }
       }
     }
-    const envVar = {
-      // GITHUB_WORKFLOW: 'Node js cli',
-      // GITHUB_EVENT_NAME: 'pull_request',
-      // GITHUB_ACTION: '__run_2',
-      // GITHUB_REF: 'refs/pull/6/merge',
-      // GITHUB_RUN_NUMBER: '1',
-      // GITHUB_RUN_ID: '123',
-      // GITHUB_ACTOR: 'ahelal',
-      // GITHUB_JOB: 'build',
-      // GITHUB_SHA: 'd492f0dc80bbde6de8aca5bf59d068a6b811fc9f'
-      // // GITHUB_EVENT_PATH: /home/runner/work/_temp/_github_workflow/event.json
-    }
-
     tmpfile = await setContextPayloadEnvironmentVariables(
       JSON.stringify(payload),
-      envVar
+      {}
     )
     const expectedContext = {
       action: 'opened',
@@ -246,67 +233,4 @@ describe('getContextFromPayload', () => {
     const responseContext = await getContextFromPayload()
     expect(responseContext).toEqual(expectedContext)
   })
-
-  //   it('should handle missing pull_request in payload', () => {
-  //     const payload = {
-  //       repository: {
-  //         owner: { login: 'ownerName' },
-  //         name: 'repoName'
-  //       }
-  //     }
-
-  //     const expectedContext = {
-  //       owner: 'ownerName',
-  //       repo: 'repoName',
-  //       pullRequestNumber: undefined
-  //     }
-
-  //     const context = getContextFromPayload(payload)
-
-  //     expect(context).toEqual(expectedContext)
-  //   })
-
-  //   it('should handle missing repository in payload', () => {
-  //     const payload = {}
-
-  //     const expectedContext = {
-  //       owner: undefined,
-  //       repo: undefined,
-  //       pullRequestNumber: undefined
-  //     }
-
-  //     const context = getContextFromPayload(payload)
-
-  //     expect(context).toEqual(expectedContext)
-  //   })
 })
-
-// {
-//   "action": "synchronize",
-//   "after": "5c1ff863f4116a38622b2495b94d592ec4d3af17",
-//   "number": 2,
-//   "repository": {
-//     "default_branch": "main",
-//     "description": null,
-//     "full_name": "ahelal/bender-action-test",
-//     "language": "Python",
-//     "languages_url": "https://api.github.com/repos/ahelal/bender-action-test/languages",
-//     "name": "bender-action-test",
-//     "owner": {
-//       "login": "ahelal",
-//       "type": "User",
-//       "url": "https://api.github.com/users/ahelal"
-//     },
-//     "private": false
-//   },
-//   "sender": {
-//     "login": "ahelal"
-//   }
-// }
-
-// safely create a temp file and return the path
-// function createTempFile(): string {
-//   const tmp = require('tmp')
-//   const tmpobj = tmp.fileSync()
-//   return tmpobj.name
-// }
