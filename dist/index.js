@@ -32677,7 +32677,7 @@ const config_1 = __nccwpck_require__(6373);
 async function run() {
     try {
         let context = (0, inputs_1.getInputs)();
-        const payloadContext = (0, inputs_1.getContextFromPayload)();
+        const payloadContext = await (0, inputs_1.getContextFromPayload)();
         context = Object.assign({}, context, payloadContext);
         (0, output_1.debugGroupedMsg)('Context', `Context: ${JSON.stringify(context, null, 2)}`, context);
         await (0, wait_1.wait)(parseInt(config_1.WAIT_TIME, 10));
