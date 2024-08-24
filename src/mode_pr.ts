@@ -4,7 +4,7 @@ import {
   getContentByRef,
   getFileContent4Context,
   getUserInfo
-} from './github_api'
+} from './gh_api'
 import { setupInitialMessagePr, openAiRequest } from './openai_api'
 import { Context, dataResponse } from './types'
 import {

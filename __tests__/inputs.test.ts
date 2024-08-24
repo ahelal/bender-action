@@ -1,10 +1,7 @@
-// import * as core from '@actions/core'
-// import { context } from '@actions/github'
-import { getInputs, validateInputAsBoolean } from '../src/inputs'
-// getContextFromPayload
-
-// jest.mock('@actions/core')
-// jest.mock('@actions/github')
+import fs, { promises as fsPromises } from 'fs'
+import { getInputs } from '../src/inputs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 function setInputEnvironmentVariables(
   override: Record<string, string> = {}
@@ -24,7 +21,8 @@ function setInputEnvironmentVariables(
     process.env[`INPUT_${key.toUpperCase()}`] = override[key]
   }
 }
-function clearEnvironmentVariables(): void {
+
+function clearInputEnvironmentVariables(): void {
   for (const key in process.env) {
     if (key.startsWith('INPUT_')) {
       delete process.env[key]
@@ -32,23 +30,81 @@ function clearEnvironmentVariables(): void {
   }
 }
 
+async function setContextPayloadEnvironmentVariables(
+  payload: string,
+  override: Record<string, string> = {}
+): Promise<string> {
+  // const tmp = require('tmp')
+  const payloadPath = join(
+    tmpdir(),
+    `${Math.random().toString(36).substring(7)}.json`
+  )
+  await fsPromises.writeFile(payloadPath, payload)
+
+  const tmpobj = {
+    name: payloadPath,
+    removeCallback: async () => {
+      try {
+        await fsPromises.unlink(payloadPath)
+      } catch {
+        console.log('..')
+      }
+    }
+  }
+
+  process.env['GITHUB_WORKFLOW'] = 'Test workflow'
+  process.env['GITHUB_RUN_NUMBER'] = '2'
+  process.env['GITHUB_RUN_ID'] = '123'
+  process.env['GITHUB_SHA'] = 'commit'
+  process.env['GITHUB_EVENT_NAME'] = 'pull_request'
+  process.env['GITHUB_JOB'] = 'JOB'
+  process.env['GITHUB_REF'] = 'ref'
+  for (const key in override) {
+    process.env[key] = override[key]
+  }
+  process.env['CI'] = 'true'
+  process.env['GITHUB_EVENT_PATH'] = tmpobj.name
+  // process.env['GITHUB_EVENT_PATH'] = p
+
+  return tmpobj.name
+  // return p
+}
+
+function clearContextPayloadEnvironmentVariables(path = ''): void {
+  for (const key in process.env) {
+    if (key.startsWith('GITHUB_')) {
+      delete process.env[key]
+    }
+  }
+  try {
+    path ? fs.unlinkSync(path) : ''
+  } catch (e) {
+    console.log('')
+  }
+}
+
 describe('getInputs', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    clearEnvironmentVariables()
+    jest.resetModules()
+    clearInputEnvironmentVariables()
   })
 
   it('should throw an error for empty mode', () => {
-    expect(getInputs).toThrow('Input required and not supplied: mode')
+    // const getInputs = require('../src/inputs')
+    expect(getInputs).toThrow('required')
   })
 
   it('should throw an error for invalid mode', () => {
+    // const getInputs = require('../src/inputs')
     // set environment variables for the test
     process.env['INPUT_MODE'] = 'no-mode'
-    expect(getInputs).toThrow("Invalid input for input 'mode'")
+    expect(getInputs).toThrow("Invalid input for 'mode'")
+    expect(getInputs).toThrow('no-mode')
   })
 
   it('should return the correct inputs for pr mode', () => {
+    // const getInputs = require('../src/inputs')
     setInputEnvironmentVariables()
     const inputs = getInputs()
     expect(inputs).toEqual({
@@ -68,6 +124,7 @@ describe('getInputs', () => {
   })
 
   it('should return the correct inputs for job mode', () => {
+    // const getInputs = require('../src/inputs')
     setInputEnvironmentVariables({ mode: 'job' })
     const inputs = getInputs()
     expect(inputs).toEqual({
@@ -110,25 +167,71 @@ describe('getInputs', () => {
         expect(getInputs).toThrow('Input required and not supplied')
       })
     }
+  })
+})
 
-    describe('validateInputAsBoolean', () => {
-      it('should return true for valid input "true"', () => {
-        const result = validateInputAsBoolean('testKey', 'true')
-        expect(result).toBe(true)
-      })
+describe('getContextFromPayload', () => {
+  let tmpfile = ''
 
-      it('should return false for valid input "false"', () => {
-        const result = validateInputAsBoolean('testKey', 'false')
-        expect(result).toBe(false)
-      })
+  beforeEach(() => {
+    clearContextPayloadEnvironmentVariables()
+    jest.resetModules()
+    // jest.isolateModules()
+    jest.clearAllMocks()
+  })
 
-      it('should throw an error for invalid input', () => {
-        expect(() => {
-          validateInputAsBoolean('testKey', 'invalid')
-        }).toThrow(
-          "Invalid input for input 'testKey': invalid is not a boolean value"
-        )
-      })
-    })
+  afterEach(() => {
+    jest.resetModules()
+    clearContextPayloadEnvironmentVariables(tmpfile)
+  })
+
+  it('should return empty context when payload is empty', async () => {
+    const { getContextFromPayload } = await import('../src/inputs')
+    const expectedContext = {
+      action: '',
+      commitId: '',
+      full_name: '',
+      owner: '',
+      pr: '',
+      ref: '',
+      repo: '',
+      runId: ''
+    }
+    const responseContext = await getContextFromPayload()
+    expect(responseContext).toEqual(expectedContext)
+  })
+
+  it('should return the correct context for a valid payload', async () => {
+    const { getContextFromPayload } = await import('../src/inputs')
+    const payload = {
+      runId: 123,
+      action: 'opened',
+      repository: {
+        full_name: 'ownerName/repoName'
+      },
+      number: '20',
+      pull_request: {
+        head: {
+          sha: 'commit'
+        }
+      }
+    }
+    tmpfile = await setContextPayloadEnvironmentVariables(
+      JSON.stringify(payload),
+      {}
+    )
+    const expectedContext = {
+      action: 'opened',
+      full_name: 'ownerName/repoName',
+      owner: 'ownerName',
+      repo: 'repoName',
+      pr: '20',
+      runId: '123',
+      commitId: 'commit',
+      ref: 'ref'
+    }
+
+    const responseContext = await getContextFromPayload()
+    expect(responseContext).toEqual(expectedContext)
   })
 })

@@ -16,7 +16,8 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "newLine": "lf"
+    "newLine": "lf",
+    "useUnknownInCatchVariables": false
   },
   "exclude": ["./dist", "./node_modules", "./__tests__", "./coverage"]
 }

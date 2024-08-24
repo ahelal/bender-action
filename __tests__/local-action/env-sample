@@ -19,7 +19,7 @@ INPUT_job-context="false"
 # any value set by the local-action tool.
 # https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
 
-CI="false"
+CI="true"
 GITHUB_EVENT_NAME="push"
 GITHUB_EVENT_PATH="<PATH>"
 GITHUB_JOB="<JOB NAME>"

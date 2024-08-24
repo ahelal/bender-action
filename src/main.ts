@@ -14,7 +14,7 @@ import { Context } from './types'
 export async function run(): Promise<void> {
   try {
     let context: Context = getInputs()
-    const payloadContext = getContextFromPayload()
+    const payloadContext = await getContextFromPayload()
     context = Object.assign({}, context, payloadContext)
     debugGroupedMsg(
       'Context',

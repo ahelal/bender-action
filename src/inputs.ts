@@ -1,13 +1,12 @@
 import * as core from '@actions/core'
-import { context } from '@actions/github'
+
 import { decode64 } from './util'
 import { Context } from './types'
+
 import { debugGroupedMsg } from './output'
 
-export function validateInputAsBoolean(
-  nameOfKey: string,
-  userInput: string
-): boolean {
+function getBooleanInput(nameOfKey: string, required: boolean): boolean {
+  const userInput: string = core.getInput(nameOfKey, { required })
   if (userInput.toLowerCase() === 'true') return true
   if (userInput.toLowerCase() === 'false') return false
   if (userInput.trim() === '') return false
@@ -16,14 +15,20 @@ export function validateInputAsBoolean(
   )
 }
 
-export function validateInputWithSelection(
+function getStringInput(
   nameOfKey: string,
-  userInput: string,
-  validValues: string[]
+  required: boolean,
+  validValues: string[] = []
 ): string {
-  if (validValues.includes(userInput)) return userInput
+  const strInput: string = core
+    .getInput(nameOfKey, { required })
+    ?.toLocaleLowerCase()
+
+  if (validValues.length === 0) return strInput
+
+  if (validValues.includes(strInput)) return strInput
   throw new Error(
-    `Invalid input for input '${nameOfKey}': ${userInput} is not a valid value`
+    `Invalid input for '${nameOfKey}': ${strInput} is not a valid value`
   )
 }
 
@@ -33,16 +38,8 @@ export function validateInputWithSelection(
  */
 export function getInputs(): Context {
   const inputs: Context = {} as Context
-  // value selectopm for mode
-  // dynamic required based on mode
 
-  // input decode for dirContext
-
-  inputs.mode = validateInputWithSelection(
-    'mode',
-    core.getInput('mode', { required: true }),
-    ['pr', 'job']
-  )
+  inputs.mode = getStringInput('mode', true, ['pr', 'job'])
 
   inputs.ghToken = core.getInput('gh-token', {
     required: inputs.mode === 'pr'
@@ -78,23 +75,13 @@ export function getInputs(): Context {
       "GH action input 'dirContext'"
     )
 
-  inputs.jobContext = validateInputAsBoolean(
-    'jobContext',
-    core.getInput('job-context', {
-      required: false
-    })
-  )
+  inputs.jobContext = getBooleanInput('job-context', false)
 
   inputs.userContext = core.getInput('user-context', {
     required: false
   })
 
-  inputs.inlineComment = validateInputAsBoolean(
-    'inline-comment',
-    core.getInput('inline-comment', {
-      required: false
-    })
-  )
+  inputs.inlineComment = getBooleanInput('inline-comment', false)
 
   inputs.include = core
     .getInput('include', {
@@ -104,12 +91,16 @@ export function getInputs(): Context {
 
   return inputs
 }
+
 /**
  * Get context from githubaction payload and return required context.
  * @returns {Context} Resolves when the action is complete.
  */
-
-export function getContextFromPayload(): Context {
+export async function getContextFromPayload(): Promise<Context> {
+  // const contextPayload = context()
+  const { context } = await import('@actions/github')
+  // const context = require('@actions/github').context
+  // const users = await import("./yourModuleThatExportsUsers");
   debugGroupedMsg(
     `GH Context event`,
     `GH Action context event ${JSON.stringify(context, null, 2)}`,
@@ -118,9 +109,10 @@ export function getContextFromPayload(): Context {
 
   const payloadContext: Context = {} as Context
   const full_name = context.payload.repository?.full_name?.split('/') || []
+
   payloadContext.full_name = full_name.join('/')
-  payloadContext.owner = full_name[0]
-  payloadContext.repo = full_name[1]
+  payloadContext.owner = full_name[0] || ''
+  payloadContext.repo = full_name[1] || ''
   payloadContext.runId = context.runId ? context.runId.toString() : ''
   payloadContext.pr = context.payload.number?.toString() || ''
   payloadContext.action = context.payload.action || ''
