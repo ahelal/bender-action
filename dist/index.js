@@ -40692,7 +40692,6 @@ class AzureOpenAI extends OpenAI {
                 throw new Error('Expected request body to be an object');
             }
             const model = this._deployment || options.body['model'];
-            delete options.body['model'];
             if (model !== undefined && !this.baseURL.includes('/deployments')) {
                 options.path = `/deployments/${model}${options.path}`;
             }
@@ -45659,7 +45658,7 @@ const addFormValue = async (form, key, value) => {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VERSION = void 0;
-exports.VERSION = '4.55.5'; // x-release-please-version
+exports.VERSION = '4.56.0'; // x-release-please-version
 //# sourceMappingURL=version.js.map
 
 /***/ }),
